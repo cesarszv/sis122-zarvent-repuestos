@@ -2,8 +2,8 @@
 name: "Zarvent Rent"
 description: "Sistema administrativo para alquiler de vehiculos, reservas, contratos, pagos y mantenimiento."
 assets:
-  logo: "logo.png"
-  banner: "banner.jpg"
+  logo: "assets/logo.png"
+  banner: "assets/banner.jpg"
 identity:
   tone: "operativo, confiable, tecnico, automotriz"
   keywords:
