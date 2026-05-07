@@ -1,3 +1,14 @@
+
+# AI Repo
+
+- los nombres/titulos de las tablas, variables, etc deben ir en `USA english native`
+
+quizas la descripcion de los textos pueden ir en `latam spanish` 
+
+---
+
+# AI personality
+
 # Instructions
 
 ## Rules

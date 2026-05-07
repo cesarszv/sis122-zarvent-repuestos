@@ -8,14 +8,13 @@ caso de estudio.
 - **MySQL**: Gestor de base de datos relacional principal del proyecto. Se usara
   para almacenar clientes, repuestos, compatibilidades, inventario, proveedores,
   compras, ventas, pagos, comprobantes y devoluciones.
-- **MySQL Workbench**: Herramienta para disenar el modelo entidad-relacion,
-  crear el modelo logico/fisico y ejecutar consultas SQL.
-- **drawDB**: Herramienta para visualizar el diagrama de tablas y relaciones a
-  partir del script SQL.
+
 - **SQL**: Lenguaje usado para crear tablas, relaciones, restricciones,
   inserciones, consultas y reportes.
+
 - **Visual Studio Code**: Editor para redactar la documentacion y organizar los
   archivos del proyecto.
+  
 - **Git / GitHub**: Control de versiones para mantener el historial del proyecto
   y compartir avances entre los integrantes.
 
