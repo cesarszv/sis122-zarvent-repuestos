@@ -12,7 +12,7 @@ nucleo del negocio sin duplicar informacion y dejando relaciones claras.
 ```mermaid
 erDiagram
     PERSON ||--o| CUSTOMER : identifica
-    CUSTOMER ||--o{ SALES_ORDER : realiza
+    CUSTOMER ||--o{ SALES_ORDER : re    aliza
     SALES_ORDER ||--|{ SALES_ORDER_ITEM : contiene
     SALES_ORDER ||--o{ PAYMENT : recibe
     SALES_ORDER ||--o{ RETURN_ORDER : puede_tener
