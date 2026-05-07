@@ -1,8 +1,8 @@
 # Procesos
 
 Los procesos son las actividades principales que se realizan dentro del caso de
-estudio. En este documento se analiza como trabaja actualmente Zarvent Rent y que
-modulos o entidades pueden surgir a partir de esas actividades.
+estudio. En este documento se analiza como trabaja actualmente Zarvent
+Repuestos y que modulos o entidades pueden surgir a partir de esas actividades.
 
 El analisis no debe inventar tablas directamente. Primero se identifican los
 procesos reales, los actores que participan, los recursos que usan, la
@@ -11,13 +11,13 @@ derivar requerimientos, entidades y relaciones para la base de datos.
 
 ## Criterio de analisis
 
-Zarvent Rent es un sistema de informacion administrativo para una empresa pequena
-de alquiler de vehiculos.
+Zarvent Repuestos es un sistema de informacion administrativo para una empresa
+pequena de venta de repuestos de vehiculos.
 
 Actualmente la informacion se registra en papel, planillas Excel y mensajes de
 WhatsApp. Esto permite trabajar, pero genera problemas de centralizacion,
-redundancia, inconsistencia, busqueda lenta de informacion y dificultad para
-generar reportes.
+redundancia, inconsistencia, busqueda lenta de informacion, control debil de
+stock y dificultad para generar reportes.
 
 Para cada proceso se considera:
 
@@ -31,31 +31,31 @@ Para cada proceso se considera:
 
 ## Flujo general actual
 
-1. El cliente solicita alquilar un vehiculo.
-2. El encargado operativo revisa disponibilidad en registros manuales,
-   planillas o mensajes.
-3. Se registra la informacion del cliente.
-4. Se anota o confirma la reserva.
-5. Se prepara el contrato de alquiler.
-6. Se entrega el vehiculo y se registra su estado inicial.
-7. Se registran pagos, anticipos o saldos pendientes.
-8. El cliente devuelve el vehiculo.
-9. Se revisa el estado final del vehiculo.
-10. Se registran cargos adicionales si corresponde.
-11. Se actualiza el estado del vehiculo.
-12. El gerente revisa ingresos, contratos, pagos pendientes y estado de la
-    flota.
+1. El cliente consulta por un repuesto.
+2. El encargado de ventas pide datos del vehiculo o codigo de pieza.
+3. Se busca el repuesto en Excel, cuadernos, estantes o mensajes anteriores.
+4. Se verifica precio y stock disponible.
+5. Si el cliente acepta, se registra o identifica al cliente.
+6. Se registra la venta y el detalle de repuestos vendidos.
+7. Se registra el pago y se emite comprobante o factura.
+8. Almacen descuenta el stock del producto vendido.
+9. Si el stock queda bajo, compras solicita reposicion a proveedores.
+10. Cuando llega mercaderia, almacen registra la recepcion y actualiza stock.
+11. Si existe devolucion o garantia, se revisa la venta y el estado del
+    producto.
+12. El gerente revisa ingresos, stock bajo, compras pendientes y productos mas
+    vendidos.
 
 ## Procesos identificados
 
 ### Control de acceso y responsabilidades
 
 **Actividad actual:** la empresa controla las tareas segun la responsabilidad de
-cada persona. No existe necesariamente un control digital de usuarios, perfiles y
-permisos.
+cada persona. No existe necesariamente un control digital de usuarios, perfiles
+y permisos.
 
-**Actores:** Administrador / Gerente, Encargado operativo, Responsable de
-mantenimiento.
+**Actores:** Administrador / Gerente, Encargado de ventas, Encargado de almacen
+y Responsable de compras.
 
 **Recursos actuales:** acuerdos internos, documentos compartidos, planillas o
 registros fisicos.
@@ -71,243 +71,231 @@ actividad.
 
 ### Registro de clientes
 
-**Actividad actual:** el cliente entrega sus datos personales y documentos para
-poder realizar una reserva o contrato.
+**Actividad actual:** el cliente entrega sus datos personales cuando solicita
+cotizacion, factura, garantia o devolucion.
 
-**Actores:** Cliente y Encargado operativo.
+**Actores:** Cliente y Encargado de ventas.
 
-**Recursos actuales:** formularios fisicos, fotocopias, fotografias de
-documentos, planillas Excel o mensajes de WhatsApp.
+**Recursos actuales:** formularios fisicos, recibos, facturas, planillas Excel o
+mensajes de WhatsApp.
 
-**Informacion manejada:** nombres, apellidos, CI, telefono, direccion,
-documentos, referencias y datos de contacto.
+**Informacion manejada:** nombres, apellidos, CI/NIT, telefono, direccion,
+correo y datos de contacto.
 
 **Problemas detectados:** el mismo cliente puede registrarse mas de una vez con
 datos incompletos o escritos de forma diferente.
 
-**Modulo o entidad que surge:** clientes, documentos de cliente y contactos.
+**Modulo o entidad que surge:** clientes, personas y contactos.
 
-### Gestion de vehiculos
+### Gestion del catalogo de repuestos
 
-**Actividad actual:** la empresa mantiene informacion basica de cada vehiculo
-para saber si puede alquilarse.
+**Actividad actual:** la empresa mantiene una lista de repuestos con precios,
+codigos y descripciones, pero la informacion puede estar dispersa entre Excel,
+estantes y mensajes.
 
-**Actores:** Administrador / Gerente, Encargado operativo y Responsable de
-mantenimiento.
+**Actores:** Administrador / Gerente, Encargado de ventas y Encargado de
+almacen.
 
-**Recursos actuales:** planilla de vehiculos, carpetas fisicas, fotografias,
-documentos del vehiculo y registros de kilometraje.
+**Recursos actuales:** planilla de productos, etiquetas, codigos de barra,
+fotografias, listas impresas de precios y facturas de proveedores.
 
-**Informacion manejada:** placa, marca, modelo, tipo, anio, color, kilometraje,
-estado, disponibilidad, combustible y observaciones.
+**Informacion manejada:** codigo interno, codigo OEM, descripcion, categoria,
+marca, unidad, precio, costo, garantia y estado del producto.
 
-**Problemas detectados:** el estado del vehiculo puede quedar desactualizado si
-la informacion se registra en varios medios.
+**Problemas detectados:** pueden existir productos duplicados, codigos mal
+escritos, precios desactualizados o descripciones insuficientes para vender con
+seguridad.
 
-**Modulo o entidad que surge:** vehiculos, tipos de vehiculo, estados de
-vehiculo y registro de kilometraje.
+**Modulo o entidad que surge:** repuestos, categorias, marcas, unidades,
+estados y precios.
 
-### Consulta de disponibilidad
+### Compatibilidad de repuestos con vehiculos
 
-**Actividad actual:** antes de aceptar una reserva, el encargado revisa si el
-vehiculo esta libre para las fechas solicitadas.
+**Actividad actual:** para evitar errores de venta, el encargado verifica si el
+repuesto corresponde al vehiculo del cliente.
 
-**Actores:** Encargado operativo y Cliente.
+**Actores:** Cliente, Encargado de ventas y Encargado de almacen.
 
-**Recursos actuales:** planillas Excel, agenda fisica, historial de WhatsApp y
-contratos anteriores.
+**Recursos actuales:** experiencia del vendedor, catalogos impresos,
+fotografias, codigos OEM, mensajes de proveedores y consulta manual en internet.
 
-**Informacion manejada:** vehiculo solicitado, fecha de inicio, fecha de fin,
-estado del vehiculo y reservas existentes.
+**Informacion manejada:** marca del vehiculo, modelo, anio, motor, codigo de
+pieza y observaciones de compatibilidad.
 
-**Problemas detectados:** puede existir doble reserva o confusion si la
-informacion no esta centralizada.
+**Problemas detectados:** si la compatibilidad no esta centralizada, se puede
+vender un producto incorrecto y generar devoluciones.
 
-**Modulo o entidad que surge:** disponibilidad, calendario de reservas y estados
-de reserva.
+**Modulo o entidad que surge:** marcas de vehiculo, modelos de vehiculo y
+compatibilidad de repuestos.
 
-### Registro de reservas
+### Consulta y control de stock
 
-**Actividad actual:** cuando el cliente confirma interes, se aparta un vehiculo
-para una fecha determinada.
+**Actividad actual:** antes de vender, el encargado revisa si el producto existe
+fisicamente en almacen o en la planilla.
 
-**Actores:** Cliente y Encargado operativo.
+**Actores:** Encargado de ventas y Encargado de almacen.
 
-**Recursos actuales:** notas, agenda, planilla Excel, mensajes de WhatsApp o
-comprobantes de anticipo.
+**Recursos actuales:** planilla Excel, conteo visual de estantes, cuaderno de
+salidas, mensajes y notas manuales.
 
-**Informacion manejada:** cliente, vehiculo, fecha de inicio, fecha de fin,
-monto estimado, anticipo, estado de la reserva y observaciones.
+**Informacion manejada:** repuesto, cantidad disponible, ubicacion, stock
+minimo, stock maximo y estado del producto.
 
-**Problemas detectados:** las reservas pueden perderse, duplicarse o no
-actualizarse cuando el cliente cancela.
+**Problemas detectados:** puede venderse un producto inexistente, quedar stock
+desactualizado o no detectar a tiempo productos agotados.
 
-**Modulo o entidad que surge:** reservas, detalle de reserva y estados de
-reserva.
+**Modulo o entidad que surge:** stock, almacenes, ubicaciones y movimientos de
+inventario.
 
-### Generacion de contratos de alquiler
+### Registro de ventas
 
-**Actividad actual:** el alquiler se formaliza mediante un contrato con datos del
-cliente, vehiculo, fechas, precio y condiciones.
+**Actividad actual:** cuando el cliente confirma la compra, se registra la venta
+en una libreta, planilla o comprobante.
 
-**Actores:** Cliente y Encargado operativo.
+**Actores:** Cliente, Encargado de ventas y Administrador / Gerente.
 
-**Recursos actuales:** contrato impreso, documento Word, plantilla, fotocopias y
-firmas.
+**Recursos actuales:** recibos, facturas, planillas Excel, mensajes de WhatsApp
+y notas manuales.
 
-**Informacion manejada:** datos del cliente, datos del vehiculo, fechas de
-alquiler, tarifa, garantia, condiciones, responsabilidades y firma.
+**Informacion manejada:** cliente, fecha, usuario que vende, repuestos
+vendidos, cantidades, precio unitario, descuento, total, estado de la venta y
+observaciones.
 
-**Problemas detectados:** puede haber errores al copiar datos desde otros
-registros o dificultad para consultar contratos activos.
+**Problemas detectados:** las ventas pueden no coincidir con el stock, los
+precios historicos pueden perderse y los reportes de ingresos toman tiempo.
 
-**Modulo o entidad que surge:** contratos, condiciones de contrato, garantias y
-estado del contrato.
+**Modulo o entidad que surge:** ventas, detalle de venta, estados de venta,
+pagos y comprobantes.
 
-### Entrega del vehiculo
+### Registro de pagos y comprobantes
 
-**Actividad actual:** al iniciar el alquiler, se entrega el vehiculo y se deja
-constancia de su estado inicial.
+**Actividad actual:** la empresa registra pagos en efectivo, transferencia, QR o
+tarjeta, y emite recibo o factura segun corresponda.
 
-**Actores:** Encargado operativo y Cliente.
+**Actores:** Cliente, Encargado de ventas / Caja y Administrador / Gerente.
 
-**Recursos actuales:** checklist fisico, fotografias, contrato, nota de entrega
-o registro manual.
+**Recursos actuales:** recibos, comprobantes de transferencia, facturas,
+planillas Excel y mensajes de WhatsApp.
 
-**Informacion manejada:** fecha de entrega, kilometraje inicial, combustible,
-estado exterior, estado interior, accesorios, observaciones y danos previos.
+**Informacion manejada:** monto, fecha, metodo de pago, numero de comprobante,
+NIT/CI, razon social, subtotal, descuento, impuesto y total.
 
-**Problemas detectados:** si no se registra bien el estado inicial, pueden existir
-conflictos al momento de la devolucion.
+**Problemas detectados:** los pagos pueden no estar relacionados correctamente
+con la venta o puede ser dificil identificar ventas pagadas, anuladas o con
+saldo pendiente.
 
-**Modulo o entidad que surge:** entrega de vehiculo, inspeccion inicial y
-registro de danos.
+**Modulo o entidad que surge:** metodos de pago, pagos de venta, tipos de
+comprobante y comprobantes.
 
-### Registro de pagos
+### Gestion de compras a proveedores
 
-**Actividad actual:** la empresa registra pagos, anticipos, saldos pendientes y
-cargos adicionales.
+**Actividad actual:** cuando un producto esta agotado o bajo en stock, compras
+coordina la reposicion con proveedores.
 
-**Actores:** Cliente, Encargado operativo y Administrador / Gerente.
+**Actores:** Responsable de compras, Proveedor, Encargado de almacen y
+Administrador / Gerente.
 
-**Recursos actuales:** recibos, comprobantes de transferencia, planillas Excel,
-mensajes de WhatsApp y notas manuales.
+**Recursos actuales:** cotizaciones, facturas de compra, mensajes de WhatsApp,
+listas de precios de proveedores y planillas Excel.
 
-**Informacion manejada:** monto, fecha, metodo de pago, concepto, saldo,
-anticipo, multa o cargo adicional.
+**Informacion manejada:** proveedor, repuestos solicitados, cantidades, costos,
+fecha de pedido, fecha estimada, estado de compra y observaciones.
 
-**Problemas detectados:** los pagos pueden no coincidir con los contratos o puede
-ser dificil identificar saldos pendientes.
+**Problemas detectados:** puede perderse informacion de pedidos pendientes,
+costos anteriores o proveedores que abastecen cada producto.
 
-**Modulo o entidad que surge:** pagos, metodos de pago, saldos, cargos
-adicionales y multas.
+**Modulo o entidad que surge:** proveedores, ordenes de compra, detalle de
+compra y estados de compra.
 
-### Devolucion del vehiculo
+### Recepcion de mercaderia
 
-**Actividad actual:** al terminar el alquiler, el cliente devuelve el vehiculo y
-se revisa su estado final.
+**Actividad actual:** cuando llega mercaderia, almacen verifica las cantidades y
+actualiza el inventario.
 
-**Actores:** Cliente y Encargado operativo.
+**Actores:** Encargado de almacen, Responsable de compras y Proveedor.
 
-**Recursos actuales:** checklist fisico, fotografias, contrato, mensajes,
-recibos y notas manuales.
+**Recursos actuales:** factura de proveedor, nota de entrega, orden de compra,
+conteo fisico y planilla de inventario.
 
-**Informacion manejada:** fecha de devolucion, kilometraje final, combustible,
-estado final, danos, retrasos, multas y observaciones.
+**Informacion manejada:** orden de compra, repuesto, cantidad pedida, cantidad
+recibida, costo unitario, fecha de recepcion, ubicacion y responsable.
 
-**Problemas detectados:** si la informacion de entrega y devolucion no esta
-relacionada, es dificil justificar cargos adicionales.
+**Problemas detectados:** si la recepcion no se registra con detalle, el stock y
+el costo pueden quedar incorrectos.
 
-**Modulo o entidad que surge:** devoluciones, inspeccion final, cargos por dano,
-cargos por retraso y cierre de alquiler.
+**Modulo o entidad que surge:** recepciones de compra, detalle de recepcion,
+stock y movimientos de inventario.
 
-### Cierre del alquiler
+### Devoluciones y garantias
 
-**Actividad actual:** despues de la devolucion se verifica si el contrato quedo
-pagado y si el vehiculo puede volver a estar disponible.
+**Actividad actual:** si un repuesto sale defectuoso o no corresponde al
+vehiculo del cliente, se revisa la venta y se evalua si corresponde cambio,
+devolucion o garantia.
 
-**Actores:** Encargado operativo y Administrador / Gerente.
+**Actores:** Cliente, Encargado de ventas, Encargado de almacen y Administrador
+/ Gerente.
 
-**Recursos actuales:** contrato, recibos, planilla de pagos, registro de
-vehiculos y notas de devolucion.
+**Recursos actuales:** comprobante, factura, producto fisico, fotografias,
+mensajes, notas manuales y condiciones del proveedor.
 
-**Informacion manejada:** estado del contrato, pagos registrados, saldo final,
-cargos adicionales y estado actualizado del vehiculo.
+**Informacion manejada:** venta original, detalle vendido, repuesto, cantidad,
+motivo, estado del producto, resolucion, monto devuelto y responsable.
 
-**Problemas detectados:** puede quedar informacion incompleta si no se verifica
-contrato, pago y estado del vehiculo en conjunto.
+**Problemas detectados:** sin relacion entre venta y devolucion, es dificil
+validar garantias, evitar devoluciones indebidas y controlar si el producto
+vuelve al stock.
 
-**Modulo o entidad que surge:** cierre de contrato, estado de alquiler y
-actualizacion de disponibilidad.
-
-### Gestion de mantenimiento
-
-**Actividad actual:** se registran revisiones, reparaciones y trabajos basicos
-realizados sobre los vehiculos.
-
-**Actores:** Responsable de mantenimiento, Encargado operativo y Administrador /
-Gerente.
-
-**Recursos actuales:** notas de taller, facturas, fotografias, planillas,
-mensajes y reportes manuales.
-
-**Informacion manejada:** vehiculo, fecha, tipo de mantenimiento, descripcion,
-costo, responsable, kilometraje y estado posterior.
-
-**Problemas detectados:** si el mantenimiento no se registra a tiempo, un
-vehiculo podria figurar como disponible aunque no este listo para alquilarse.
-
-**Modulo o entidad que surge:** mantenimiento, tipo de mantenimiento, costos,
-responsables y estado operativo del vehiculo.
+**Modulo o entidad que surge:** devoluciones, detalle de devolucion, motivos y
+estados de devolucion.
 
 ### Reportes y supervision
 
 **Actividad actual:** el gerente revisa informacion para tomar decisiones sobre
-ingresos, reservas, pagos pendientes y uso de la flota.
+ventas, compras, inventario, precios y proveedores.
 
 **Actores:** Administrador / Gerente.
 
-**Recursos actuales:** planillas Excel, contratos fisicos, recibos, mensajes y
-registros manuales.
+**Recursos actuales:** planillas Excel, facturas, recibos, cuadernos de ventas,
+mensajes y conteos manuales.
 
-**Informacion manejada:** ingresos, contratos activos, pagos pendientes,
-vehiculos mas alquilados, vehiculos en mantenimiento y estado general de la
-flota.
+**Informacion manejada:** ingresos, ventas por periodo, productos mas vendidos,
+stock bajo, compras pendientes, pagos registrados, devoluciones y margen de
+ganancia.
 
 **Problemas detectados:** los reportes toman tiempo porque la informacion esta
 dispersa y puede no estar actualizada.
 
-**Modulo o entidad que surge:** reportes, indicadores, ingresos, contratos
-activos, pagos pendientes y estado de flota.
+**Modulo o entidad que surge:** reportes, indicadores, ingresos, rotacion de
+inventario, stock bajo y compras pendientes.
 
 ## Procesos y entidades derivadas
 
 | Proceso | Entidades o modulos relacionados |
 | ------- | -------------------------------- |
 | Control de acceso y responsabilidades | usuarios, roles, permisos |
-| Registro de clientes | clientes, documentos, contactos |
-| Gestion de vehiculos | vehiculos, tipos, estados, kilometraje |
-| Consulta de disponibilidad | disponibilidad, reservas, calendario |
-| Registro de reservas | reservas, estados de reserva |
-| Generacion de contratos | contratos, garantias, condiciones |
-| Entrega del vehiculo | entregas, inspecciones, danos |
-| Registro de pagos | pagos, metodos de pago, saldos, multas |
-| Devolucion del vehiculo | devoluciones, inspecciones finales, cargos |
-| Cierre del alquiler | contratos cerrados, disponibilidad |
-| Gestion de mantenimiento | mantenimientos, costos, responsables |
-| Reportes y supervision | reportes, indicadores, ingresos |
+| Registro de clientes | clientes, personas, contactos |
+| Gestion del catalogo de repuestos | repuestos, categorias, marcas, unidades, estados |
+| Compatibilidad de repuestos | marcas de vehiculo, modelos, compatibilidades |
+| Consulta y control de stock | stock, almacenes, ubicaciones, movimientos |
+| Registro de ventas | ventas, detalle de venta, estados |
+| Registro de pagos y comprobantes | pagos, metodos de pago, comprobantes |
+| Gestion de compras a proveedores | proveedores, ordenes de compra, detalle de compra |
+| Recepcion de mercaderia | recepciones, detalle de recepcion, stock |
+| Devoluciones y garantias | devoluciones, detalle de devolucion, motivos, estados |
+| Reportes y supervision | reportes, indicadores, ingresos, stock bajo |
 
 ## Reglas generales detectadas
 
-- Un vehiculo en mantenimiento o fuera de servicio no debe reservarse.
-- Una reserva debe relacionar cliente, vehiculo, fechas y estado.
-- Un contrato solo debe generarse si existe disponibilidad.
-- La entrega debe registrar kilometraje, combustible y estado inicial.
-- La devolucion debe compararse con la entrega para identificar danos, retrasos o
-  cargos adicionales.
-- Un pago debe relacionarse con un contrato o reserva.
-- Un vehiculo solo debe volver a estar disponible despues de cerrar el alquiler o
-  finalizar su mantenimiento.
+- Un repuesto sin stock disponible no debe venderse.
+- Una venta debe relacionar cliente, usuario, fecha, estado y detalle de
+  repuestos.
+- El detalle de venta debe guardar cantidad y precio unitario historico.
+- Una compra debe relacionar proveedor, estado y detalle de repuestos pedidos.
+- Una recepcion debe registrar cantidad recibida y actualizar inventario.
+- Un movimiento de inventario debe guardar tipo, cantidad, responsable y fecha.
+- Una devolucion debe relacionarse con la venta y el detalle vendido.
+- Un producto devuelto solo vuelve a stock si su estado lo permite.
+- Los pagos deben relacionarse con una venta.
 - La informacion debe centralizarse para evitar registros duplicados,
   inconsistentes o desactualizados.
 

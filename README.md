@@ -1,8 +1,9 @@
-# Zarvent Rent
+# Zarvent Repuestos
 
-proyecto academico para la asignatura `SIS-122` (Base De Datos I) con el profesor *Ismael Antonio Delgado Huanca*
+Proyecto academico para la asignatura `SIS-122` (Base de Datos I) con el
+profesor *Ismael Antonio Delgado Huanca*.
 
-realizado por
+Realizado por
 - Cesar Sebastian Zambrana Ventura
 - Emanuel Justiniano Peralta
 
@@ -10,14 +11,25 @@ realizado por
 
 ## Que hicimos?
 
-se trata de un sistema administrativo para una empresa ficticia de alquiler de vehiculos que registraba reservas, contratos, pagos y mantenimiento en papel, excel y whatsapp
+Se trata de un sistema administrativo para una empresa ficticia de venta de
+repuestos de vehiculos que registra ventas, compras, inventario, pagos,
+proveedores y garantias usando papel, Excel y WhatsApp.
 
 Incluye:
 - Registro de clientes.
-- Registro de vehículos.
-- Reservas de vehículos.
-- Contratos de alquiler.
-- Pagos.
-- Devolución del vehículo.
-- Estado del vehículo.
-- Mantenimiento básico.
+- Registro de proveedores.
+- Catalogo de repuestos.
+- Compatibilidad de repuestos con vehiculos.
+- Control de stock por almacen y ubicacion.
+- Compras y recepcion de mercaderia.
+- Ventas y detalle de productos vendidos.
+- Pagos y comprobantes.
+- Devoluciones y garantias.
+- Reportes de ventas, compras y stock bajo.
+
+## Base de datos
+
+El diseno de tablas para MySQL y drawDB esta en:
+
+- [`docs/database/schema.sql`](docs/database/schema.sql)
+- [`docs/database/README.md`](docs/database/README.md)

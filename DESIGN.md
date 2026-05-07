@@ -1,6 +1,6 @@
 ---
-name: "Zarvent Rent"
-description: "Sistema administrativo para alquiler de vehiculos, reservas, contratos, pagos y mantenimiento."
+name: "Zarvent Repuestos"
+description: "Sistema administrativo para venta de repuestos de vehiculos, inventario, compras, ventas, pagos y garantias."
 assets:
   logo: "assets/logo.png"
   banner: "assets/banner.jpg"
@@ -10,8 +10,8 @@ identity:
     - "control"
     - "confianza"
     - "orden"
-    - "servicio"
-    - "flota"
+    - "inventario"
+    - "repuestos"
 colors:
   primary: "#1F1B1E"
   secondary: "#404146"
@@ -108,7 +108,7 @@ rules:
     - "Use a light operational interface with white surfaces and graphite text."
     - "Use red only for primary actions, critical states, and small brand accents."
     - "Use labels, text, and icons together for operational states."
-    - "Make tables, filters, forms, and status badges the core UI patterns."
+    - "Make tables, filters, forms, stock alerts, and status badges the core UI patterns."
   avoid:
     - "Do not create a marketing landing page for the admin system."
     - "Do not use pastel, purple, beige, or blue-gradient themes."
@@ -119,24 +119,25 @@ rules:
 
 # Overview
 
-Zarvent Rent is an administrative system for a vehicle rental business. The UI
-must feel like an operational tool for managing customers, vehicles,
-availability, reservations, contracts, payments, returns, and maintenance.
+Zarvent Repuestos is an administrative system for a vehicle spare parts sales
+business. The UI must feel like an operational tool for managing customers,
+suppliers, products, compatibility, stock, purchases, sales, payments,
+receipts, returns, and warranties.
 
 The visual identity comes from `logo.png` and `banner.jpg`: strong red brand
 letters, graphite gray, black uniforms, a clean light background, and an
 automotive service atmosphere. The interface should translate that into a clear,
 firm, high-contrast admin product.
 
-The visible product name is **Zarvent Rent**. Even though the banner mentions
-"Autoservicio", this project models vehicle rental, so "Rent" is the canonical
-name inside the system.
+The visible product name is **Zarvent Repuestos**. Even though the banner
+mentions "Autoservicio", this project models spare parts sales, so "Repuestos"
+is the canonical name inside the system.
 
 ## Design Direction
 
-Automotive Operations meets Clean Administration. The UI should feel practical,
-reliable, and direct: light surfaces, dark text, compact tables, clear forms,
-and red accents used with restraint.
+Automotive Parts Operations meets Clean Administration. The UI should feel
+practical, reliable, and direct: light surfaces, dark text, compact tables,
+clear forms, and red accents used with restraint.
 
 This is not a public marketing website. The first screen should be a dashboard
 or operational module, not a hero section.
@@ -155,25 +156,28 @@ brand red.
 - **Muted (#ECECEC):** row hover, subtle backgrounds, disabled surfaces.
 
 Use `#C7000B` or `#B0000A` when red appears as text on a light background. Use
-semantic colors only for meaning: available, pending, danger, or information.
+semantic colors only for meaning: available, low stock, paid, pending, returned,
+or critical.
 
 ## Typography
 
 Use a sans-serif system that feels modern and readable. `Inter` is preferred;
-`Roboto`, `Segoe UI`, `Arial`, and generic `sans-serif` are acceptable fallbacks.
+`Roboto`, `Segoe UI`, `Arial`, and generic `sans-serif` are acceptable
+fallbacks.
 
-Headings should be firm and compact. Body text should stay between 14px and 16px.
-Avoid decorative fonts, justified paragraphs, and tiny text below 12px.
+Headings should be firm and compact. Body text should stay between 14px and
+16px. Avoid decorative fonts, justified paragraphs, and tiny text below 12px.
 
 ## Layout
 
 Use an 8px-based spacing rhythm. Forms should be grouped by meaning: customer,
-vehicle, dates, payment, conditions, and observations. Tables should include
-filters above, actions at the row end, and visible status badges.
+product, compatibility, stock, supplier, payment, receipt, and warranty.
+Tables should include filters above, actions at the row end, and visible status
+badges.
 
-Cards are allowed for dashboard summaries such as active contracts, pending
-payments, available vehicles, and upcoming maintenance. Do not turn the whole
-interface into floating decorative cards.
+Cards are allowed for dashboard summaries such as today's sales, pending
+payments, low-stock products, pending purchases, and returns under review. Do
+not turn the whole interface into floating decorative cards.
 
 ## Components
 
@@ -191,34 +195,43 @@ administrative use while keeping row height, contrast, and alignment readable.
 
 Use badges with both color and text:
 
+- `Activo`: success.
+- `Inactivo`: muted.
+- `Agotado`: danger.
+- `Stock bajo`: warning.
 - `Disponible`: success.
-- `Reservado`: info.
-- `Alquilado`: warning.
-- `En mantenimiento`: warning.
-- `Fuera de servicio`: danger.
-- `Pago completo`: success.
-- `Pago pendiente`: warning.
-- `Deuda vencida`: danger.
-- `Contrato cerrado`: success.
+- `Venta pendiente`: warning.
+- `Venta pagada`: success.
+- `Venta anulada`: danger.
+- `Compra pendiente`: warning.
+- `Compra recibida`: success.
+- `Devolucion en revision`: warning.
+- `Devolucion aprobada`: success.
+- `Devolucion rechazada`: danger.
 
 Never use a colored dot alone for business-critical status.
 
 ## Screen Patterns
 
-The dashboard should show active contracts, pending payments, today's
-reservations, available vehicles, vehicles in maintenance, and return alerts.
+The dashboard should show today's sales, pending payments, products with stock
+below minimum, pending purchase orders, recent inventory movements, and returns
+under review.
 
-Vehicle screens should prioritize plate, brand, model, mileage, state, and quick
-access to maintenance history.
+Product screens should prioritize internal code, OEM code, description,
+category, brand, compatibility, stock, price, cost, warranty, and location.
 
-Reservation screens should prioritize date range and availability before
-confirmation.
+Inventory screens should prioritize product, warehouse, shelf/location, current
+stock, minimum stock, maximum stock, and movement history.
 
-Contract screens should feel formal: customer, vehicle, dates, price, guarantee,
-balance, conditions, and actions for payment or closure.
+Sales screens should prioritize customer, product search, compatibility,
+quantity, price, discount, payment, receipt/factura, and stock deduction.
 
-Return screens should compare initial and final mileage, fuel, damages, delays,
-and extra charges before closing the rental.
+Purchase screens should prioritize supplier, requested items, received items,
+cost, pending quantity, and stock update.
+
+Return screens should compare the original sale, returned product, reason,
+physical condition, warranty status, resolution, refund amount, and whether the
+product returns to stock.
 
 ## Accessibility
 
