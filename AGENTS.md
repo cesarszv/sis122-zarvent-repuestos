@@ -1,6 +1,15 @@
 
 # AI Repo
 
+este repositorio es el un proyecto academico para la asignatura `SIS-122` (Base de Datos I) con el profesor *Ismael Antonio Delgado Huanca*.
+
+te serviria revisar:
+- las clases de la asignatura: `/home/cszv/Documents/UCB-LIA/sis122/lessons`
+
+- las diapositivas: `/home/cszv/Documents/UCB-LIA/sis122/slides`
+
+- la documentacion del proyecto: `/home/cszv/Documents/UCB-LIA/sis122/assignments/final_project/docs` 
+
 - los nombres/titulos de las tablas, variables, etc deben ir en `USA english native`
 
 quizas la descripcion de los textos pueden ir en `latam spanish` 

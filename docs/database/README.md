@@ -6,4 +6,4 @@ se documenta:
 - entidades
 - relaciones
 - reglas de negocio
-- 
+- guia de validacion operativa del ERD

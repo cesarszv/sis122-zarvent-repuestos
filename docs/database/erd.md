@@ -7,12 +7,15 @@ ventas, pagos, compras a proveedores y devoluciones.
 El objetivo no es meter todas las tablas posibles. El objetivo es modelar el
 nucleo del negocio sin duplicar informacion y dejando relaciones claras.
 
+Para estudiar la logica operativa que justifica estas tablas, revisar tambien:
+[Business Research Guide for the ERD](erd_business_research.md).
+
 ## Diagrama base
 
 ```mermaid
 erDiagram
     PERSON ||--o| CUSTOMER : identifica
-    CUSTOMER ||--o{ SALES_ORDER : re    aliza
+    CUSTOMER ||--o{ SALES_ORDER : realiza
     SALES_ORDER ||--|{ SALES_ORDER_ITEM : contiene
     SALES_ORDER ||--o{ PAYMENT : recibe
     SALES_ORDER ||--o{ RETURN_ORDER : puede_tener
@@ -44,7 +47,6 @@ erDiagram
         int person_id FK
         varchar billing_name
         varchar tax_id
-        boolean is_active
     }
 
     SUPPLIER {
@@ -165,7 +167,6 @@ erDiagram
         decimal refund_amount
         boolean restock_allowed
     }
-
 ```
 
 ## Decisiones de diseno
