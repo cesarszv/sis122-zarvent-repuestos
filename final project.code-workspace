@@ -5,16 +5,19 @@
       "path": "./docs",
     },
     {
+      "name": "Source",
+      "path": "./src",
+    },
+    {
+      "name": "Database",
+      "path": "./database",
+    },
+    {
       "name": "Final Project",
       "path": ".",
     },
     {
-      "name": "SIS122 Lessons",
-      "path": "../../lessons",
-    },
-    {
-      "name": "SIS122 Slides",
-      "path": "../../slides",
+      "path": "scripts",
     },
   ],
   "settings": {

@@ -6,19 +6,9 @@ Aceptado.
 
 ## Decision
 
-Zarvent Repuestos usara **Screaming Architecture**.
+Zarvent Repuestos usa **Screaming Architecture**.
 
 La arquitectura debe gritar el dominio del negocio antes que la tecnologia:
-
-- `Parts Catalog`
-- `Vehicle Compatibility`
-- `Inventory`
-- `Sales`
-- `Payments`
-- `Suppliers and Purchases`
-- `Returns and Warranties`
-- `Reports`
-- `Access Control`
 
 Si alguien abre el proyecto y lo primero que entiende es "PostgreSQL",
 "controllers", "repositories", "framework" o "CRUD", el diseno esta flojo.
@@ -31,12 +21,12 @@ casos de uso.
 ## Contexto
 
 Zarvent Repuestos es un proyecto academico para `SIS-122` (Base de Datos I). El
-sistema representa una empresa pequena de venta de repuestos de vehiculos.
+sistema representa una empresa pequena que vende repuestos para vehiculos.
 
 El problema documentado no es inventado:
 
-- la informacion esta dispersa en papel, Excel y WhatsApp
-- los clientes pueden duplicarse
+- la informacion esta dispersa entre papel, Excel y WhatsApp
+- los clientes pueden quedar duplicados
 - los repuestos pueden tener codigos o descripciones inconsistentes
 - el stock puede quedar desactualizado
 - las ventas, pagos, compras y devoluciones son dificiles de trazar
@@ -80,7 +70,7 @@ Eso es lo que debe gritar la arquitectura.
 
 El punto mas importante del sistema es el control de stock. En una tienda de
 repuestos, vender algo que no existe fisicamente es un error grave. Registrar
-datos sin controlar la realidad operativa es solo hacer una planilla mas bonita.
+datos sin controlar la realidad operativa solo produce una planilla mas bonita.
 
 La arquitectura debe proteger este camino:
 
@@ -103,8 +93,8 @@ manuales, Excel y WhatsApp.
 
 Centralizar no significa meter todo en una tabla gigante. Eso es pereza
 disfrazada de simplicidad. Centralizar significa que cada dato importante tiene
-un lugar responsable y que las demas partes del sistema se relacionan con ese
-dato mediante claves y relaciones.
+un lugar responsable y que las demas partes del sistema se conectan con ese dato
+mediante claves y relaciones.
 
 ### Traceability
 
@@ -117,11 +107,11 @@ El sistema debe conservar historia:
 - `INVENTORY_STOCK` muestra el stock actual por repuesto y ubicacion
 
 Si el sistema no puede explicar por que cambio el dinero, el stock o una
-devolucion, entonces el sistema no es confiable.
+devolucion, entonces no es confiable.
 
 ### Comfort Without Weak Design
 
-El sistema debe ser comodo para trabajadores: registrar ventas, actualizar
+El sistema debe ser comodo para los trabajadores: registrar ventas, actualizar
 stock, recibir mercaderia y revisar pendientes no deberia ser una tortura.
 
 Pero comodidad no significa romper el modelo. Una interfaz bonita encima de una
@@ -130,7 +120,7 @@ relacional protege la verdad de los datos.
 
 ### Academic Defense
 
-Este proyecto debe defenderse con conceptos de Base de Datos I:
+Este proyecto debe poder defenderse con conceptos de Base de Datos I:
 
 - entidades
 - atributos
@@ -148,7 +138,7 @@ procesos, procedimientos, recursos o reglas documentadas.
 
 ## Modulos del Dominio
 
-Los nombres tecnicos se mantienen en native USA English. La explicacion puede
+Los nombres tecnicos se mantienen en native US English. La explicacion puede
 estar en espanol porque el documento es academico y debe ser facil de defender.
 
 | Module | Responsabilidad | Tablas principales |
@@ -182,9 +172,9 @@ Flujo:
 
 Regla:
 
-`CUSTOMER` no debe duplicar todo lo que ya vive en `PERSON`. Si repites nombres,
-telefonos y direcciones en cada tabla, estas creando inconsistencia desde el
-primer dia.
+`CUSTOMER` no debe duplicar todo lo que ya pertenece a `PERSON`. Si repites
+nombres, telefonos y direcciones en cada tabla, estas creando inconsistencia
+desde el primer dia.
 
 ### Find Spare Part
 
@@ -201,7 +191,7 @@ Flujo:
 Regla:
 
 La compatibilidad no debe quedar como una nota suelta en `PART`. Es una relacion
-muchos-a-muchos entre repuestos y modelos de vehiculo, por eso existe
+muchos-a-muchos entre repuestos y modelos de vehiculo; por eso existe
 `PART_COMPATIBILITY`.
 
 ### Sell Spare Part
@@ -220,8 +210,8 @@ Flujo:
 Regla:
 
 `SALES_ORDER_ITEM.unit_price` debe guardar el precio historico. NO reconstruyas
-ventas pasadas usando el precio actual de `PART`. Eso no es simplificar; eso es
-corromper el historial.
+ventas pasadas usando el precio actual de `PART`. Eso no simplifica; corrompe el
+historial.
 
 ### Purchase From Supplier
 
@@ -275,8 +265,8 @@ Preguntas que debe responder:
 
 Regla:
 
-Los reportes no son una verdad separada. Son consultas sobre las tablas
-operativas. Si las tablas base estan mal, el reporte tambien estara mal.
+Los reportes no son una verdad separada. Son consultas sobre tablas operativas.
+Si las tablas base estan mal, el reporte tambien estara mal.
 
 ## Direccion de Dependencias
 
@@ -289,14 +279,14 @@ Business use cases
   -> UI, reports, scripts and external tools
 ```
 
-La regla interna no debe depender de una interfaz especifica. Una venta sigue
+La regla de negocio no debe depender de una interfaz especifica. Una venta sigue
 siendo una venta si se registra desde una app web, una app de escritorio, un
 script o una futura app movil.
 
 PostgreSQL es esencial para este proyecto porque el curso es de base de datos,
-pero sigue siendo infraestructura. Las reglas del dominio dicen que debe ser
-verdad; PostgreSQL ayuda a protegerlo con `PK`, `FK`, `UNIQUE`, `CHECK` y
-transacciones.
+pero sigue siendo infraestructura. Las reglas del dominio definen que datos
+deben ser verdaderos; PostgreSQL ayuda a protegerlos con `PK`, `FK`, `UNIQUE`,
+`CHECK` y transacciones.
 
 ## Estructura Recomendada
 
@@ -355,7 +345,7 @@ PostgreSQL 18.4.
 
 ### Naming
 
-Los nombres tecnicos usan native USA English:
+Los nombres tecnicos usan native US English:
 
 - tablas
 - columnas
@@ -384,8 +374,8 @@ El modelo debe prevenir errores evitables:
 - compras sin proveedor
 - stock sin repuesto
 
-Si la base de datos permite incoherencias, tarde o temprano la aplicacion las va
-a guardar. No es mala suerte; es falta de diseno.
+Si la base de datos permite incoherencias, tarde o temprano la aplicacion
+terminara guardandolas. No es mala suerte; es falta de diseno.
 
 ### Scope Control
 
@@ -422,7 +412,7 @@ Desventaja:
 
 - esconde el negocio
 - la estructura grita capas tecnicas, no repuestos, stock ni ventas
-- empuja al equipo a pensar en framework antes que en dominio
+- empuja al equipo a pensar en framework antes que en el dominio
 
 ### Database-First Only Architecture
 

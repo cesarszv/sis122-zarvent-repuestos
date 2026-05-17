@@ -32,5 +32,32 @@ Incluye:
 La documentacion de base de datos para PostgreSQL 18.4 y drawDB esta en:
 
 - [`docs/database/erd.md`](docs/database/erd.md)
-- [`docs/database/schema.sql`](docs/database/schema.sql)
+- [`database/schema.sql`](database/schema.sql)
 - [`docs/database/README.md`](docs/database/README.md)
+- [`docs/database/docker.md`](docs/database/docker.md)
+- [`docs/database/pseudo_dataset.md`](docs/database/pseudo_dataset.md)
+
+Las decisiones tecnicas estan documentadas como ADR:
+
+- [`docs/adr/001-RDBMS.md`](docs/adr/001-RDBMS.md)
+- [`docs/adr/003-local-database-with-docker-compose.md`](docs/adr/003-local-database-with-docker-compose.md)
+- [`docs/adr/004-executable-database-schema.md`](docs/adr/004-executable-database-schema.md)
+
+Para crear una base local replicable:
+
+```bash
+cp .env.example .env
+make db-up
+```
+
+Si usas PostgreSQL instalado directamente en la maquina:
+
+```bash
+make db-native-create
+```
+
+Para cargar y probar el dataset de ejemplo:
+
+```bash
+make db-pseudo-refresh
+```
