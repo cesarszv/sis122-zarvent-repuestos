@@ -8,56 +8,47 @@ Aceptado.
 
 Zarvent Repuestos usa **Screaming Architecture**.
 
-La arquitectura debe gritar el dominio del negocio antes que la tecnologia:
+La arquitectura debe mostrar primero el negocio: catalogo de repuestos,
+compatibilidad vehicular, inventario, ventas, pagos, compras, devoluciones y
+reportes.
 
-Si alguien abre el proyecto y lo primero que entiende es "PostgreSQL",
-"controllers", "repositories", "framework" o "CRUD", el diseno esta flojo.
-Eso es infraestructura. El sistema existe para controlar una operacion de venta
-de repuestos.
-
-CONCEPTO BASICO: la arquitectura no debe presumir herramientas; debe mostrar
-casos de uso.
+Si al abrir el proyecto lo primero que se entiende es "PostgreSQL",
+"controllers", "repositories", "framework" o "CRUD", el diseno esta flojo. Eso
+es infraestructura. El sistema existe para controlar una operacion de venta de
+repuestos.
 
 ## Contexto
 
 Zarvent Repuestos es un proyecto academico para `SIS-122` (Base de Datos I). El
 sistema representa una empresa pequena que vende repuestos para vehiculos.
 
-El problema documentado no es inventado:
+El problema operativo es claro:
 
-- la informacion esta dispersa entre papel, Excel y WhatsApp
-- los clientes pueden quedar duplicados
-- los repuestos pueden tener codigos o descripciones inconsistentes
-- el stock puede quedar desactualizado
-- las ventas, pagos, compras y devoluciones son dificiles de trazar
-- los reportes tardan porque la informacion no esta centralizada
+- informacion dispersa entre papel, Excel y WhatsApp
+- clientes duplicados
+- codigos y descripciones inconsistentes
+- stock desactualizado
+- ventas, pagos, compras y devoluciones dificiles de trazar
+- reportes lentos porque la informacion no esta centralizada
 
 La decision de RDBMS esta en [`docs/adr/001-RDBMS.md`](docs/adr/001-RDBMS.md):
 el proyecto usa **PostgreSQL 18.4**.
 
-Pero PostgreSQL NO es la arquitectura. PostgreSQL es el mecanismo de
-persistencia. La arquitectura es la forma en que el sistema organiza el dominio,
-los casos de uso, las reglas y las dependencias.
+PostgreSQL es el mecanismo de persistencia. La arquitectura es la forma en que
+el sistema organiza dominio, casos de uso, reglas y dependencias.
 
 El modelo relacional base esta en [`docs/database/erd.md`](docs/database/erd.md).
-Ese ERD ya muestra el nucleo del negocio: clientes, catalogo, compatibilidad,
-inventario, ventas, pagos, compras y devoluciones.
 
 ## Principio Arquitectonico
 
-Screaming Architecture propone que la estructura superior del sistema revele sus
-casos de uso y su proposito de negocio. La arquitectura no debe estar dominada
-por frameworks, base de datos, web, librerias o carpetas tecnicas genericas.
+La estructura superior del sistema debe revelar lo que el sistema hace, no la
+tecnologia que usa.
 
 La pregunta correcta es:
 
 > Que hace Zarvent Repuestos?
 
-La respuesta mediocre seria:
-
-> Usa PostgreSQL.
-
-La respuesta correcta es:
+Respuesta correcta:
 
 > Controla catalogo de repuestos, compatibilidad vehicular, stock, ventas,
 > pagos, compras a proveedores, devoluciones, garantias y reportes.
@@ -68,33 +59,23 @@ Eso es lo que debe gritar la arquitectura.
 
 ### Stock Control
 
-El punto mas importante del sistema es el control de stock. En una tienda de
-repuestos, vender algo que no existe fisicamente es un error grave. Registrar
-datos sin controlar la realidad operativa solo produce una planilla mas bonita.
+El control de stock es el punto mas importante. En una tienda de repuestos,
+vender algo que no existe fisicamente es un error grave.
 
-La arquitectura debe proteger este camino:
+Camino critico:
 
 ```text
 PART -> INVENTORY_STOCK -> SALES_ORDER_ITEM
 ```
 
-El sistema debe permitir saber:
-
-- que repuesto existe
-- donde esta ubicado
-- cuanto stock disponible hay
-- cuando debe reponerse
-- que venta lo desconto
+El sistema debe permitir saber que repuesto existe, donde esta, cuanto stock hay,
+cuando debe reponerse y que venta lo desconto.
 
 ### Centralization
 
-El sistema debe centralizar informacion que hoy esta repartida entre registros
-manuales, Excel y WhatsApp.
-
-Centralizar no significa meter todo en una tabla gigante. Eso es pereza
-disfrazada de simplicidad. Centralizar significa que cada dato importante tiene
-un lugar responsable y que las demas partes del sistema se conectan con ese dato
-mediante claves y relaciones.
+Centralizar no significa meter todo en una tabla gigante. Significa que cada
+dato importante tiene un lugar responsable y que las demas partes del sistema se
+conectan con ese dato mediante claves y relaciones.
 
 ### Traceability
 
@@ -111,16 +92,13 @@ devolucion, entonces no es confiable.
 
 ### Comfort Without Weak Design
 
-El sistema debe ser comodo para los trabajadores: registrar ventas, actualizar
-stock, recibir mercaderia y revisar pendientes no deberia ser una tortura.
-
-Pero comodidad no significa romper el modelo. Una interfaz bonita encima de una
-base mal modelada sigue siendo mala. La UX reduce friccion humana; el modelo
-relacional protege la verdad de los datos.
+El sistema debe ser comodo para los trabajadores, pero la comodidad no puede
+romper el modelo. La UX reduce friccion humana; el modelo relacional protege la
+verdad de los datos.
 
 ### Academic Defense
 
-Este proyecto debe poder defenderse con conceptos de Base de Datos I:
+Este proyecto debe defenderse con conceptos de Base de Datos I:
 
 - entidades
 - atributos
@@ -139,7 +117,7 @@ procesos, procedimientos, recursos o reglas documentadas.
 ## Modulos del Dominio
 
 Los nombres tecnicos se mantienen en native US English. La explicacion puede
-estar en espanol porque el documento es academico y debe ser facil de defender.
+estar en espanol porque el documento es academico.
 
 | Module | Responsabilidad | Tablas principales |
 | --- | --- | --- |
@@ -154,119 +132,65 @@ estar en espanol porque el documento es academico y debe ser facil de defender.
 | `Reports` | Consultar datos operativos para decisiones de gerencia. | Derivado de ventas, pagos, compras e inventario |
 | `Access Control` | Controlar usuarios, roles, permisos y responsables. | Extension futura; no esta en el ERD compacto |
 
-El ERD compacto no incluye todo lo posible. Eso esta bien. Agregar tablas sin
-justificacion no es arquitectura; es ruido.
+El ERD compacto no incluye todo lo posible. Eso esta bien. Mas tablas no
+significan mejor modelo.
 
-## Mapa de Casos de Uso
+## Casos de Uso Principales
 
 ### Register Customer
 
-Responsable principal: `Customers`.
+`Customers` registra datos civiles en `PERSON` y datos comerciales en
+`CUSTOMER`.
 
-Flujo:
-
-1. Buscar si la persona ya existe.
-2. Registrar datos civiles en `PERSON`.
-3. Registrar datos comerciales en `CUSTOMER`.
-4. Reutilizar el cliente en ventas, pagos, garantias y devoluciones.
-
-Regla:
-
-`CUSTOMER` no debe duplicar todo lo que ya pertenece a `PERSON`. Si repites
-nombres, telefonos y direcciones en cada tabla, estas creando inconsistencia
-desde el primer dia.
+Regla: `CUSTOMER` no debe duplicar nombres, telefonos ni direcciones que ya
+pertenecen a `PERSON`.
 
 ### Find Spare Part
 
-Responsables principales: `Parts Catalog`, `Vehicle Compatibility` e
-`Inventory`.
+`Parts Catalog`, `Vehicle Compatibility` e `Inventory` permiten buscar repuestos,
+verificar compatibilidad y revisar stock antes de ofrecer el producto.
 
-Flujo:
-
-1. Buscar repuesto por codigo interno, codigo OEM, nombre, marca o categoria.
-2. Verificar compatibilidad con marca, modelo, anio y motor del vehiculo.
-3. Confirmar precio, garantia y estado.
-4. Revisar stock antes de ofrecer el producto.
-
-Regla:
-
-La compatibilidad no debe quedar como una nota suelta en `PART`. Es una relacion
-muchos-a-muchos entre repuestos y modelos de vehiculo; por eso existe
+Regla: la compatibilidad no debe quedar como una nota suelta en `PART`. Es una
+relacion muchos-a-muchos entre repuestos y modelos de vehiculo; por eso existe
 `PART_COMPATIBILITY`.
 
 ### Sell Spare Part
 
-Responsables principales: `Sales`, `Customers`, `Inventory` y `Payments`.
+`Sales`, `Customers`, `Inventory` y `Payments` registran cliente, detalle de
+venta, stock disponible y pago.
 
-Flujo:
-
-1. Seleccionar cliente.
-2. Agregar repuestos al detalle de venta.
-3. Validar stock disponible.
-4. Guardar cantidad, precio unitario y descuento en `SALES_ORDER_ITEM`.
-5. Registrar el pago en `PAYMENT`.
-6. Actualizar o explicar la salida de stock.
-
-Regla:
-
-`SALES_ORDER_ITEM.unit_price` debe guardar el precio historico. NO reconstruyas
-ventas pasadas usando el precio actual de `PART`. Eso no simplifica; corrompe el
-historial.
+Regla: `SALES_ORDER_ITEM.unit_price` guarda el precio historico. NO reconstruyas
+ventas pasadas usando el precio actual de `PART`; eso corrompe el historial.
 
 ### Purchase From Supplier
 
-Responsables principales: `Suppliers and Purchases` e `Inventory`.
+`Suppliers and Purchases` e `Inventory` registran proveedor, orden de compra,
+repuestos solicitados, cantidades recibidas y costo historico.
 
-Flujo:
-
-1. Detectar stock bajo.
-2. Seleccionar proveedor.
-3. Crear `PURCHASE_ORDER`.
-4. Agregar repuestos solicitados en `PURCHASE_ORDER_ITEM`.
-5. Registrar cantidades recibidas.
-6. Actualizar stock y conservar costo historico.
-
-Regla:
-
-`PURCHASE_ORDER_ITEM.unit_cost` existe porque los costos cambian. El costo de
-una compra especifica pertenece al item de compra, no solamente al registro
-actual del repuesto.
+Regla: `PURCHASE_ORDER_ITEM.unit_cost` existe porque los costos cambian. El
+costo de una compra especifica pertenece al item de compra.
 
 ### Return or Warranty
 
-Responsables principales: `Returns and Warranties`, `Sales` e `Inventory`.
+`Returns and Warranties`, `Sales` e `Inventory` validan devoluciones contra una
+venta real.
 
-Flujo:
-
-1. Buscar la venta original.
-2. Seleccionar el item vendido.
-3. Registrar motivo, estado y resolucion.
-4. Definir monto devuelto si corresponde.
-5. Definir si el producto vuelve al stock.
-
-Regla:
-
-Una devolucion debe apuntar a un `SALES_ORDER_ITEM` real. Si el sistema permite
-devoluciones sin evidencia de venta original, no puede defender stock, dinero ni
-garantia.
+Regla: una devolucion debe apuntar a un `SALES_ORDER_ITEM`. Sin evidencia de
+venta original, el sistema no puede defender stock, dinero ni garantia.
 
 ### Report Operations
 
-Responsable principal: `Reports`.
+`Reports` responde preguntas operativas:
 
-Preguntas que debe responder:
+- productos bajos en stock
+- productos mas vendidos
+- compras pendientes
+- ventas con pagos pendientes
+- devoluciones en revision
+- ingresos por periodo
 
-- que productos estan bajos en stock
-- que productos se venden mas
-- que compras siguen pendientes
-- que ventas tienen pagos pendientes
-- que devoluciones estan en revision
-- cuanto dinero ingreso en un periodo
-
-Regla:
-
-Los reportes no son una verdad separada. Son consultas sobre tablas operativas.
-Si las tablas base estan mal, el reporte tambien estara mal.
+Regla: los reportes son consultas sobre tablas operativas. Si las tablas base
+estan mal, el reporte tambien estara mal.
 
 ## Direccion de Dependencias
 
@@ -283,15 +207,13 @@ La regla de negocio no debe depender de una interfaz especifica. Una venta sigue
 siendo una venta si se registra desde una app web, una app de escritorio, un
 script o una futura app movil.
 
-PostgreSQL es esencial para este proyecto porque el curso es de base de datos,
-pero sigue siendo infraestructura. Las reglas del dominio definen que datos
-deben ser verdaderos; PostgreSQL ayuda a protegerlos con `PK`, `FK`, `UNIQUE`,
-`CHECK` y transacciones.
+PostgreSQL ayuda a proteger las reglas con `PK`, `FK`, `UNIQUE`, `CHECK` y
+transacciones, pero no reemplaza el diseno del dominio.
 
 ## Estructura Recomendada
 
-El proyecto actual es principalmente documental. Si luego crece con codigo de
-aplicacion, la estructura deberia priorizar modulos del negocio:
+Si el proyecto crece con codigo de aplicacion, la estructura debe priorizar
+modulos del negocio:
 
 ```text
 src/
@@ -318,16 +240,10 @@ scripts/
   migrations/
 ```
 
-Esta estructura grita Zarvent Repuestos. No grita framework.
-
-Si despues se usa un framework, sus archivos deben servir a estos modulos. El
-framework no debe convertirse en el idioma principal del proyecto.
+El framework, si aparece, debe servir a estos modulos. No debe convertirse en el
+idioma principal del proyecto.
 
 ## Limite de la Base de Datos
-
-La base de datos pertenece a la arquitectura porque el proyecto se centra en
-diseno relacional. Pero una tabla no es solo un contenedor. Cada tabla debe
-representar una entidad, evento o relacion necesaria para el negocio.
 
 La base debe proteger como minimo:
 
@@ -354,28 +270,23 @@ Los nombres tecnicos usan native US English:
 - variables
 - estados internos
 
-La explicacion documental puede estar en espanol. La UI tambien podria estar en
-espanol si se decide para usuarios finales.
-
-Lo que NO se debe hacer es mezclar idiomas dentro de la misma capa tecnica.
-Nombres como `productoStatus`, `detalleVentaItem` o `supplier_id_proveedor` son
-mediocres. Elige una convencion y respetala.
+La explicacion documental puede estar en espanol. Lo que NO se debe hacer es
+mezclar idiomas dentro de la misma capa tecnica.
 
 ### Data Integrity
 
 El modelo debe prevenir errores evitables:
 
-- clientes repetidos con distintas escrituras
+- clientes repetidos
 - repuestos sin codigos estables
 - ventas sin detalle
-- detalles de venta sin repuesto
 - pagos sin venta
 - devoluciones sin item vendido original
 - compras sin proveedor
 - stock sin repuesto
 
-Si la base de datos permite incoherencias, tarde o temprano la aplicacion
-terminara guardandolas. No es mala suerte; es falta de diseno.
+Si la base permite incoherencias, tarde o temprano la aplicacion terminara
+guardandolas. No es mala suerte; es falta de diseno.
 
 ### Scope Control
 
@@ -388,91 +299,27 @@ El ERD compacto deja fuera algunos modulos futuros:
 - auditoria avanzada
 
 Son extensiones validas, pero no son obligatorias para el modelo compacto de
-Base de Datos I. Mas tablas no significan mejor modelo.
+Base de Datos I.
 
 ## Alternativas Consideradas
 
-### Layer-First Architecture
+| Alternativa | Ventaja | Desventaja |
+| --- | --- | --- |
+| Layer-first architecture | Facil de reconocer para CRUD pequeno. | Esconde el negocio detras de capas tecnicas. |
+| Database-first only architecture | Se alinea con Base de Datos I. | Puede explicar tablas sin explicar procesos. |
+| Screaming Architecture | Comunica el negocio desde la primera lectura. | Exige entender el dominio. |
 
-Ejemplo:
-
-```text
-controllers/
-services/
-repositories/
-models/
-```
-
-Ventaja:
-
-- es facil de reconocer para programadores
-- sirve para CRUD pequeno
-
-Desventaja:
-
-- esconde el negocio
-- la estructura grita capas tecnicas, no repuestos, stock ni ventas
-- empuja al equipo a pensar en framework antes que en el dominio
-
-### Database-First Only Architecture
-
-Ejemplo:
-
-```text
-tables/
-queries/
-migrations/
-```
-
-Ventaja:
-
-- se alinea con Base de Datos I
-- mantiene foco en el modelo relacional
-
-Desventaja:
-
-- puede explicar tablas sin explicar procesos
-- puede convertir el proyecto en una lista de entidades sin flujo operativo
-
-### Screaming Architecture
-
-Ejemplo:
-
-```text
-inventory/
-sales/
-purchases/
-returns/
-payments/
-reports/
-```
-
-Ventaja:
-
-- comunica el negocio desde la primera lectura
-- conecta procesos, ERD y futura aplicacion
-- deja PostgreSQL y frameworks como herramientas, no como identidad
-
-Desventaja:
-
-- exige entender el dominio; no permite esconderse detras de carpetas genericas
-
-La desventaja es aceptable. De hecho, es saludable. Si el equipo no puede
+La desventaja de Screaming Architecture es aceptable. Si el equipo no puede
 explicar el dominio, no entiende el proyecto.
 
 ## Consecuencias
 
-- La documentacion debe explicar modulos desde procesos reales, no desde una
-  lista suelta de tablas.
+- La documentacion debe explicar modulos desde procesos reales.
 - El codigo futuro debe agruparse primero por dominio y luego por detalle
   tecnico.
 - PostgreSQL 18.4 sigue siendo el RDBMS elegido.
 - El ERD sigue siendo la fuente conceptual del modelo relacional.
-- Los reportes deben salir de tablas operativas, no inventarse como verdad
-  separada.
-- Las pantallas futuras deberian usar el mismo lenguaje modular: `Products`,
-  `Inventory`, `Sales`, `Purchases`, `Customers`, `Suppliers`, `Payments`,
-  `Returns`, `Warranties`, `Reports`.
+- Los reportes deben salir de tablas operativas.
 - Toda tabla nueva debe justificarse con actores, procesos, procedimientos,
   recursos o reglas de negocio.
 
@@ -486,10 +333,10 @@ PostgreSQL 18.4 es el gestor elegido, pero no es la arquitectura. La
 arquitectura es la estructura de dominio y casos de uso que PostgreSQL ayuda a
 persistir y proteger.
 
-Esta decision es coherente con el ERD porque las tablas principales ya
-representan conceptos del negocio, no conceptos de framework. El modelo es
-compacto, pero suficiente para defender centralizacion, normalizacion,
-trazabilidad e integridad relacional.
+Esta decision es coherente con el ERD porque las tablas principales representan
+conceptos del negocio, no conceptos de framework. El modelo es compacto, pero
+suficiente para defender centralizacion, normalizacion, trazabilidad e
+integridad relacional.
 
 ## Sources
 

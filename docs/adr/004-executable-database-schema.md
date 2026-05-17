@@ -6,42 +6,35 @@ Accepted.
 
 ## Context
 
-El ERD explica el modelo conceptual. Eso es necesario, pero no basta.
+El ERD explica el modelo conceptual, pero una base real necesita SQL ejecutable:
+`CREATE TABLE`, primary keys, foreign keys, unique constraints, check constraints
+e indices.
 
-Un diagrama dice que existen tablas y relaciones. Una base de datos real necesita
-SQL ejecutable: `CREATE TABLE`, primary keys, foreign keys, unique constraints,
-check constraints e indices.
-
-Si el equipo solo mantiene un diagrama, cada persona puede interpretar el modelo
-de forma distinta. Eso genera inconsistencias. El proyecto necesita una fuente
-fisica clara para crear la base local.
+Si solo existe el diagrama, cada persona puede interpretar el modelo de forma
+distinta. El proyecto necesita una fuente fisica clara para crear la base local.
 
 ## Decision
 
-Mantener [`database/schema.sql`](../../database/schema.sql) como el **schema
-inicial ejecutable** de la base de datos.
+Mantener [`database/schema.sql`](../../database/schema.sql) como **schema inicial
+ejecutable**.
 
-Este archivo se deriva del ERD documentado en
-[`docs/database/erd.md`](../database/erd.md), pero cumple un rol distinto:
+Roles:
 
-- `docs/database/erd.md` explica el modelo.
-- `database/schema.sql` crea el modelo en PostgreSQL.
+- [`docs/database/erd.md`](../database/erd.md): explica el modelo.
+- [`database/schema.sql`](../../database/schema.sql): crea el modelo en
+  PostgreSQL.
 
 ## How It Works
 
-Cuando se crea una base nueva con Docker Compose, el archivo
-`database/schema.sql` se monta dentro del contenedor como:
+Docker Compose monta `database/schema.sql` como:
 
 ```text
 /docker-entrypoint-initdb.d/001_initial_schema.sql
 ```
 
-La imagen oficial de PostgreSQL ejecuta ese archivo durante la primera
-inicializacion, siempre que el volumen de datos este vacio.
-
-El orden del nombre importa. El prefijo `001_` deja claro que es el primer script
-de arranque. Si luego existen mas scripts de inicializacion, se pueden numerar
-despues:
+La imagen oficial de PostgreSQL ejecuta ese archivo solo durante la primera
+inicializacion, cuando el volumen esta vacio. El prefijo `001_` marca el orden
+de arranque y permite agregar scripts posteriores:
 
 ```text
 001_initial_schema.sql
@@ -49,39 +42,35 @@ despues:
 003_demo_data.sql
 ```
 
-## Why This Is Better
+## Why It Matters
 
-Un schema ejecutable obliga a convertir ideas en reglas concretas.
+Un schema ejecutable convierte ideas en reglas concretas:
 
-Ejemplos:
+- `person.person_id` es una primary key.
+- `customer.person_id` es una foreign key.
+- `part.internal_code` es unico.
+- `sales_order.total_amount` tiene reglas de validacion.
 
-- `person.person_id` no es solo "un id"; es una primary key.
-- `customer.person_id` no es solo "una relacion"; es una foreign key.
-- `part.internal_code` no es solo "un codigo"; es un valor unico.
-- `sales_order.total_amount` no queda a confianza; tiene reglas de validacion.
-
-Esto es aprendizaje real de base de datos. No es decorar un documento con
-cuadritos.
+Eso es aprendizaje real de base de datos, no decoracion de diagramas.
 
 ## Rules
 
 - El ERD sigue siendo la fuente conceptual.
 - El SQL debe mantenerse alineado con el ERD.
-- Los nombres de tablas y columnas deben estar en English `snake_case`.
+- Tablas y columnas usan English `snake_case`.
 - El schema debe poder ejecutarse desde cero.
-- Las credenciales locales no deben escribirse dentro del schema.
-- Los cambios futuros deben convertirse en migraciones cuando el proyecto deje de
-  estar en etapa inicial.
+- Las credenciales locales no van dentro del schema.
+- Cuando el proyecto deje la etapa inicial, los cambios deben pasar a
+  migraciones.
 
 ## Consequences
 
-- Crear una base local no requiere copiar SQL a mano.
-- `make db-up` crea una base inicial usando el schema.
-- `make db-reset` borra el volumen y reconstruye la base desde el schema.
-- Editar `database/schema.sql` no modifica una base ya creada. Para aplicar
-  cambios de arranque hay que reconstruir la base o crear una migracion.
-- El equipo puede defender el modelo desde dos niveles: conceptual con el ERD y
-  fisico con SQL.
+- Crear la base local no requiere copiar SQL a mano.
+- `make db-up` crea una base inicial desde el schema.
+- `make db-reset` borra el volumen y reconstruye desde el schema.
+- Editar `database/schema.sql` no cambia una base ya creada; hay que reconstruir
+  o crear una migracion.
+- El modelo se puede defender en dos niveles: ERD conceptual y SQL fisico.
 
 ## Sources
 

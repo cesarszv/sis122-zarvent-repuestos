@@ -1,86 +1,52 @@
-# ADR 002: Architecture
+# ADR 002: Architecture Discovery
 
-## 1. Enfoque del Sistema
+## 1. System Focus
 
-### ¿Qué problema principal resuelve Zarvent Repuestos: vender más rápido, controlar stock, reducir errores, generar reportes o todo eso?
+Zarvent Repuestos debe priorizar **control de stock**.
 
-El foco de Zarvent Repuestos es controlar el stock.
+Vender, cobrar, comprar y reportar tambien importan, pero el sistema pierde
+valor si el inventario no se actualiza de forma facil, constante y confiable.
+Como existen proveedores y clientes, la plataforma debe manejar ambos canales y
+seguir siendo abierta para mas usuarios.
 
-Lo demás también es importante, pero lo esencial es mantener un buen control del stock, porque trabajamos con distintos proveedores. La idea es que los usuarios también puedan comprar desde la plataforma; por eso existen dos canales principales: proveedores y clientes. Esta plataforma busca ser abierta para que más personas puedan acceder.
+## 2. Failure Conditions
 
-### ¿Qué sería un “fracaso” del sistema aunque técnicamente funcione?
+El sistema fracasa aunque "funcione" si:
 
-Que técnicamente funcione, pero no tenga suficiente calidad en User Experience y User Interface para que los trabajadores puedan actualizar el stock de forma fácil y constante.
+- la UX/UI impide que trabajadores actualicen stock sin friccion
+- la informacion vuelve a depender de registros fisicos por falta de confianza
+- el sistema deja de ser util cuando cambia la persona encargada
 
-También sería un fracaso que el sistema funcione, pero no sea confiable. Si, como “emergencia”, se debe volver temporalmente al manejo físico de la información, el sistema podría llegar a un punto en el que sería inútil.
+## 3. Users and Roles
 
-### ¿Qué información hoy está duplicada o dispersa y debe centralizarse?
+Usuarios principales:
 
-La información ya existe; solo falta el sistema para empezar a trabajar y aprovechar lo que ya se tiene.
+- trabajadores de la empresa central
+- clientes
 
-## 2. Usuarios
+Los roles no son totalmente fijos. Una misma persona puede tener varios roles y
+las responsabilidades pueden rotar entre trabajadores.
 
-### ¿Quiénes usarán el sistema realmente: vendedor, almacén, cajero, compras, gerente?
+Pendiente: definir que acciones puede y no puede hacer cada rol.
 
-Mayormente lo usarán trabajadores de la empresa central y clientes. No contaremos con muchos trabajadores, así que el sistema debe ser eficiente. También se debe considerar que hoy puede usarlo “Pedro”, pero mañana le puede tocar a “Carlos”.
+## 4. Open Architecture Questions
 
-Los roles no son totalmente fijos; los permisos o responsabilidades pueden ir rotando.
+| Area | Questions |
+| --- | --- |
+| Modules | ¿Cuales son los bloques principales: clientes, repuestos, inventario, ventas, pagos, compras, devoluciones, reportes? ¿Que modulo depende de otro? ¿Cual es critico si falla? |
+| Business rules | ¿Se puede vender sin stock? ¿Modificar una venta pagada? ¿Quien autoriza descuentos, anulaciones o devoluciones? ¿Una devolucion siempre devuelve stock? |
+| Data | ¿Que datos deben quedar como historial? ¿Que datos deben ser unicos? ¿Que datos son obligatorios para una venta valida? |
+| Main flow | ¿Como va el flujo desde pedido del cliente hasta pago? ¿Cuando se descuenta stock? ¿Que pasa con pagos parciales, pagos fallidos o falta de stock? |
+| Inventory | ¿Solo importa cuanto stock hay o tambien por que cambio? ¿Se registran movimientos desde el inicio? ¿Como se corrige diferencia entre stock fisico y registrado? |
+| Application architecture | ¿Solo base de datos y consultas, o tambien interfaz/app? ¿Que reglas viven en la app y cuales se protegen con constraints en PostgreSQL? |
+| Reports | ¿Que necesita ver gerencia cada dia? ¿Que reportes salen de ventas, pagos e inventario? ¿Que decisiones se tomaran con ellos? |
+| Quality | ¿Se prioriza rapidez, integridad, facilidad de uso o trazabilidad? ¿Que errores humanos debe prevenir? ¿Que decisiones deben quedar auditables? |
 
-### ¿Una misma persona puede tener varios roles?
+## Current Direction
 
-Sí.
-
-### ¿Qué acciones debe poder hacer cada rol y cuáles NO debe tocar?
-
-PENDIENTE
-
-## 3. Módulos
-
-- ¿Cuáles son los bloques principales del sistema: clientes, repuestos, inventario, ventas, pagos, compras, devoluciones, reportes?
-- ¿Qué módulo depende de otro para funcionar?
-- ¿Qué módulo es más crítico si falla?
-
-## 4. Reglas del Negocio
-
-- ¿Se puede vender un repuesto sin stock?
-- ¿Se puede modificar una venta ya pagada?
-- ¿Quién puede autorizar descuentos, anulaciones o devoluciones?
-- ¿Una devolución siempre devuelve stock o depende del estado del producto?
-
-## 5. Datos
-
-- ¿Qué datos deben guardarse como historial aunque cambien después? Ejemplo: precio de venta, costo de compra, método de pago.
-- ¿Qué datos deben ser únicos? Ejemplo: código interno del repuesto, CI/NIT, tax ID del proveedor.
-- ¿Qué datos son obligatorios para registrar una venta válida?
-
-## 6. Flujo Principal
-
-- ¿Cuál es el camino normal desde que el cliente pide un repuesto hasta que se registra el pago?
-- ¿En qué paso se descuenta el stock?
-- ¿Qué pasa si el cliente paga parcialmente o si el pago falla?
-- ¿Qué pasa si el vendedor encuentra el repuesto pero no hay stock?
-
-## 7. Inventario
-
-- ¿El sistema solo necesita saber “cuánto stock hay” o también “por qué cambió el stock”?
-- ¿Conviene registrar movimientos de inventario desde el inicio o dejarlo como extensión?
-- ¿Cómo se corrige una diferencia entre stock físico y stock registrado?
-
-## 8. Arquitectura
-
-- ¿El sistema será solo base de datos y consultas, o tendrá interfaz/app encima?
-- Si hay app, ¿conviene separar presentación, lógica de negocio y acceso a datos?
-- ¿Qué reglas deben vivir en la aplicación y cuáles deben protegerse también en PostgreSQL con constraints?
-- ¿Qué parte del sistema debe ser simple ahora para no sobreingenierizar?
-
-## 9. Reportes
-
-- ¿Qué quiere ver el gerente cada día?
-- ¿Qué reportes salen directo de ventas, pagos e inventario?
-- ¿Qué decisiones reales se tomarán con esos reportes?
-
-## 10. Calidad
-
-- ¿Qué debe priorizar el sistema: rapidez, integridad de datos, facilidad de uso o trazabilidad?
-- ¿Qué errores humanos debe prevenir?
-- ¿Qué decisiones deben quedar registradas para auditoría?
+- El sistema debe centralizar informacion que ya existe, no inventar el negocio
+  desde cero.
+- El control de stock manda sobre la arquitectura.
+- La facilidad de uso importa, pero no puede romper integridad ni trazabilidad.
+- Las decisiones pendientes deben resolverse antes de convertir roles, permisos
+  o flujos complejos en schema definitivo.
