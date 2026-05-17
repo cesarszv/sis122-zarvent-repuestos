@@ -10,7 +10,7 @@ from pathlib import Path
 
 
 EXPECTED_HEADERS = ["item_id", "part_description", "quantity", "vehicle_application"]
-SOURCE_NAME = "pseudo_dataset.csv"
+SOURCE_NAME = "database/seeds/pseudo_dataset.csv"
 MAKE = "Kia"
 CATEGORY_NAME = "Pseudo Dataset"
 LOCATION_NAME = "main"

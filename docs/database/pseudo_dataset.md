@@ -10,8 +10,8 @@ CSV es la version estructurada de esa imagen.
 
 | File | Purpose |
 | --- | --- |
-| [`../../pseudo_dataset.jpeg`](../../pseudo_dataset.jpeg) | Fuente visual original. |
-| [`../../pseudo_dataset.csv`](../../pseudo_dataset.csv) | Datos tabulares extraidos de la imagen. |
+| [`../../database/seeds/pseudo_dataset.jpeg`](../../database/seeds/pseudo_dataset.jpeg) | Fuente visual original. |
+| [`../../database/seeds/pseudo_dataset.csv`](../../database/seeds/pseudo_dataset.csv) | Datos tabulares extraidos de la imagen. |
 | [`../../scripts/database/generate_pseudo_dataset_seed_sql.py`](../../scripts/database/generate_pseudo_dataset_seed_sql.py) | Convierte el CSV en SQL de carga. |
 | [`../../database/test_pseudo_dataset.sql`](../../database/test_pseudo_dataset.sql) | Tests SQL para validar la carga. |
 

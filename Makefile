@@ -50,7 +50,7 @@ db-apply:
 	DATABASE_URL="$(DATABASE_URL)" scripts/database/apply_schema.sh
 
 db-pseudo-seed:
-	python3 scripts/database/generate_pseudo_dataset_seed_sql.py pseudo_dataset.csv | \
+	python3 scripts/database/generate_pseudo_dataset_seed_sql.py database/seeds/pseudo_dataset.csv | \
 		$(DOCKER_COMPOSE) exec -T postgres psql -U "$(POSTGRES_USER)" -d "$(POSTGRES_DB)"
 
 db-pseudo-test:
