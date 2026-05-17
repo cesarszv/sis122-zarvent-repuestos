@@ -14,14 +14,14 @@ auditar, eso todavia no es arquitectura seria.
 
 Usaremos un **Entity Relationship Model** de tipo **operational relational
 model**, representado con un **ERD compacto de notacion Crow's Foot** y pensado
-para implementarse despues en **MySQL**.
+para implementarse despues en **PostgreSQL 18.4**.
 
 En palabras simples:
 
 - **Entity Relationship Model:** porque necesitamos identificar entidades,
   atributos, relaciones, cardinalidades y reglas de negocio antes de crear
   tablas.
-- **Relational model:** porque MySQL almacena la informacion en tablas
+- **Relational model:** porque PostgreSQL almacena la informacion en tablas
   relacionadas por primary keys, foreign keys, unique constraints y checks.
 - **Operational model:** porque el sistema administra operaciones diarias:
   clientes, repuestos, compatibilidad, stock, ventas, pagos, compras,
@@ -66,7 +66,7 @@ datos reflejen como funciona el negocio**.
 El modelo elegido es:
 
 > **A compact normalized operational Entity Relationship Model for an automotive
-> spare parts business, implemented as a relational schema in MySQL.**
+> spare parts business, implemented as a relational schema in PostgreSQL 18.4.**
 
 Traducido al trabajo del proyecto:
 
@@ -109,10 +109,10 @@ crear tablas fisicas:
 Ese es el punto: **el ERD hace visibles las reglas**. Sin eso, el sistema queda
 en manos de memoria, formularios improvisados y validaciones sueltas.
 
-## Why Relational and MySQL
+## Why Relational and PostgreSQL 18.4
 
-El proyecto usa MySQL como gestor principal. Eso vuelve natural implementar el
-ERD como modelo relacional:
+El proyecto usa PostgreSQL 18.4 como gestor principal. Eso vuelve natural
+implementar el ERD como modelo relacional:
 
 - Las entidades se convierten en tablas.
 - Los atributos se convierten en columnas.
@@ -563,8 +563,8 @@ descontar dentro de una operacion controlada.
 | [schema.sql](schema.sql)                               | Futuro SQL fisico; debe alinearse con el ERD final.           |
 
 Nota tecnica importante: actualmente `schema.sql` todavia no representa un SQL
-fisico completo para MySQL. Contiene un boceto parcial. El modelo defendible
-esta en `erd.md`; luego el SQL debe actualizarse para reflejarlo.
+fisico completo para PostgreSQL 18.4. Contiene un boceto parcial. El modelo
+defendible esta en `erd.md`; luego el SQL debe actualizarse para reflejarlo.
 
 ## When We Use the ERD
 
@@ -804,9 +804,9 @@ La devolucion no flota en el aire. Esta anclada a la venta.
 La posicion final del proyecto debe ser esta:
 
 > Zarvent Repuestos usara un modelo entidad-relacion operacional, compacto y
-> relacional, implementable en MySQL, con entidades separadas para identidad,
-> clientes, proveedores, catalogo de repuestos, compatibilidad vehicular, stock,
-> ventas, pagos, compras y devoluciones.
+> relacional, implementable en PostgreSQL 18.4, con entidades separadas para
+> identidad, clientes, proveedores, catalogo de repuestos, compatibilidad
+> vehicular, stock, ventas, pagos, compras y devoluciones.
 
 Este modelo se elige porque:
 
@@ -833,9 +833,10 @@ Fuentes conceptuales y tecnicas usadas para sostener el criterio del modelo:
 - E. F. Codd, **A Relational Model of Data for Large Shared Data Banks**.
   Trabajo fundacional del modelo relacional.
   <https://research.ibm.com/publications/a-relational-model-of-data-for-large-shared-data-banks>
-- MySQL 8.4 Reference Manual, **CREATE TABLE and Generated Columns / Constraints
-  documentation**, para criterios de foreign keys y check constraints.
-  <https://dev.mysql.com/doc/refman/8.4/en/create-table.html>
+- PostgreSQL 18.4 Documentation, **Data Definition / Constraints**, para
+  criterios de primary keys, foreign keys, unique constraints y check
+  constraints.
+  <https://www.postgresql.org/docs/18/ddl-constraints.html>
 - Auto Care Association, **Auto Care Data Standards**, para la importancia de
   catalogo y compatibilidad de repuestos en la industria automotriz.
   <https://www.autocare.org/data-standards>

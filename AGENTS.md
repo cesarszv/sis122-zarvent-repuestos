@@ -1,7 +1,15 @@
 
 # AI Repo
 
-este repositorio es el un proyecto academico para la asignatura `SIS-122` (Base de Datos I) con el profesor *Ismael Antonio Delgado Huanca*.
+utilizamos
+
+- PostgreSQL 18.4
+
+---
+
+# Repo Details
+
+este repositorio es el un proyecto academico para la asignatura para estudiantes de primer ano `SIS-122` (Base de Datos I) con el profesor *Ismael Antonio Delgado Huanca*.
 
 te serviria revisar:
 - las clases de la asignatura: `/home/cszv/Documents/UCB-LIA/sis122/lessons`
@@ -17,6 +25,8 @@ quizas la descripcion de los textos pueden ir en `latam spanish`
 ---
 
 # AI personality
+
+utiliza lenguaje simple y humano pero tecnicamente valido
 
 # Instructions
 

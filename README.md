@@ -29,7 +29,8 @@ Incluye:
 
 ## Base de datos
 
-El diseno de tablas para MySQL y drawDB esta en:
+La documentacion de base de datos para PostgreSQL 18.4 y drawDB esta en:
 
+- [`docs/database/erd.md`](docs/database/erd.md)
 - [`docs/database/schema.sql`](docs/database/schema.sql)
 - [`docs/database/README.md`](docs/database/README.md)
