@@ -1,11 +1,11 @@
 # Repo Info
 
-This project currently focuses on:
-
-- Database model: MySQL Server target.
-- Application code: not included in this cleaned scope.
-- Main deliverables: ERD, table explanation, analysis docs, and manual SQL
-  schema draft.
+STACK{
+  Database: MySQL Server
+  Language: Python
+  Librerias: MySQL Connector (Python), bcrypt (Python)
+  Frontend: Tkinter
+}
 
 ---
 

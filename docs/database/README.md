@@ -5,13 +5,13 @@ Repuestos.
 
 ## Documentos
 
-| Documento | Para que sirve |
+| Documento | Uso |
 | --- | --- |
-| [`erd.md`](erd.md) | Presenta el diagrama ERD compacto. |
-| [`db_explanation.md`](db_explanation.md) | Explica cada tabla, atributo y relacion. |
-| [`erd_explanation.md`](erd_explanation.md) | Defiende por que el modelo es relacional y normalizado. |
-| [`erd_business_research.md`](erd_business_research.md) | Conecta el modelo con procesos reales del negocio. |
-| [`../../database/schema.sql`](../../database/schema.sql) | Borrador manual del SQL que se escribira en MySQL. |
+| [erd.md](erd.md) | Diagrama ERD compacto en Mermaid. |
+| [db_explanation.md](db_explanation.md) | Explicacion breve de cada tabla del ERD. |
+| [erd_explanation.md](erd_explanation.md) | Defensa tecnica del modelo relacional. |
+| [erd_business_research.md](erd_business_research.md) | Justificacion del modelo desde el negocio de repuestos. |
+| [../../database/schema.sql](../../database/schema.sql) | Borrador manual del SQL para MySQL Server. |
 
 ## Bloques del modelo
 
@@ -28,14 +28,13 @@ Repuestos.
 
 ## Idea central
 
-El modelo no busca tener muchas tablas para verse avanzado. Busca separar bien
-los conceptos:
+El ERD no busca verse grande. Busca separar conceptos correctamente:
 
-- una persona no es lo mismo que un cliente
-- un repuesto no es lo mismo que su stock
-- una venta no es lo mismo que un pago
-- una devolucion debe apuntar a una venta real
-- la compatibilidad vehicular es una relacion muchos-a-muchos
+- una persona no es lo mismo que un cliente;
+- un repuesto no es lo mismo que su stock;
+- una venta no es lo mismo que un pago;
+- una compra no es lo mismo que su detalle;
+- una devolucion debe apuntar a una venta real;
+- la compatibilidad vehicular es una relacion muchos-a-muchos.
 
-Si entiendes esas separaciones, puedes defender el ERD. Si no, cualquier SQL que
-escribas sera solo mecanografia.
+Si puedes explicar esas separaciones, puedes defender el modelo relacional.
