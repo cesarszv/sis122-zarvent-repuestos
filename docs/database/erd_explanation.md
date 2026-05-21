@@ -14,14 +14,14 @@ auditar, eso todavia no es arquitectura seria.
 
 Usaremos un **Entity Relationship Model** de tipo **operational relational
 model**, representado con un **ERD compacto de notacion Crow's Foot** y pensado
-para implementarse despues en **PostgreSQL 18.4**.
+para implementarse despues en **MySQL Server**.
 
 En palabras simples:
 
 - **Entity Relationship Model:** porque necesitamos identificar entidades,
   atributos, relaciones, cardinalidades y reglas de negocio antes de crear
   tablas.
-- **Relational model:** porque PostgreSQL almacena la informacion en tablas
+- **Relational model:** porque MySQL Server almacena la informacion en tablas
   relacionadas por primary keys, foreign keys, unique constraints y checks.
 - **Operational model:** porque el sistema administra operaciones diarias:
   clientes, repuestos, compatibilidad, stock, ventas, pagos, compras,
@@ -66,7 +66,7 @@ datos reflejen como funciona el negocio**.
 El modelo elegido es:
 
 > **A compact normalized operational Entity Relationship Model for an automotive
-> spare parts business, implemented as a relational schema in PostgreSQL 18.4.**
+> spare parts business, implemented as a relational schema in MySQL Server.**
 
 Traducido al trabajo del proyecto:
 
@@ -109,9 +109,9 @@ crear tablas fisicas:
 Ese es el punto: **el ERD hace visibles las reglas**. Sin eso, el sistema queda
 en manos de memoria, formularios improvisados y validaciones sueltas.
 
-## Why Relational and PostgreSQL 18.4
+## Why Relational and MySQL Server
 
-El proyecto usa PostgreSQL 18.4 como gestor principal. Eso vuelve natural
+El proyecto usa MySQL Server como gestor principal. Eso vuelve natural
 implementar el ERD como modelo relacional:
 
 - Las entidades se convierten en tablas.
@@ -560,11 +560,11 @@ descontar dentro de una operacion controlada.
 | [../analysis/processes.md](../analysis/processes.md)   | Procesos reales que originan entidades y reglas.              |
 | [../analysis/actors.md](../analysis/actors.md)         | Actores que interactuan con el sistema.                       |
 | [../analysis/procedures.md](../analysis/procedures.md) | Pasos operativos que deben soportarse.                        |
-| [schema.sql](schema.sql)                               | Futuro SQL fisico; debe alinearse con el ERD final.           |
+| [../../database/schema.sql](../../database/schema.sql) | Futuro SQL fisico; debe alinearse con el ERD final.           |
 
-Nota tecnica importante: actualmente `schema.sql` todavia no representa un SQL
-fisico completo para PostgreSQL 18.4. Contiene un boceto parcial. El modelo
-defendible esta en `erd.md`; luego el SQL debe actualizarse para reflejarlo.
+Nota tecnica importante: actualmente `schema.sql` todavia debe revisarse contra
+el dialecto MySQL. El modelo defendible esta en `erd.md`; luego el SQL debe
+actualizarse para reflejarlo sin arrastrar sintaxis de otro motor.
 
 ## When We Use the ERD
 
@@ -804,7 +804,7 @@ La devolucion no flota en el aire. Esta anclada a la venta.
 La posicion final del proyecto debe ser esta:
 
 > Zarvent Repuestos usara un modelo entidad-relacion operacional, compacto y
-> relacional, implementable en PostgreSQL 18.4, con entidades separadas para
+> relacional, implementable en MySQL Server, con entidades separadas para
 > identidad, clientes, proveedores, catalogo de repuestos, compatibilidad
 > vehicular, stock, ventas, pagos, compras y devoluciones.
 
@@ -833,10 +833,9 @@ Fuentes conceptuales y tecnicas usadas para sostener el criterio del modelo:
 - E. F. Codd, **A Relational Model of Data for Large Shared Data Banks**.
   Trabajo fundacional del modelo relacional.
   <https://research.ibm.com/publications/a-relational-model-of-data-for-large-shared-data-banks>
-- PostgreSQL 18.4 Documentation, **Data Definition / Constraints**, para
-  criterios de primary keys, foreign keys, unique constraints y check
-  constraints.
-  <https://www.postgresql.org/docs/18/ddl-constraints.html>
+- MySQL Documentation, para criterios de definicion de datos, tablas,
+  relaciones y constraints.
+  <https://dev.mysql.com/doc/>
 - Auto Care Association, **Auto Care Data Standards**, para la importancia de
   catalogo y compatibilidad de repuestos en la industria automotriz.
   <https://www.autocare.org/data-standards>

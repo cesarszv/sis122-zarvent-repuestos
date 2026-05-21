@@ -3,61 +3,65 @@
 Proyecto academico para la asignatura `SIS-122` (Base de Datos I) con el
 profesor *Ismael Antonio Delgado Huanca*.
 
-Realizado por
+Realizado por:
+
 - Cesar Sebastian Zambrana Ventura
 - Emanuel Justiniano Peralta
 
----
+## Objetivo
 
-## Que hicimos?
+Zarvent Repuestos modela una empresa ficticia de venta de repuestos de
+vehiculos.
 
-Se trata de un sistema administrativo para una empresa ficticia de venta de
-repuestos de vehiculos que registra ventas, compras, inventario, pagos,
-proveedores y garantias usando papel, Excel y WhatsApp.
+El objetivo actual del repositorio es **defender el modelo de base de datos**:
+entidades, atributos, claves primarias, claves foraneas, relaciones,
+normalizacion y consultas posibles.
 
-Incluye:
-- Registro de clientes.
-- Registro de proveedores.
-- Catalogo de repuestos.
-- Compatibilidad de repuestos con vehiculos.
-- Control de stock por almacen y ubicacion.
-- Compras y recepcion de mercaderia.
-- Ventas y detalle de productos vendidos.
-- Pagos y comprobantes.
-- Devoluciones y garantias.
-- Reportes de ventas, compras y stock bajo.
+No estamos intentando demostrar arquitectura de software avanzada. Eso seria
+ruido para este punto del proyecto.
 
-## Base de datos
+## Alcance actual
 
-La documentacion de base de datos para PostgreSQL 18.4 y drawDB esta en:
+El modelo cubre:
 
-- [`docs/database/erd.md`](docs/database/erd.md)
-- [`database/schema.sql`](database/schema.sql)
-- [`docs/database/README.md`](docs/database/README.md)
-- [`docs/database/docker.md`](docs/database/docker.md)
-- [`docs/database/pseudo_dataset.md`](docs/database/pseudo_dataset.md)
+- clientes
+- proveedores
+- catalogo de repuestos
+- compatibilidad de repuestos con vehiculos
+- stock actual
+- ventas
+- pagos
+- compras
+- devoluciones y garantias
+- reportes derivados de las tablas operativas
 
-Las decisiones tecnicas estan documentadas como ADR:
+## Stack academico
 
-- [`docs/adr/001-RDBMS.md`](docs/adr/001-RDBMS.md)
-- [`docs/adr/003-local-database-with-docker-compose.md`](docs/adr/003-local-database-with-docker-compose.md)
-- [`docs/adr/004-executable-database-schema.md`](docs/adr/004-executable-database-schema.md)
+Por exigencia del curso, el gestor elegido es **MySQL Server**.
 
-Para crear una base local replicable:
+Por ahora el foco sigue siendo la base de datos. Primero se entiende el modelo;
+despues se escribe cualquier codigo de aplicacion.
 
-```bash
-cp .env.example .env
-make db-up
-```
+## Documentos principales
 
-Si usas PostgreSQL instalado directamente en la maquina:
+- [`docs/database/erd.md`](docs/database/erd.md): diagrama ERD compacto.
+- [`docs/database/db_explanation.md`](docs/database/db_explanation.md):
+  explicacion tabla por tabla.
+- [`docs/database/erd_explanation.md`](docs/database/erd_explanation.md):
+  defensa profunda del modelo.
+- [`docs/database/erd_business_research.md`](docs/database/erd_business_research.md):
+  justificacion del ERD desde el negocio.
+- [`docs/analysis`](docs/analysis): actores, procesos, procedimientos,
+  requerimientos y recursos.
+- [`database/schema.sql`](database/schema.sql): borrador manual del esquema SQL
+  a completar en MySQL.
 
-```bash
-make db-native-create
-```
+## Como trabajar este repo
 
-Para cargar y probar el dataset de ejemplo:
+1. Lee primero `docs/analysis`.
+2. Estudia el ERD en `docs/database/erd.md`.
+3. Revisa la explicacion tabla por tabla.
+4. Escribe el SQL manualmente en `database/schema.sql`.
+5. Valida cada tabla entendiendo que regla del negocio protege.
 
-```bash
-make db-pseudo-refresh
-```
+La regla es simple: si no puedes explicar una tabla, no la metas.

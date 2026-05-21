@@ -1,53 +1,41 @@
 # Database Documentation
 
-Esta carpeta contiene la documentacion relacionada con el **diseno de la base de
-datos** para PostgreSQL 18.4.
+Esta carpeta contiene la documentacion del modelo entidad-relacion de Zarvent
+Repuestos.
 
-La documentacion se separa en dos niveles:
+## Documentos
 
-- diseno conceptual: que entidades existen y por que
-- implementacion local: como se crea y ejecuta la base en PostgreSQL
-
-## Main Documents
-
-| Document | Purpose |
+| Documento | Para que sirve |
 | --- | --- |
-| [`erd.md`](erd.md) | Diagrama entidad-relacion compacto del negocio. |
-| [`db_explanation.md`](db_explanation.md) | Explicacion tabla por tabla para defensa academica. |
-| [`erd_business_research.md`](erd_business_research.md) | Justificacion operativa del ERD desde procesos reales. |
-| [`erd_explanation.md`](erd_explanation.md) | Explicacion mas profunda del modelo relacional. |
-| [`docker.md`](docker.md) | Como funciona PostgreSQL local con Docker Compose. |
-| [`pseudo_dataset.md`](pseudo_dataset.md) | Como cargar y probar `pseudo_dataset.csv`. |
-| [`../../database/schema.sql`](../../database/schema.sql) | Schema SQL ejecutable para crear la base. |
+| [`erd.md`](erd.md) | Presenta el diagrama ERD compacto. |
+| [`db_explanation.md`](db_explanation.md) | Explica cada tabla, atributo y relacion. |
+| [`erd_explanation.md`](erd_explanation.md) | Defiende por que el modelo es relacional y normalizado. |
+| [`erd_business_research.md`](erd_business_research.md) | Conecta el modelo con procesos reales del negocio. |
+| [`../../database/schema.sql`](../../database/schema.sql) | Borrador manual del SQL que se escribira en MySQL. |
 
-## Decisions
+## Bloques del modelo
 
-Las decisiones tecnicas estables estan en ADR:
+| Bloque | Tablas |
+| --- | --- |
+| Identidad y clientes | `PERSON`, `CUSTOMER` |
+| Proveedores | `SUPPLIER` |
+| Catalogo | `PART_CATEGORY`, `PART` |
+| Compatibilidad vehicular | `VEHICLE_MODEL`, `PART_COMPATIBILITY` |
+| Inventario | `INVENTORY_STOCK` |
+| Ventas y pagos | `SALES_ORDER`, `SALES_ORDER_ITEM`, `PAYMENT` |
+| Compras | `PURCHASE_ORDER`, `PURCHASE_ORDER_ITEM` |
+| Devoluciones | `RETURN_ORDER`, `RETURN_ORDER_ITEM` |
 
-- [`../adr/001-RDBMS.md`](../adr/001-RDBMS.md): PostgreSQL 18.4 como RDBMS.
-- [`../adr/003-local-database-with-docker-compose.md`](../adr/003-local-database-with-docker-compose.md): Docker Compose para la base local.
-- [`../adr/004-executable-database-schema.md`](../adr/004-executable-database-schema.md): `database/schema.sql` como schema inicial ejecutable.
+## Idea central
 
-## Local Database
+El modelo no busca tener muchas tablas para verse avanzado. Busca separar bien
+los conceptos:
 
-Para crear la base local con Docker:
+- una persona no es lo mismo que un cliente
+- un repuesto no es lo mismo que su stock
+- una venta no es lo mismo que un pago
+- una devolucion debe apuntar a una venta real
+- la compatibilidad vehicular es una relacion muchos-a-muchos
 
-```bash
-cp .env.example .env
-make db-up
-```
-
-Para borrar datos locales y reconstruir desde cero:
-
-```bash
-make db-reset
-```
-
-Para cargar y probar el dataset de ejemplo:
-
-```bash
-make db-pseudo-refresh
-```
-
-Para detalles completos, lee [`docker.md`](docker.md) y
-[`../../database/README.md`](../../database/README.md).
+Si entiendes esas separaciones, puedes defender el ERD. Si no, cualquier SQL que
+escribas sera solo mecanografia.

@@ -5,19 +5,19 @@ caso de estudio.
 
 ## Recursos tecnologicos
 
-- **PostgreSQL 18.4**: Gestor de base de datos relacional principal del
-  proyecto. Se usara para almacenar clientes, repuestos, compatibilidades,
-  inventario, proveedores, compras, ventas, pagos, comprobantes y devoluciones.
+- **MySQL Server**: Gestor de base de datos relacional principal del proyecto.
+  Se usara para almacenar clientes, repuestos, compatibilidades, inventario,
+  proveedores, compras, ventas, pagos, comprobantes y devoluciones.
 
 - **SQL**: Lenguaje usado para crear tablas, relaciones, restricciones,
   inserciones, consultas y reportes.
 
-- **psql / pgAdmin**: Herramientas para conectarse a PostgreSQL, ejecutar
-  consultas, revisar esquemas y validar el diseno fisico.
+- **MySQL Workbench / cliente MySQL**: Herramientas para conectarse a MySQL,
+  ejecutar consultas, revisar esquemas y validar el diseno fisico.
 
 - **Visual Studio Code**: Editor para redactar la documentacion y organizar los
   archivos del proyecto.
-  
+
 - **Git / GitHub**: Control de versiones para mantener el historial del proyecto
   y compartir avances entre los integrantes.
 
