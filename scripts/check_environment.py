@@ -4,9 +4,9 @@ import sys
 
 REQUIRED_MODULES = [
     ("bcrypt", "bcrypt"),
+    ("flask", "flask"),
     ("mysql.connector", "mysql-connector-python"),
     ("dotenv", "python-dotenv"),
-    ("tkinter", "tkinter"),
 ]
 
 

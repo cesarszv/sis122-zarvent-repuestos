@@ -1,8 +1,190 @@
 {
-	"folders": [
-		{
-			"path": "."
-		}
-	],
-	"settings": {}
+  "folders": [
+    {
+      "name": "Zarvent Repuestos",
+      "path": "."
+    }
+  ],
+  "settings": {
+    // --- Python ---
+    "python.defaultInterpreterPath": "${workspaceFolder}/.venv/Scripts/python.exe",
+    "python.terminal.activateEnvironment": true,
+
+    // --- Editor ---
+    "editor.formatOnSave": true,
+    "editor.rulers": [88],
+    "editor.tabSize": 4,
+    "editor.insertSpaces": true,
+    "editor.renderWhitespace": "boundary",
+    "editor.bracketPairColorization.enabled": true,
+    "editor.guides.bracketPairs": "active",
+    "editor.minimap.enabled": false,
+
+    // --- Archivos: ocultar ruido ---
+    "files.exclude": {
+      "**/__pycache__": true,
+      "**/.pytest_cache": true,
+      "**/*.pyc": true,
+      ".venv": true,
+      "venv": true,
+      ".idea": true,
+      "uv.lock": true,
+      "**/.git": false
+    },
+
+    // --- Búsqueda: excluir carpetas pesadas ---
+    "search.exclude": {
+      "**/.venv": true,
+      "**/venv": true,
+      "**/__pycache__": true,
+      "**/uv.lock": true
+    },
+
+    // --- File Nesting: agrupar archivos relacionados ---
+    "explorer.fileNesting.enabled": true,
+    "explorer.fileNesting.expand": false,
+    "explorer.fileNesting.patterns": {
+      "pyproject.toml": "requirements.txt, uv.lock, .python-version, setup.cfg, setup.py",
+      ".env": ".env.example, .env.*",
+      "app.py": "db.py, user_service.py",
+      "CLAUDE.md": "AGENTS.md, GEMINI.md, DESIGN.md",
+      "README.md": "DESIGN.md"
+    },
+
+    // --- Explorador ---
+    "explorer.sortOrder": "type",
+    "explorer.compactFolders": false,
+
+    // --- Asociaciones de archivos ---
+    "files.associations": {
+      "*.sql": "sql",
+      ".env.example": "properties",
+      ".env": "properties"
+    },
+
+    // --- HTML (Jinja/Flask) ---
+    "emmet.includeLanguages": {
+      "jinja-html": "html"
+    },
+    "[html]": {
+      "editor.defaultFormatter": "esbenp.prettier-vscode"
+    },
+
+    // --- SQL ---
+    "[sql]": {
+      "editor.tabSize": 2
+    }
+  },
+
+  "extensions": {
+    "recommendations": [
+      // Python
+      "ms-python.python",
+      "ms-python.pylance",
+      "ms-python.black-formatter",
+      // Linting
+      "charliermarsh.ruff",
+      // SQL
+      "mtxr.sqltools",
+      "mtxr.sqltools-driver-mysql",
+      // HTML / CSS / Jinja
+      "samuelcolvin.jinjahtml",
+      "esbenp.prettier-vscode",
+      "formulahendry.auto-rename-tag",
+      // Utilidades
+      "usernamehw.errorlens",
+      "PKief.material-icon-theme",
+      "oderwat.indent-rainbow"
+    ]
+  },
+
+  "launch": {
+    "version": "0.2.0",
+    "configurations": [
+      {
+        "name": "Flask: Run",
+        "type": "debugpy",
+        "request": "launch",
+        "module": "flask",
+        "args": ["run", "--debug"],
+        "env": {
+          "FLASK_APP": "app.py",
+          "FLASK_ENV": "development"
+        },
+        "jinja": true,
+        "justMyCode": true
+      }
+    ]
+  },
+
+  "tasks": {
+    "version": "2.0.0",
+    "tasks": [
+      {
+        "label": "Flask: Iniciar servidor",
+        "type": "shell",
+        "command": "${workspaceFolder}/.venv/Scripts/python.exe -m flask run --debug",
+        "group": {
+          "kind": "build",
+          "isDefault": true
+        },
+        "presentation": {
+          "reveal": "always",
+          "panel": "dedicated",
+          "clear": true
+        },
+        "options": {
+          "env": {
+            "FLASK_APP": "app.py"
+          }
+        },
+        "problemMatcher": []
+      },
+      {
+        "label": "DB: Crear base de datos",
+        "type": "shell",
+        "command": "${workspaceFolder}/.venv/Scripts/python.exe scripts/000_run_sql_file.py",
+        "group": "none",
+        "presentation": {
+          "reveal": "always",
+          "panel": "shared",
+          "clear": true
+        },
+        "problemMatcher": []
+      },
+      {
+        "label": "DB: Seed usuario demo",
+        "type": "shell",
+        "command": "${workspaceFolder}/.venv/Scripts/python.exe scripts/004_seed_demo_user.py",
+        "group": "none",
+        "presentation": {
+          "reveal": "always",
+          "panel": "shared"
+        },
+        "problemMatcher": []
+      },
+      {
+        "label": "DB: Verificar base de datos",
+        "type": "shell",
+        "command": "${workspaceFolder}/.venv/Scripts/python.exe scripts/005_check_database.py",
+        "group": "test",
+        "presentation": {
+          "reveal": "always",
+          "panel": "shared"
+        },
+        "problemMatcher": []
+      },
+      {
+        "label": "Check: Verificar entorno",
+        "type": "shell",
+        "command": "${workspaceFolder}/.venv/Scripts/python.exe scripts/check_environment.py",
+        "group": "test",
+        "presentation": {
+          "reveal": "always",
+          "panel": "shared"
+        },
+        "problemMatcher": []
+      }
+    ]
+  }
 }

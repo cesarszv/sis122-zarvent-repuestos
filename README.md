@@ -54,25 +54,54 @@ Las dependencias externas son pocas:
 - `mysql-connector-python`: permite conectar Python con MySQL Server.
 - `python-dotenv`: permite leer las credenciales desde `.env`.
 - `bcrypt`: permite trabajar contrasenas con hash.
+- `flask`: permite mostrar una pantalla web simple para el login.
 
-`tkinter` no se instala con `pip`. Es parte de muchas instalaciones de Python de
-escritorio. Si falta, hay que revisar la instalacion de Python usada.
+La interfaz actual usa Flask porque permite separar de forma simple:
+
+- `app.py`: rutas de la aplicacion.
+- `templates/`: pantallas HTML.
+- `static/`: CSS, imagenes y archivos publicos.
+
+Estructura recomendada para el prototipo web:
+
+```text
+sis122-zarvent-repuestos/
+|-- app.py
+|-- db.py
+|-- user_service.py
+|-- templates/
+|   `-- login.html
+|-- static/
+|   |-- css/
+|   |   `-- style.css
+|   `-- img/
+`-- venv/
+```
+
+`db.py` y `user_service.py` no reemplazan la estructura del profesor. Solo
+separan la conexion MySQL y la logica de usuarios para que `app.py` no quede
+mezclado con todo.
 
 ### Opcion A: Python nativo
 
-En Windows, este equipo usa el lanzador `py`.
+El profesor recomienda crear un entorno virtual local llamado `venv`.
 
 ```powershell
-py -m venv .venv
-.\.venv\Scripts\Activate.ps1
+python -m venv venv
+.\venv\Scripts\Activate.ps1
 python -m pip install --upgrade pip
 python -m pip install -r requirements.txt
 python scripts\check_environment.py
 python app.py
 ```
 
-`py` sirve para ubicar Python en Windows. Despues de activar `.venv`, `python`
-debe apuntar al entorno virtual.
+Si Windows no reconoce `python`, usa `py` en el primer comando:
+
+```powershell
+py -m venv venv
+```
+
+Despues de activar `venv`, `python` debe apuntar al entorno virtual.
 
 ### Opcion B: UV
 
@@ -101,6 +130,13 @@ py -m uv run python scripts\check_environment.py
 py -m uv run python app.py
 ```
 
+### Ejecutar la pantalla de login
+
+Cuando `app.py` este corriendo, abre:
+
+- `http://127.0.0.1:5000`
+- `http://localhost:5000`
+
 ### Archivo `.env`
 
 Crea una copia local de ejemplo:
@@ -110,6 +146,58 @@ Copy-Item .env.example .env
 ```
 
 Despues edita `.env` con las credenciales reales de MySQL del equipo.
+
+### Preparar MySQL
+
+La base de datos del proyecto debe llamarse exactamente:
+
+```text
+sis122_zarvent_repuestos
+```
+
+Los scripts estan numerados para poder repetir el proceso paso por paso:
+
+```text
+scripts/
+|-- 001_create_database.sql
+|-- 002_users.sql
+|-- 003_create_app_user.sql
+|-- 004_seed_demo_user.py
+`-- 005_check_database.py
+```
+
+Como el comando `mysql` puede no estar en el `PATH`, el repo incluye un
+ejecutor pequeno que usa `mysql-connector-python` y pide la contrasena del
+usuario administrador sin guardarla:
+
+```powershell
+.\venv\Scripts\python.exe scripts\000_run_sql_file.py scripts\001_create_database.sql --admin-user root
+.\venv\Scripts\python.exe scripts\000_run_sql_file.py scripts\002_users.sql --admin-user root
+.\venv\Scripts\python.exe scripts\000_run_sql_file.py scripts\003_create_app_user.sql --admin-user root
+.\venv\Scripts\python.exe scripts\004_seed_demo_user.py
+.\venv\Scripts\python.exe scripts\005_check_database.py
+```
+
+Si prefieres MySQL Workbench, ejecuta estos SQL en el mismo orden:
+
+```sql
+SOURCE scripts/001_create_database.sql;
+SOURCE scripts/002_users.sql;
+SOURCE scripts/003_create_app_user.sql;
+```
+
+El usuario demo queda asi si no pasas argumentos:
+
+```text
+usuario: admin
+contrasena: admin123
+```
+
+Despues levanta la app:
+
+```powershell
+.\venv\Scripts\python.exe app.py
+```
 
 ## Documentos principales
 

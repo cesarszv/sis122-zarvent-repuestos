@@ -1,5 +1,16 @@
 {
   "recommendations": [
-    "ms-python.python"
+    "ms-python.python",
+    "ms-python.pylance",
+    "ms-python.black-formatter",
+    "charliermarsh.ruff",
+    "mtxr.sqltools",
+    "mtxr.sqltools-driver-mysql",
+    "samuelcolvin.jinjahtml",
+    "esbenp.prettier-vscode",
+    "formulahendry.auto-rename-tag",
+    "usernamehw.errorlens",
+    "PKief.material-icon-theme",
+    "oderwat.indent-rainbow"
   ]
 }

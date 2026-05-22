@@ -1,19 +1,32 @@
-# Buscamos testear si funciona mysql aunque sea con root
+"""
+Quick MySQL admin connection test.
+
+This does not assume that root has an empty password.
+Use it only to verify the admin credentials before running the SQL scripts.
+"""
+
+import getpass
 
 import mysql.connector
 
-conexion = mysql.connector.connect(
-  host="localhost",
-  user="root",
-  password="",
-  database="sis122_zarvent_repuestos",
-)
 
-cursor = conexion.cursor()
-cursor.execute("SELECT DATABASE()")
-database = cursor.fetchone()[0]
+def main():
+    password = getpass.getpass("Password for MySQL root: ")
+    connection = mysql.connector.connect(
+        host="127.0.0.1",
+        user="root",
+        password=password,
+    )
+    cursor = connection.cursor()
 
-print(f"conectado correctamente a {database}")
+    try:
+        cursor.execute("SELECT VERSION()")
+        version = cursor.fetchone()[0]
+        print(f"Connected correctly to MySQL {version}")
+    finally:
+        cursor.close()
+        connection.close()
 
-cursor.close()
-conexion.close()
+
+if __name__ == "__main__":
+    main()

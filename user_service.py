@@ -34,11 +34,13 @@ def create_user(username, password_hashed):
 
 
 def login(username, password):
-    connection = get_connection()
-    cursor = connection.cursor(dictionary=True)
+    connection = None
+    cursor = None
     query = "SELECT id, username, password FROM users WHERE username = %s"
 
     try:
+        connection = get_connection()
+        cursor = connection.cursor(dictionary=True)
         cursor.execute(query, (username,))
         user = cursor.fetchone()
 
@@ -64,8 +66,10 @@ def login(username, password):
         return None
 
     finally:
-        cursor.close()
-        connection.close()
+        if cursor:
+            cursor.close()
+        if connection:
+            connection.close()
 
 
 def read_user(user_id=None):

@@ -1,0 +1,75 @@
+* {
+    box-sizing: border-box;
+}
+
+body {
+    min-height: 100vh;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #eef2f7;
+    color: #0d0b0c;
+    font-family: Arial, sans-serif;
+}
+
+.login-container {
+    width: min(100% - 32px, 360px);
+    padding: 28px;
+    background: #ffffff;
+    border: 1px solid #d1d3d8;
+    border-radius: 8px;
+}
+
+h1 {
+    margin: 0 0 6px;
+    font-size: 1.5rem;
+}
+
+h2 {
+    margin: 0 0 20px;
+    color: #5b6168;
+    font-size: 1rem;
+    font-weight: 700;
+}
+
+label {
+    display: block;
+    margin: 14px 0 6px;
+    font-size: 0.875rem;
+    font-weight: 700;
+}
+
+input {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #d1d3d8;
+    border-radius: 6px;
+    font: inherit;
+}
+
+button {
+    width: 100%;
+    margin-top: 18px;
+    padding: 11px;
+    border: 0;
+    border-radius: 6px;
+    background: #e00010;
+    color: #ffffff;
+    cursor: pointer;
+    font: inherit;
+    font-weight: 700;
+}
+
+button:hover {
+    background: #c9000e;
+}
+
+.message {
+    margin: 0 0 16px;
+    padding: 10px;
+    border-radius: 6px;
+    background: #f4f5f7;
+    color: #5b6168;
+    font-size: 0.875rem;
+}

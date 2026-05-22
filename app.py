@@ -1,12 +1,27 @@
-# el profesor dijo que mantengamos la UI simple mientras se valida el flujo y seguridad en backend
+from flask import Flask, render_template, request
 
-# por ahora sera un registro y login que llamen las funciones del backend
+from user_service import login
 
-import tkinter as tk
-from user_service import create_user, login
 
-# widgets
+app = Flask(__name__)
 
-# register() y do_login() llaman a create_user/login
 
-# root.mainloop()
+@app.route("/", methods=["GET", "POST"])
+def inicio():
+    message = None
+
+    if request.method == "POST":
+        username = request.form.get("username", "").strip()
+        password = request.form.get("password", "")
+        user = login(username, password)
+
+        if user:
+            message = f"Bienvenido, {user['username']}."
+        else:
+            message = "Usuario o contrasena incorrectos."
+
+    return render_template("login.html", message=message)
+
+
+if __name__ == "__main__":
+    app.run(debug=True)
