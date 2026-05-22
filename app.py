@@ -13,7 +13,12 @@ def inicio():
     if request.method == "POST":
         username = request.form.get("username", "").strip()
         password = request.form.get("password", "")
-        user = login(username, password)
+
+        try:
+            user = login(username, password)
+        except Exception as e:
+            message = f"Error de base de datos: {e}"
+            return render_template("login.html", message=message)
 
         if user:
             message = f"Bienvenido, {user['username']}."

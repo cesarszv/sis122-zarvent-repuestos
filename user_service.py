@@ -62,9 +62,6 @@ def login(username, password):
 
         return None
 
-    except Exception:
-        return None
-
     finally:
         if cursor:
             cursor.close()

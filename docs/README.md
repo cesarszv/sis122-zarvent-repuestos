@@ -6,6 +6,7 @@ Esta carpeta guarda la documentacion academica del proyecto.
 
 - [`analysis`](analysis): documentos del problema real antes de crear tablas.
 - [`database`](database): ERD, explicacion del modelo y defensa de tablas.
+- [`deployment.md`](deployment.md): pasos para desplegar la app en este equipo.
 
 La documentacion debe ayudar a responder:
 
@@ -14,3 +15,4 @@ La documentacion debe ayudar a responder:
 - como se relacionan
 - que reglas del negocio protegen
 - que queda fuera del alcance actual
+- como iniciar la aplicacion local sin depender de memoria

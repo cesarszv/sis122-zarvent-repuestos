@@ -210,6 +210,8 @@ Despues levanta la app:
   justificacion del ERD desde el negocio.
 - [`docs/analysis`](docs/analysis): actores, procesos, procedimientos,
   requerimientos y recursos.
+- [`docs/deployment.md`](docs/deployment.md): guia para desplegar la app en
+  este equipo Windows con MySQL local.
 - [`database/schema.sql`](database/schema.sql): borrador manual del esquema SQL
   a completar en MySQL.
 

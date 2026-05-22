@@ -7,23 +7,30 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
 <body>
-    <main class="login-container">
-        <h1>Zarvent Repuestos</h1>
-        <h2>Iniciar sesion</h2>
+    <main class="login-shell">
+        <section class="brand-panel" aria-label="Zarvent Repuestos">
+            <img src="{{ url_for('static', filename='assets/banner.jpg') }}" alt="Zarvent Repuestos">
+        </section>
 
-        {% if message %}
-            <p class="message">{{ message }}</p>
-        {% endif %}
+        <section class="login-container">
+            <img class="brand-logo" src="{{ url_for('static', filename='assets/logo.png') }}" alt="Zarvent Repuestos">
+            <h1>Zarvent Repuestos</h1>
+            <h2>Iniciar sesion</h2>
 
-        <form method="post">
-            <label for="username">Usuario</label>
-            <input id="username" name="username" type="text" placeholder="Nombre de usuario" required>
+            {% if message %}
+                <p class="message">{{ message }}</p>
+            {% endif %}
 
-            <label for="password">Contrasena</label>
-            <input id="password" name="password" type="password" placeholder="Contrasena" required>
+            <form method="post">
+                <label for="username">Usuario</label>
+                <input id="username" name="username" type="text" placeholder="Nombre de usuario" required>
 
-            <button type="submit">Entrar</button>
-        </form>
+                <label for="password">Contrasena</label>
+                <input id="password" name="password" type="password" placeholder="Contrasena" required>
+
+                <button type="submit">Entrar</button>
+            </form>
+        </section>
     </main>
 </body>
 </html>
