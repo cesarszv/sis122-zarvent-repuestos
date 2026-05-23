@@ -47,17 +47,17 @@ Edita `.env` con el usuario MySQL del proyecto.
 ## 5. Crear base y tabla de login
 
 ```bash
-uv run python scripts/database/run_sql_file.py scripts/database/001_create_database.sql --admin-user root
-uv run python scripts/database/run_sql_file.py scripts/database/002_create_users_table.sql --admin-user root
-uv run python scripts/database/run_sql_file.py scripts/database/003_create_app_user.sql --admin-user root
-uv run python scripts/database/seed_demo_user.py
-uv run python scripts/database/check_database.py
+uv run python scripts/database/run_mysql_script.py scripts/database/001_create_project_database.sql --admin-user root
+uv run python scripts/database/run_mysql_script.py scripts/database/002_create_login_users_table.sql --admin-user root
+uv run python scripts/database/run_mysql_script.py scripts/database/003_create_mysql_app_users.sql --admin-user root
+uv run python scripts/database/seed_demo_login_user.py
+uv run python scripts/database/check_login_database.py
 ```
 
 ## 6. Iniciar Flask
 
 ```bash
-uv run python -m flask --app zarvent_repuestos.interfaces.web.app:app run --host 127.0.0.1 --port 5000 --no-debugger --no-reload
+uv run python -m flask --app zarvent_repuestos.web.app:app run --host 127.0.0.1 --port 5000 --no-debugger --no-reload
 ```
 
 Abre:

@@ -131,19 +131,19 @@ uv run python scripts\development\check_python_environment.py
 ### Linux
 
 ```bash
-uv run python -m zarvent_repuestos.interfaces.web.app
+uv run python -m zarvent_repuestos.web.app
 ```
 
 ### MacOS
 
 ```bash
-uv run python -m zarvent_repuestos.interfaces.web.app
+uv run python -m zarvent_repuestos.web.app
 ```
 
 ### Windows
 
 ```powershell
-uv run python -m zarvent_repuestos.interfaces.web.app
+uv run python -m zarvent_repuestos.web.app
 ```
 
 ## Como instalar una nueva dependencia

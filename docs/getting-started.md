@@ -190,19 +190,13 @@ Luego edita `.env` con un usuario creado para el proyecto:
 DB_HOST=127.0.0.1
 DB_PORT=3306
 DB_NAME=sis122_zarvent_repuestos
-DB_USER=cesarszv
-DB_PASSWORD=cesarszv
-```
-
-Tambien puedes usar:
-
-```text
-DB_USER=emanueljp
-DB_PASSWORD=emanueljp
+DB_USER=zarvent_app
+DB_PASSWORD=change_me
 ```
 
 Lo importante es que `DB_USER` y `DB_PASSWORD` coincidan con un usuario real de
-MySQL.
+MySQL. El script `003_create_mysql_app_users.sql` crea `zarvent_app` para el
+prototipo.
 
 ## 6. Probar el acceso administrador a MySQL
 
@@ -237,34 +231,34 @@ depende de que el comando `mysql` este configurado en el `PATH`.
 ### Linux
 
 ```bash
-uv run python scripts/database/run_sql_file.py scripts/database/001_create_database.sql --admin-user root
-uv run python scripts/database/run_sql_file.py scripts/database/002_create_users_table.sql --admin-user root
-uv run python scripts/database/run_sql_file.py scripts/database/003_create_app_user.sql --admin-user root
+uv run python scripts/database/run_mysql_script.py scripts/database/001_create_project_database.sql --admin-user root
+uv run python scripts/database/run_mysql_script.py scripts/database/002_create_login_users_table.sql --admin-user root
+uv run python scripts/database/run_mysql_script.py scripts/database/003_create_mysql_app_users.sql --admin-user root
 ```
 
 ### MacOS
 
 ```bash
-uv run python scripts/database/run_sql_file.py scripts/database/001_create_database.sql --admin-user root
-uv run python scripts/database/run_sql_file.py scripts/database/002_create_users_table.sql --admin-user root
-uv run python scripts/database/run_sql_file.py scripts/database/003_create_app_user.sql --admin-user root
+uv run python scripts/database/run_mysql_script.py scripts/database/001_create_project_database.sql --admin-user root
+uv run python scripts/database/run_mysql_script.py scripts/database/002_create_login_users_table.sql --admin-user root
+uv run python scripts/database/run_mysql_script.py scripts/database/003_create_mysql_app_users.sql --admin-user root
 ```
 
 ### Windows
 
 ```powershell
-uv run python scripts\database\run_sql_file.py scripts\database\001_create_database.sql --admin-user root
-uv run python scripts\database\run_sql_file.py scripts\database\002_create_users_table.sql --admin-user root
-uv run python scripts\database\run_sql_file.py scripts\database\003_create_app_user.sql --admin-user root
+uv run python scripts\database\run_mysql_script.py scripts\database\001_create_project_database.sql --admin-user root
+uv run python scripts\database\run_mysql_script.py scripts\database\002_create_login_users_table.sql --admin-user root
+uv run python scripts\database\run_mysql_script.py scripts\database\003_create_mysql_app_users.sql --admin-user root
 ```
 
 Cada comando pedira la contrasena del usuario administrador de MySQL.
 
 | Script | Resultado |
 | --- | --- |
-| `001_create_database.sql` | Crea la base `sis122_zarvent_repuestos`. |
-| `002_create_users_table.sql` | Crea la tabla `users` del login demo. |
-| `003_create_app_user.sql` | Crea usuarios MySQL para conectarse desde Python. |
+| `001_create_project_database.sql` | Crea la base `sis122_zarvent_repuestos`. |
+| `002_create_login_users_table.sql` | Crea la tabla `users` del login demo. |
+| `003_create_mysql_app_users.sql` | Crea el usuario MySQL para conectarse desde Python. |
 
 ## 8. Alternativa con MySQL Shell
 
@@ -275,9 +269,9 @@ Usa esta opcion si quieres mostrar exactamente que SQL se ejecuta.
 ```text
 \sql
 \connect root@localhost
-\source scripts/database/001_create_database.sql
-\source scripts/database/002_create_users_table.sql
-\source scripts/database/003_create_app_user.sql
+\source scripts/database/001_create_project_database.sql
+\source scripts/database/002_create_login_users_table.sql
+\source scripts/database/003_create_mysql_app_users.sql
 ```
 
 ### MacOS
@@ -285,9 +279,9 @@ Usa esta opcion si quieres mostrar exactamente que SQL se ejecuta.
 ```text
 \sql
 \connect root@localhost
-\source scripts/database/001_create_database.sql
-\source scripts/database/002_create_users_table.sql
-\source scripts/database/003_create_app_user.sql
+\source scripts/database/001_create_project_database.sql
+\source scripts/database/002_create_login_users_table.sql
+\source scripts/database/003_create_mysql_app_users.sql
 ```
 
 ### Windows
@@ -295,9 +289,9 @@ Usa esta opcion si quieres mostrar exactamente que SQL se ejecuta.
 ```text
 \sql
 \connect root@localhost
-\source scripts\database\001_create_database.sql
-\source scripts\database\002_create_users_table.sql
-\source scripts\database\003_create_app_user.sql
+\source scripts\database\001_create_project_database.sql
+\source scripts\database\002_create_login_users_table.sql
+\source scripts\database\003_create_mysql_app_users.sql
 ```
 
 El SQL esencial es:
@@ -315,11 +309,16 @@ CREATE TABLE IF NOT EXISTS users (
   password VARCHAR(100) NOT NULL
 );
 
-CREATE USER IF NOT EXISTS 'cesarszv'@'%' IDENTIFIED BY 'cesarszv';
-GRANT ALL PRIVILEGES ON *.* TO 'cesarszv'@'%' WITH GRANT OPTION;
+CREATE USER IF NOT EXISTS 'zarvent_app'@'localhost' IDENTIFIED BY 'change_me';
+CREATE USER IF NOT EXISTS 'zarvent_app'@'%' IDENTIFIED BY 'change_me';
 
-CREATE USER IF NOT EXISTS 'emanueljp'@'%' IDENTIFIED BY 'emanueljp';
-GRANT ALL PRIVILEGES ON *.* TO 'emanueljp'@'%' WITH GRANT OPTION;
+GRANT SELECT, INSERT, UPDATE, DELETE
+ON sis122_zarvent_repuestos.*
+TO 'zarvent_app'@'localhost';
+
+GRANT SELECT, INSERT, UPDATE, DELETE
+ON sis122_zarvent_repuestos.*
+TO 'zarvent_app'@'%';
 
 FLUSH PRIVILEGES;
 ```
@@ -329,19 +328,19 @@ FLUSH PRIVILEGES;
 ### Linux
 
 ```bash
-uv run python scripts/database/seed_demo_user.py
+uv run python scripts/database/seed_demo_login_user.py
 ```
 
 ### MacOS
 
 ```bash
-uv run python scripts/database/seed_demo_user.py
+uv run python scripts/database/seed_demo_login_user.py
 ```
 
 ### Windows
 
 ```powershell
-uv run python scripts\database\seed_demo_user.py
+uv run python scripts\database\seed_demo_login_user.py
 ```
 
 Credenciales demo:
@@ -358,19 +357,19 @@ La contrasena se guarda con hash `bcrypt`, no como texto plano.
 ### Linux
 
 ```bash
-uv run python scripts/database/check_database.py
+uv run python scripts/database/check_login_database.py
 ```
 
 ### MacOS
 
 ```bash
-uv run python scripts/database/check_database.py
+uv run python scripts/database/check_login_database.py
 ```
 
 ### Windows
 
 ```powershell
-uv run python scripts\database\check_database.py
+uv run python scripts\database\check_login_database.py
 ```
 
 Resultado esperado:
@@ -388,19 +387,19 @@ Para desarrollo normal:
 ### Linux
 
 ```bash
-uv run python -m zarvent_repuestos.interfaces.web.app
+uv run python -m zarvent_repuestos.web.app
 ```
 
 ### MacOS
 
 ```bash
-uv run python -m zarvent_repuestos.interfaces.web.app
+uv run python -m zarvent_repuestos.web.app
 ```
 
 ### Windows
 
 ```powershell
-uv run python -m zarvent_repuestos.interfaces.web.app
+uv run python -m zarvent_repuestos.web.app
 ```
 
 Luego abre:
@@ -414,19 +413,19 @@ Para presentacion, usa el comando sin recargador automatico:
 ### Linux
 
 ```bash
-uv run python -m flask --app zarvent_repuestos.interfaces.web.app:app run --host 127.0.0.1 --port 5000 --no-debugger --no-reload
+uv run python -m flask --app zarvent_repuestos.web.app:app run --host 127.0.0.1 --port 5000 --no-debugger --no-reload
 ```
 
 ### MacOS
 
 ```bash
-uv run python -m flask --app zarvent_repuestos.interfaces.web.app:app run --host 127.0.0.1 --port 5000 --no-debugger --no-reload
+uv run python -m flask --app zarvent_repuestos.web.app:app run --host 127.0.0.1 --port 5000 --no-debugger --no-reload
 ```
 
 ### Windows
 
 ```powershell
-uv run python -m flask --app zarvent_repuestos.interfaces.web.app:app run --host 127.0.0.1 --port 5000 --no-debugger --no-reload
+uv run python -m flask --app zarvent_repuestos.web.app:app run --host 127.0.0.1 --port 5000 --no-debugger --no-reload
 ```
 
 En el login:
@@ -443,8 +442,8 @@ contrasena: admin123
 3. `uv sync` ya fue ejecutado.
 4. `.env` existe y apunta a `sis122_zarvent_repuestos`.
 5. Los tres scripts SQL ya fueron ejecutados.
-6. `seed_demo_user.py` ya creo el usuario `admin`.
-7. `check_database.py` muestra `Table users: OK`.
+6. `seed_demo_login_user.py` ya creo el usuario `admin`.
+7. `check_login_database.py` muestra `Table users: OK`.
 8. Flask abre en `http://127.0.0.1:5000`.
 9. El login funciona con `admin` y `admin123`.
 
@@ -453,10 +452,10 @@ contrasena: admin123
 | Problema | Causa probable | Solucion |
 | --- | --- | --- |
 | `uv` no se reconoce | La terminal no actualizo el `PATH`. | Cierra y abre la terminal. |
-| `Access denied` | Usuario o contrasena incorrectos en `.env`. | Revisa `.env` o ejecuta `003_create_app_user.sql`. |
-| `Unknown database` | La base no fue creada. | Ejecuta `001_create_database.sql`. |
-| `Table 'users' doesn't exist` | Falta la tabla del login. | Ejecuta `002_create_users_table.sql`. |
-| Login incorrecto | Falta el usuario demo o la clave cambio. | Ejecuta `seed_demo_user.py`. |
+| `Access denied` | Usuario o contrasena incorrectos en `.env`. | Revisa `.env` o ejecuta `003_create_mysql_app_users.sql`. |
+| `Unknown database` | La base no fue creada. | Ejecuta `001_create_project_database.sql`. |
+| `Table 'users' doesn't exist` | Falta la tabla del login. | Ejecuta `002_create_login_users_table.sql`. |
+| Login incorrecto | Falta el usuario demo o la clave cambio. | Ejecuta `seed_demo_login_user.py`. |
 | Puerto `5000` ocupado | Ya hay otra app usando ese puerto. | Cierra la app anterior o usa otro puerto. |
 
 ## 14. Que explicar en la defensa

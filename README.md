@@ -57,12 +57,12 @@ Las dependencias externas son pocas:
 - `bcrypt`: permite trabajar contrasenas con hash.
 - `flask`: permite mostrar una pantalla web simple para el login.
 
-La aplicacion usa una arquitectura modular simple. La idea es que las carpetas
-principales muestren responsabilidades claras:
+La aplicacion usa una arquitectura modular simple. La idea es que el arbol diga
+rapido que partes existen y para que sirven:
 
-- `modules`: reglas del negocio por area.
-- `infrastructure`: detalles tecnicos externos, como MySQL.
-- `interfaces`: formas de usar el sistema, como Flask.
+- `access`: login, usuarios y contrasenas.
+- `database`: conexion tecnica con MySQL.
+- `web`: pantalla Flask y archivos visuales.
 
 Estructura actual del prototipo:
 
@@ -70,17 +70,14 @@ Estructura actual del prototipo:
 sis122-zarvent-repuestos/
 |-- src/
 |   `-- zarvent_repuestos/
-|       |-- infrastructure/
-|       |   `-- mysql/
-|       |       `-- connection.py
-|       |-- interfaces/
-|       |   `-- web/
-|       |       |-- app.py
-|       |       |-- templates/
-|       |       `-- static/
-|       `-- modules/
-|           `-- access/
-|               `-- service.py
+|       |-- access/
+|       |   `-- user_service.py
+|       |-- database/
+|       |   `-- connection.py
+|       `-- web/
+|           |-- app.py
+|           |-- templates/
+|           `-- static/
 |-- scripts/
 |   |-- database/
 |   `-- development/
@@ -89,8 +86,9 @@ sis122-zarvent-repuestos/
 `-- .venv/
 ```
 
-`access` contiene login, usuarios y contrasenas. `mysql` contiene la conexion a
-la base de datos. `web` contiene la interfaz Flask.
+No hay carpetas vacias para modulos futuros. Cuando el sistema crezca, se
+agregaran paquetes como `sales`, `inventory` o `purchases` solo cuando exista
+codigo real que los justifique.
 
 ### Setup rapido con UV
 
@@ -98,7 +96,7 @@ la base de datos. `web` contiene la interfaz Flask.
 uv python install 3.14
 uv sync
 uv run python scripts\development\check_python_environment.py
-uv run python -m zarvent_repuestos.interfaces.web.app
+uv run python -m zarvent_repuestos.web.app
 ```
 
 ### Ejecutar la pantalla de login
@@ -131,12 +129,12 @@ Los scripts estan numerados para poder repetir el proceso paso por paso:
 ```text
 scripts/
 |-- database/
-|   |-- run_sql_file.py
-|   |-- 001_create_database.sql
-|   |-- 002_create_users_table.sql
-|   |-- 003_create_app_user.sql
-|   |-- seed_demo_user.py
-|   `-- check_database.py
+|   |-- run_mysql_script.py
+|   |-- 001_create_project_database.sql
+|   |-- 002_create_login_users_table.sql
+|   |-- 003_create_mysql_app_users.sql
+|   |-- seed_demo_login_user.py
+|   `-- check_login_database.py
 `-- development/
     `-- check_python_environment.py
 ```
@@ -146,19 +144,19 @@ ejecutor pequeno que usa `mysql-connector-python` y pide la contrasena del
 usuario administrador sin guardarla:
 
 ```powershell
-uv run python scripts\database\run_sql_file.py scripts\database\001_create_database.sql --admin-user root
-uv run python scripts\database\run_sql_file.py scripts\database\002_create_users_table.sql --admin-user root
-uv run python scripts\database\run_sql_file.py scripts\database\003_create_app_user.sql --admin-user root
-uv run python scripts\database\seed_demo_user.py
-uv run python scripts\database\check_database.py
+uv run python scripts\database\run_mysql_script.py scripts\database\001_create_project_database.sql --admin-user root
+uv run python scripts\database\run_mysql_script.py scripts\database\002_create_login_users_table.sql --admin-user root
+uv run python scripts\database\run_mysql_script.py scripts\database\003_create_mysql_app_users.sql --admin-user root
+uv run python scripts\database\seed_demo_login_user.py
+uv run python scripts\database\check_login_database.py
 ```
 
 Si prefieres MySQL Workbench, ejecuta estos SQL en el mismo orden:
 
 ```sql
-SOURCE scripts/database/001_create_database.sql;
-SOURCE scripts/database/002_create_users_table.sql;
-SOURCE scripts/database/003_create_app_user.sql;
+SOURCE scripts/database/001_create_project_database.sql;
+SOURCE scripts/database/002_create_login_users_table.sql;
+SOURCE scripts/database/003_create_mysql_app_users.sql;
 ```
 
 El usuario demo queda asi si no pasas argumentos:
@@ -171,11 +169,13 @@ contrasena: admin123
 Despues levanta la app:
 
 ```powershell
-uv run python -m zarvent_repuestos.interfaces.web.app
+uv run python -m zarvent_repuestos.web.app
 ```
 
 ## Documentos principales
 
+- [`ARCHITECTURE.md`](ARCHITECTURE.md): arquitectura simple del codigo y reglas
+  para crecer sin sobreingenieria.
 - [`docs/database/erd.md`](docs/database/erd.md): diagrama ERD compacto.
 - [`docs/database/db_explanation.md`](docs/database/db_explanation.md):
   explicacion tabla por tabla.
