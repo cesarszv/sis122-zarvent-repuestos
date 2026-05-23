@@ -44,8 +44,8 @@
     "explorer.fileNesting.patterns": {
       "pyproject.toml": "uv.lock, .python-version, setup.cfg, setup.py",
       ".env": ".env.example, .env.*",
-      "CLAUDE.md": "AGENTS.md, GEMINI.md, DESIGN.md",
-      "README.md": "DESIGN.md"
+      "AGENTS.md": "CLAUDE.md, GEMINI.md",
+      "README.md": "ARCHITECTURE.md, DESIGN.md"
     },
 
     // --- Explorador ---
@@ -105,7 +105,7 @@
         "module": "flask",
         "args": [
           "--app",
-          "zarvent_repuestos.interfaces.web.app:app",
+          "zarvent_repuestos.web.app:app",
           "run",
           "--debug"
         ],
@@ -125,7 +125,7 @@
       {
         "label": "Flask: Iniciar servidor",
         "type": "shell",
-        "command": "uv run python -m flask --app zarvent_repuestos.interfaces.web.app:app run --debug",
+        "command": "uv run python -m flask --app zarvent_repuestos.web.app:app run --debug",
         "group": {
           "kind": "build",
           "isDefault": true
@@ -145,7 +145,7 @@
       {
         "label": "DB: Crear base de datos",
         "type": "shell",
-        "command": "uv run python scripts/database/run_sql_file.py scripts/database/001_create_database.sql --admin-user root",
+        "command": "uv run python scripts/database/run_mysql_script.py scripts/database/001_create_project_database.sql --admin-user root",
         "group": "none",
         "presentation": {
           "reveal": "always",
@@ -157,7 +157,7 @@
       {
         "label": "DB: Seed usuario demo",
         "type": "shell",
-        "command": "uv run python scripts/database/seed_demo_user.py",
+        "command": "uv run python scripts/database/seed_demo_login_user.py",
         "group": "none",
         "presentation": {
           "reveal": "always",
@@ -168,7 +168,7 @@
       {
         "label": "DB: Verificar base de datos",
         "type": "shell",
-        "command": "uv run python scripts/database/check_database.py",
+        "command": "uv run python scripts/database/check_login_database.py",
         "group": "test",
         "presentation": {
           "reveal": "always",
