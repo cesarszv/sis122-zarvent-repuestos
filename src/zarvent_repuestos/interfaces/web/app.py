@@ -1,13 +1,15 @@
+# Web interface for the Zarvent Repuestos Flask prototype.
+
 from flask import Flask, render_template, request
 
-from user_service import login
+from zarvent_repuestos.modules.access.service import login
 
 
 app = Flask(__name__)
 
 
 @app.route("/", methods=["GET", "POST"])
-def inicio():
+def home():
     message = None
 
     if request.method == "POST":

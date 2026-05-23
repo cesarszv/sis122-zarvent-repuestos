@@ -1,3 +1,5 @@
+# Check that the Python dependencies are installed.
+
 import importlib
 import sys
 
@@ -26,8 +28,7 @@ def main():
     if missing:
         print()
         print("Instala las dependencias antes de ejecutar el proyecto.")
-        print("Python nativo: py -m pip install -r requirements.txt")
-        print("UV: uv sync")
+        print("Ejecuta: uv sync")
         return 1
 
     print()

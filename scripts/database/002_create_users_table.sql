@@ -1,3 +1,5 @@
+-- archivo para crear la tabla de usuarios del prototipo de login
+
 /*
 Users table for the Flask login prototype.
 

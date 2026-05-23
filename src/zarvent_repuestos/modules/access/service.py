@@ -1,39 +1,46 @@
+# Access module: users, passwords, and login operations.
+
 import bcrypt
+from typing import List, Optional, TypedDict, Union, cast
 
-from db import get_connection
+from zarvent_repuestos.infrastructure.mysql.connection import get_connection
 
 
-def hash_password(password):
+class User(TypedDict):
+    id: int
+    username: str
+
+
+class UserRow(User):
+    password: Union[str, bytes]
+
+
+def hash_password(password: str) -> str:
     password_bytes = password.encode("utf-8")
     password_hashed = bcrypt.hashpw(password_bytes, bcrypt.gensalt())
     return password_hashed.decode("utf-8")
 
 
-def create_user(username, password_hashed):
+def create_user(username: str, password_hashed: str) -> bool:
     connection = get_connection()
     cursor = connection.cursor()
     query = "INSERT INTO users (username, password) VALUES (%s, %s)"
-    # (%s, %s) significa que MySQL recibira los valores aparte del texto SQL.
 
-
-    # try: "intenta ejecutar esto, pero puede fallar"
     try:
         cursor.execute(query, (username, password_hashed,))
         connection.commit()
         return True
 
-    # except "si algo falla, haz esto"
     except Exception:
         connection.rollback()
         return False
 
-    # finally
     finally:
         cursor.close()
         connection.close()
 
 
-def login(username, password):
+def login(username: str, password: str) -> Optional[User]:
     connection = None
     cursor = None
     query = "SELECT id, username, password FROM users WHERE username = %s"
@@ -42,11 +49,12 @@ def login(username, password):
         connection = get_connection()
         cursor = connection.cursor(dictionary=True)
         cursor.execute(query, (username,))
-        user = cursor.fetchone()
+        row = cursor.fetchone()
 
-        if user is None:
+        if row is None:
             return None
 
+        user = cast(UserRow, row)
         password_hashed = user["password"]
 
         if isinstance(password_hashed, str):
@@ -69,7 +77,7 @@ def login(username, password):
             connection.close()
 
 
-def read_user(user_id=None):
+def read_user(user_id: Optional[int] = None) -> Union[List[User], Optional[User]]:
     connection = get_connection()
     cursor = connection.cursor(dictionary=True)
 
@@ -77,11 +85,11 @@ def read_user(user_id=None):
         if user_id is None:
             query = "SELECT id, username FROM users ORDER BY id"
             cursor.execute(query)
-            return cursor.fetchall()
+            return cast(List[User], cursor.fetchall())
 
         query = "SELECT id, username FROM users WHERE id = %s"
         cursor.execute(query, (user_id,))
-        return cursor.fetchone()
+        return cast(Optional[User], cursor.fetchone())
 
     except Exception:
         if user_id is None:
@@ -93,7 +101,7 @@ def read_user(user_id=None):
         connection.close()
 
 
-def update_user(user_id, username, password_hashed):
+def update_user(user_id: int, username: str, password_hashed: str) -> bool:
     connection = get_connection()
     cursor = connection.cursor()
     query = "UPDATE users SET username = %s, password = %s WHERE id = %s"
@@ -112,7 +120,7 @@ def update_user(user_id, username, password_hashed):
         connection.close()
 
 
-def delete_user(user_id):
+def delete_user(user_id: int) -> bool:
     connection = get_connection()
     cursor = connection.cursor()
     query = "DELETE FROM users WHERE id = %s"
@@ -129,6 +137,3 @@ def delete_user(user_id):
     finally:
         cursor.close()
         connection.close()
-
-# APRENDIZAJES
-# cursor es el objeto que se usa para enviar SQL a la base de datos
