@@ -1,4 +1,4 @@
-# Check the configured MySQL database and users table.
+"""Check the MySQL database used by the login prototype."""
 
 import sys
 from pathlib import Path
@@ -11,12 +11,12 @@ SOURCE_ROOT = Path(__file__).resolve().parents[2] / "src"
 if str(SOURCE_ROOT) not in sys.path:
     sys.path.insert(0, str(SOURCE_ROOT))
 
-from zarvent_repuestos.infrastructure.mysql.connection import get_connection
+from zarvent_repuestos.database.connection import get_database_connection
 
 
 def main():
     try:
-        connection = get_connection()
+        connection = get_database_connection()
     except mysql.connector.Error as error:
         print("ERROR: could not connect to MySQL with the .env credentials.")
         print(error)

@@ -1,1 +1,1 @@
-"""MySQL infrastructure."""
+"""Database connection package."""

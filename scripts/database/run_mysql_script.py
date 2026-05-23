@@ -1,4 +1,4 @@
-# Run one MySQL SQL file from Python.
+"""Run one MySQL SQL script from Python."""
 
 import argparse
 import getpass
@@ -24,7 +24,7 @@ def read_sql_statements(path):
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Run one SQL script against local MySQL."
+        description="Run one SQL setup script against local MySQL."
     )
     parser.add_argument("script_path", help="SQL file to execute.")
     parser.add_argument("--admin-user", default="root", help="MySQL admin user.")
