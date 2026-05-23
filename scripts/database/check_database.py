@@ -1,14 +1,17 @@
+# Check the configured MySQL database and users table.
+
 import sys
 from pathlib import Path
+from typing import Any, Optional, Tuple, cast
 
 import mysql.connector
 
 
-PROJECT_ROOT = Path(__file__).resolve().parents[1]
-if str(PROJECT_ROOT) not in sys.path:
-    sys.path.insert(0, str(PROJECT_ROOT))
+SOURCE_ROOT = Path(__file__).resolve().parents[2] / "src"
+if str(SOURCE_ROOT) not in sys.path:
+    sys.path.insert(0, str(SOURCE_ROOT))
 
-from db import get_connection
+from zarvent_repuestos.infrastructure.mysql.connection import get_connection
 
 
 def main():
@@ -18,14 +21,15 @@ def main():
         print("ERROR: could not connect to MySQL with the .env credentials.")
         print(error)
         print()
-        print("Run scripts 001, 002, and 003 with a MySQL admin user first.")
+        print("Run the database setup scripts with a MySQL admin user first.")
         return 1
 
     cursor = connection.cursor()
 
     try:
         cursor.execute("SELECT DATABASE()")
-        database_name = cursor.fetchone()[0]
+        database_row = cast(Optional[Tuple[Any, ...]], cursor.fetchone())
+        database_name = database_row[0] if database_row else "UNKNOWN"
 
         cursor.execute("SHOW TABLES LIKE 'users'")
         users_table_exists = cursor.fetchone() is not None
@@ -33,7 +37,8 @@ def main():
         user_count = None
         if users_table_exists:
             cursor.execute("SELECT COUNT(*) FROM users")
-            user_count = cursor.fetchone()[0]
+            user_count_row = cast(Optional[Tuple[Any, ...]], cursor.fetchone())
+            user_count = user_count_row[0] if user_count_row else 0
 
         print(f"Database: {database_name}")
         print(f"Table users: {'OK' if users_table_exists else 'MISSING'}")

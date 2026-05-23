@@ -1,3 +1,5 @@
+-- archivo para crear usuarios MySQL para la aplicacion
+
 -- Crear usuario cesarszv
 CREATE USER IF NOT EXISTS 'cesarszv'@'%' IDENTIFIED BY 'cesarszv';
 GRANT ALL PRIVILEGES ON *.* TO 'cesarszv'@'%' WITH GRANT OPTION;

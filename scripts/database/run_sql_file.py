@@ -1,3 +1,5 @@
+# Run one MySQL SQL file from Python.
+
 import argparse
 import getpass
 import re

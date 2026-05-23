@@ -1,10 +1,10 @@
 # Repo Info
 
 STACK{
-  Database: MySQL Server
-  Language: Python
-  Librerias: MySQL Connector (Python), bcrypt (Python)
-  Frontend: Tkinter
+Database: MySQL Server
+Language: Python
+Librerias: MySQL Connector (Python), bcrypt (Python)
+Frontend: Flask
 }
 
 ---
@@ -12,7 +12,7 @@ STACK{
 # Repo Details
 
 Este repositorio es un proyecto academico para estudiantes de primer ano de
-`SIS-122` (Base de Datos I), con el profesor *Ismael Antonio Delgado Huanca*.
+`SIS-122` (Base de Datos I), con el profesor _Ismael Antonio Delgado Huanca_.
 
 El objetivo actual es aprender y defender bien el modelo relacional, no esconder
 falta de fundamentos detras de automatizacion o arquitectura que el equipo aun

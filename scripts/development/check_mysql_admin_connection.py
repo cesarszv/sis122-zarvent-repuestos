@@ -1,3 +1,5 @@
+# Check a MySQL admin connection.
+
 """
 Quick MySQL admin connection test.
 
@@ -6,6 +8,7 @@ Use it only to verify the admin credentials before running the SQL scripts.
 """
 
 import getpass
+from typing import Any, Optional, Tuple, cast
 
 import mysql.connector
 
@@ -21,7 +24,8 @@ def main():
 
     try:
         cursor.execute("SELECT VERSION()")
-        version = cursor.fetchone()[0]
+        version_row = cast(Optional[Tuple[Any, ...]], cursor.fetchone())
+        version = version_row[0] if version_row else "UNKNOWN"
         print(f"Connected correctly to MySQL {version}")
     finally:
         cursor.close()

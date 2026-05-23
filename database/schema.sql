@@ -1,3 +1,5 @@
+-- archivo para guardar el borrador manual del esquema SQL del proyecto
+
 /*
 Zarvent Repuestos - MySQL schema draft
 
