@@ -6,7 +6,10 @@ Esta carpeta guarda la documentacion academica del proyecto.
 
 - [`analysis`](analysis): documentos del problema real antes de crear tablas.
 - [`database`](database): ERD, explicacion del modelo y defensa de tablas.
-- [`deployment.md`](deployment.md): pasos para desplegar la app en este equipo.
+- [`getting-started.md`](getting-started.md): guia paso a paso para usar el
+  proyecto en Linux, MacOS y Windows.
+- [`uv.md`](uv.md): explicacion del flujo oficial con `uv`.
+- [`deployment`](deployment): guias cortas por sistema operativo.
 
 La documentacion debe ayudar a responder:
 

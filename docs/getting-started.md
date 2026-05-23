@@ -1,0 +1,474 @@
+# Getting Started
+
+Esta guia deja el proyecto listo para una presentacion local. El flujo oficial
+del repositorio usa **UV** para Python. No usamos `pip` manual ni `python -m
+venv` como pasos del proyecto.
+
+La meta es dejar funcionando:
+
+- MySQL Server con la base `sis122_zarvent_repuestos`.
+- El entorno Python creado por `uv`.
+- La tabla `users` del prototipo de login.
+- Un usuario demo para entrar a la pantalla web.
+- Flask en `http://127.0.0.1:5000`.
+
+El modelo relacional completo se defiende desde `docs/database`. La app Flask
+actual solo demuestra conexion a MySQL, login y contrasenas con `bcrypt`.
+
+## 1. Instalar UV
+
+### Linux
+
+```bash
+curl -LsSf https://astral.sh/uv/install.sh | sh
+uv --version
+```
+
+Si no tienes `curl`:
+
+```bash
+wget -qO- https://astral.sh/uv/install.sh | sh
+uv --version
+```
+
+### MacOS
+
+```bash
+curl -LsSf https://astral.sh/uv/install.sh | sh
+uv --version
+```
+
+Si usas Homebrew:
+
+```bash
+brew install uv
+uv --version
+```
+
+### Windows
+
+En PowerShell:
+
+```powershell
+powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
+uv --version
+```
+
+Si `uv` no se reconoce despues de instalarlo, cierra y abre la terminal.
+
+## 2. Instalar y encender MySQL Server
+
+Si MySQL ya esta instalado, solo verifica que este encendido.
+
+### Linux
+
+En Ubuntu o Debian:
+
+```bash
+sudo apt update
+sudo apt install mysql-server
+sudo systemctl status mysql
+```
+
+Si el servicio esta detenido:
+
+```bash
+sudo systemctl start mysql
+```
+
+### MacOS
+
+Con Homebrew:
+
+```bash
+brew install mysql
+brew services start mysql
+brew services list
+```
+
+### Windows
+
+Instala **MySQL Installer** o **MySQL Server** desde el sitio oficial de MySQL.
+Luego verifica el servicio:
+
+```powershell
+Get-Service MySQL80
+```
+
+Si aparece detenido:
+
+```powershell
+Start-Service MySQL80
+```
+
+Si PowerShell pide permisos, abre la terminal como administrador.
+
+## 3. Entrar al proyecto
+
+### Linux
+
+```bash
+cd /ruta/al/proyecto/sis122-zarvent-repuestos
+```
+
+### MacOS
+
+```bash
+cd /ruta/al/proyecto/sis122-zarvent-repuestos
+```
+
+### Windows
+
+```powershell
+cd "C:\ruta\al\proyecto\sis122-zarvent-repuestos"
+```
+
+Todos los comandos siguientes se ejecutan desde la raiz del repositorio.
+
+## 4. Preparar Python con UV
+
+`uv sync` lee `pyproject.toml` y `uv.lock`, crea o actualiza `.venv`, instala
+las dependencias y deja el proyecto listo para ejecutar.
+
+### Linux
+
+```bash
+uv python install 3.14
+uv sync
+uv run python scripts/development/check_python_environment.py
+```
+
+### MacOS
+
+```bash
+uv python install 3.14
+uv sync
+uv run python scripts/development/check_python_environment.py
+```
+
+### Windows
+
+```powershell
+uv python install 3.14
+uv sync
+uv run python scripts\development\check_python_environment.py
+```
+
+Debe aparecer `OK` para:
+
+- `bcrypt`
+- `flask`
+- `mysql-connector-python`
+- `python-dotenv`
+
+## 5. Crear el archivo `.env`
+
+El archivo `.env` contiene las credenciales locales de MySQL. No se sube a
+Git.
+
+### Linux
+
+```bash
+cp .env.example .env
+```
+
+### MacOS
+
+```bash
+cp .env.example .env
+```
+
+### Windows
+
+```powershell
+Copy-Item .env.example .env
+```
+
+Luego edita `.env` con un usuario creado para el proyecto:
+
+```text
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_NAME=sis122_zarvent_repuestos
+DB_USER=cesarszv
+DB_PASSWORD=cesarszv
+```
+
+Tambien puedes usar:
+
+```text
+DB_USER=emanueljp
+DB_PASSWORD=emanueljp
+```
+
+Lo importante es que `DB_USER` y `DB_PASSWORD` coincidan con un usuario real de
+MySQL.
+
+## 6. Probar el acceso administrador a MySQL
+
+Este paso solo verifica que conoces la contrasena del usuario administrador,
+normalmente `root`.
+
+### Linux
+
+```bash
+uv run python scripts/development/check_mysql_admin_connection.py
+```
+
+### MacOS
+
+```bash
+uv run python scripts/development/check_mysql_admin_connection.py
+```
+
+### Windows
+
+```powershell
+uv run python scripts\development\check_mysql_admin_connection.py
+```
+
+El script pide la contrasena de `root` y no la guarda.
+
+## 7. Crear la base de datos desde los scripts
+
+Esta es la forma recomendada porque usa Python y `mysql-connector-python`, no
+depende de que el comando `mysql` este configurado en el `PATH`.
+
+### Linux
+
+```bash
+uv run python scripts/database/run_sql_file.py scripts/database/001_create_database.sql --admin-user root
+uv run python scripts/database/run_sql_file.py scripts/database/002_create_users_table.sql --admin-user root
+uv run python scripts/database/run_sql_file.py scripts/database/003_create_app_user.sql --admin-user root
+```
+
+### MacOS
+
+```bash
+uv run python scripts/database/run_sql_file.py scripts/database/001_create_database.sql --admin-user root
+uv run python scripts/database/run_sql_file.py scripts/database/002_create_users_table.sql --admin-user root
+uv run python scripts/database/run_sql_file.py scripts/database/003_create_app_user.sql --admin-user root
+```
+
+### Windows
+
+```powershell
+uv run python scripts\database\run_sql_file.py scripts\database\001_create_database.sql --admin-user root
+uv run python scripts\database\run_sql_file.py scripts\database\002_create_users_table.sql --admin-user root
+uv run python scripts\database\run_sql_file.py scripts\database\003_create_app_user.sql --admin-user root
+```
+
+Cada comando pedira la contrasena del usuario administrador de MySQL.
+
+| Script | Resultado |
+| --- | --- |
+| `001_create_database.sql` | Crea la base `sis122_zarvent_repuestos`. |
+| `002_create_users_table.sql` | Crea la tabla `users` del login demo. |
+| `003_create_app_user.sql` | Crea usuarios MySQL para conectarse desde Python. |
+
+## 8. Alternativa con MySQL Shell
+
+Usa esta opcion si quieres mostrar exactamente que SQL se ejecuta.
+
+### Linux
+
+```text
+\sql
+\connect root@localhost
+\source scripts/database/001_create_database.sql
+\source scripts/database/002_create_users_table.sql
+\source scripts/database/003_create_app_user.sql
+```
+
+### MacOS
+
+```text
+\sql
+\connect root@localhost
+\source scripts/database/001_create_database.sql
+\source scripts/database/002_create_users_table.sql
+\source scripts/database/003_create_app_user.sql
+```
+
+### Windows
+
+```text
+\sql
+\connect root@localhost
+\source scripts\database\001_create_database.sql
+\source scripts\database\002_create_users_table.sql
+\source scripts\database\003_create_app_user.sql
+```
+
+El SQL esencial es:
+
+```sql
+CREATE DATABASE IF NOT EXISTS sis122_zarvent_repuestos
+CHARACTER SET utf8mb4
+COLLATE utf8mb4_unicode_ci;
+
+USE sis122_zarvent_repuestos;
+
+CREATE TABLE IF NOT EXISTS users (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  username VARCHAR(50) NOT NULL UNIQUE,
+  password VARCHAR(100) NOT NULL
+);
+
+CREATE USER IF NOT EXISTS 'cesarszv'@'%' IDENTIFIED BY 'cesarszv';
+GRANT ALL PRIVILEGES ON *.* TO 'cesarszv'@'%' WITH GRANT OPTION;
+
+CREATE USER IF NOT EXISTS 'emanueljp'@'%' IDENTIFIED BY 'emanueljp';
+GRANT ALL PRIVILEGES ON *.* TO 'emanueljp'@'%' WITH GRANT OPTION;
+
+FLUSH PRIVILEGES;
+```
+
+## 9. Crear el usuario demo
+
+### Linux
+
+```bash
+uv run python scripts/database/seed_demo_user.py
+```
+
+### MacOS
+
+```bash
+uv run python scripts/database/seed_demo_user.py
+```
+
+### Windows
+
+```powershell
+uv run python scripts\database\seed_demo_user.py
+```
+
+Credenciales demo:
+
+```text
+usuario: admin
+contrasena: admin123
+```
+
+La contrasena se guarda con hash `bcrypt`, no como texto plano.
+
+## 10. Verificar la base de datos
+
+### Linux
+
+```bash
+uv run python scripts/database/check_database.py
+```
+
+### MacOS
+
+```bash
+uv run python scripts/database/check_database.py
+```
+
+### Windows
+
+```powershell
+uv run python scripts\database\check_database.py
+```
+
+Resultado esperado:
+
+```text
+Database: sis122_zarvent_repuestos
+Table users: OK
+Users registered: 1
+```
+
+## 11. Iniciar Flask
+
+Para desarrollo normal:
+
+### Linux
+
+```bash
+uv run python -m zarvent_repuestos.interfaces.web.app
+```
+
+### MacOS
+
+```bash
+uv run python -m zarvent_repuestos.interfaces.web.app
+```
+
+### Windows
+
+```powershell
+uv run python -m zarvent_repuestos.interfaces.web.app
+```
+
+Luego abre:
+
+```text
+http://127.0.0.1:5000
+```
+
+Para presentacion, usa el comando sin recargador automatico:
+
+### Linux
+
+```bash
+uv run python -m flask --app zarvent_repuestos.interfaces.web.app:app run --host 127.0.0.1 --port 5000 --no-debugger --no-reload
+```
+
+### MacOS
+
+```bash
+uv run python -m flask --app zarvent_repuestos.interfaces.web.app:app run --host 127.0.0.1 --port 5000 --no-debugger --no-reload
+```
+
+### Windows
+
+```powershell
+uv run python -m flask --app zarvent_repuestos.interfaces.web.app:app run --host 127.0.0.1 --port 5000 --no-debugger --no-reload
+```
+
+En el login:
+
+```text
+usuario: admin
+contrasena: admin123
+```
+
+## 12. Checklist antes de presentar
+
+1. `uv --version` funciona.
+2. MySQL Server esta encendido.
+3. `uv sync` ya fue ejecutado.
+4. `.env` existe y apunta a `sis122_zarvent_repuestos`.
+5. Los tres scripts SQL ya fueron ejecutados.
+6. `seed_demo_user.py` ya creo el usuario `admin`.
+7. `check_database.py` muestra `Table users: OK`.
+8. Flask abre en `http://127.0.0.1:5000`.
+9. El login funciona con `admin` y `admin123`.
+
+## 13. Problemas comunes
+
+| Problema | Causa probable | Solucion |
+| --- | --- | --- |
+| `uv` no se reconoce | La terminal no actualizo el `PATH`. | Cierra y abre la terminal. |
+| `Access denied` | Usuario o contrasena incorrectos en `.env`. | Revisa `.env` o ejecuta `003_create_app_user.sql`. |
+| `Unknown database` | La base no fue creada. | Ejecuta `001_create_database.sql`. |
+| `Table 'users' doesn't exist` | Falta la tabla del login. | Ejecuta `002_create_users_table.sql`. |
+| Login incorrecto | Falta el usuario demo o la clave cambio. | Ejecuta `seed_demo_user.py`. |
+| Puerto `5000` ocupado | Ya hay otra app usando ese puerto. | Cierra la app anterior o usa otro puerto. |
+
+## 14. Que explicar en la defensa
+
+Para no confundir el alcance:
+
+- El ERD completo esta en `docs/database/erd.md`.
+- La explicacion tabla por tabla esta en `docs/database/db_explanation.md`.
+- La defensa tecnica esta en `docs/database/erd_explanation.md`.
+- El borrador del esquema completo esta en `database/schema.sql`.
+- La app Flask actual solo demuestra conexion, tabla `users`, login y hash de
+  contrasena.
+
+La idea importante es simple: `uv` facilita ejecutar el proyecto, pero la
+defensa principal sigue siendo el modelo relacional.

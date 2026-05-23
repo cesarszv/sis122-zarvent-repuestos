@@ -44,10 +44,11 @@ despues se escribe cualquier codigo de aplicacion.
 
 ## Entorno de Python
 
-El proyecto se puede usar de dos formas:
+El proyecto usa **UV** como flujo oficial de Python.
 
-- con Python nativo y `pip`;
-- con `uv`, que lee `pyproject.toml` y `uv.lock`.
+`uv` lee `pyproject.toml` y `uv.lock`, crea o actualiza `.venv/` y ejecuta los
+comandos dentro del entorno del proyecto. No usamos `pip` manual ni `python -m
+venv` como pasos de trabajo del repositorio.
 
 Las dependencias externas son pocas:
 
@@ -56,83 +57,53 @@ Las dependencias externas son pocas:
 - `bcrypt`: permite trabajar contrasenas con hash.
 - `flask`: permite mostrar una pantalla web simple para el login.
 
-La interfaz actual usa Flask porque permite separar de forma simple:
+La aplicacion usa una arquitectura modular simple. La idea es que las carpetas
+principales muestren responsabilidades claras:
 
-- `app.py`: rutas de la aplicacion.
-- `templates/`: pantallas HTML.
-- `static/`: CSS, imagenes y archivos publicos.
+- `modules`: reglas del negocio por area.
+- `infrastructure`: detalles tecnicos externos, como MySQL.
+- `interfaces`: formas de usar el sistema, como Flask.
 
-Estructura recomendada para el prototipo web:
+Estructura actual del prototipo:
 
 ```text
 sis122-zarvent-repuestos/
-|-- app.py
-|-- db.py
-|-- user_service.py
-|-- templates/
-|   `-- login.html
-|-- static/
-|   |-- css/
-|   |   `-- style.css
-|   `-- img/
-`-- venv/
+|-- src/
+|   `-- zarvent_repuestos/
+|       |-- infrastructure/
+|       |   `-- mysql/
+|       |       `-- connection.py
+|       |-- interfaces/
+|       |   `-- web/
+|       |       |-- app.py
+|       |       |-- templates/
+|       |       `-- static/
+|       `-- modules/
+|           `-- access/
+|               `-- service.py
+|-- scripts/
+|   |-- database/
+|   `-- development/
+|-- database/
+|-- docs/
+`-- .venv/
 ```
 
-`db.py` y `user_service.py` no reemplazan la estructura del profesor. Solo
-separan la conexion MySQL y la logica de usuarios para que `app.py` no quede
-mezclado con todo.
+`access` contiene login, usuarios y contrasenas. `mysql` contiene la conexion a
+la base de datos. `web` contiene la interfaz Flask.
 
-### Opcion A: Python nativo
-
-El profesor recomienda crear un entorno virtual local llamado `venv`.
+### Setup rapido con UV
 
 ```powershell
-python -m venv venv
-.\venv\Scripts\Activate.ps1
-python -m pip install --upgrade pip
-python -m pip install -r requirements.txt
-python scripts\check_environment.py
-python app.py
-```
-
-Si Windows no reconoce `python`, usa `py` en el primer comando:
-
-```powershell
-py -m venv venv
-```
-
-Despues de activar `venv`, `python` debe apuntar al entorno virtual.
-
-### Opcion B: UV
-
-Primero instala `uv` una sola vez si el equipo no lo tiene:
-
-```powershell
-py -m pip install --user uv
-```
-
-Si despues de instalar aparece el mensaje `uv no se reconoce`, abre una nueva
-terminal o usa `py -m uv` en lugar de `uv`.
-
-Luego, dentro del repo:
-
-```powershell
+uv python install 3.14
 uv sync
-uv run python scripts\check_environment.py
-uv run python app.py
-```
-
-Comandos equivalentes si la terminal todavia no reconoce `uv`:
-
-```powershell
-py -m uv sync
-py -m uv run python scripts\check_environment.py
-py -m uv run python app.py
+uv run python scripts\development\check_python_environment.py
+uv run python -m zarvent_repuestos.interfaces.web.app
 ```
 
 ### Ejecutar la pantalla de login
 
-Cuando `app.py` este corriendo, abre:
+Cuando la aplicacion Flask este corriendo, abre:
 
 - `http://127.0.0.1:5000`
 - `http://localhost:5000`
@@ -159,11 +130,15 @@ Los scripts estan numerados para poder repetir el proceso paso por paso:
 
 ```text
 scripts/
-|-- 001_create_database.sql
-|-- 002_users.sql
-|-- 003_create_app_user.sql
-|-- 004_seed_demo_user.py
-`-- 005_check_database.py
+|-- database/
+|   |-- run_sql_file.py
+|   |-- 001_create_database.sql
+|   |-- 002_create_users_table.sql
+|   |-- 003_create_app_user.sql
+|   |-- seed_demo_user.py
+|   `-- check_database.py
+`-- development/
+    `-- check_python_environment.py
 ```
 
 Como el comando `mysql` puede no estar en el `PATH`, el repo incluye un
@@ -171,19 +146,19 @@ ejecutor pequeno que usa `mysql-connector-python` y pide la contrasena del
 usuario administrador sin guardarla:
 
 ```powershell
-.\venv\Scripts\python.exe scripts\000_run_sql_file.py scripts\001_create_database.sql --admin-user root
-.\venv\Scripts\python.exe scripts\000_run_sql_file.py scripts\002_users.sql --admin-user root
-.\venv\Scripts\python.exe scripts\000_run_sql_file.py scripts\003_create_app_user.sql --admin-user root
-.\venv\Scripts\python.exe scripts\004_seed_demo_user.py
-.\venv\Scripts\python.exe scripts\005_check_database.py
+uv run python scripts\database\run_sql_file.py scripts\database\001_create_database.sql --admin-user root
+uv run python scripts\database\run_sql_file.py scripts\database\002_create_users_table.sql --admin-user root
+uv run python scripts\database\run_sql_file.py scripts\database\003_create_app_user.sql --admin-user root
+uv run python scripts\database\seed_demo_user.py
+uv run python scripts\database\check_database.py
 ```
 
 Si prefieres MySQL Workbench, ejecuta estos SQL en el mismo orden:
 
 ```sql
-SOURCE scripts/001_create_database.sql;
-SOURCE scripts/002_users.sql;
-SOURCE scripts/003_create_app_user.sql;
+SOURCE scripts/database/001_create_database.sql;
+SOURCE scripts/database/002_create_users_table.sql;
+SOURCE scripts/database/003_create_app_user.sql;
 ```
 
 El usuario demo queda asi si no pasas argumentos:
@@ -196,7 +171,7 @@ contrasena: admin123
 Despues levanta la app:
 
 ```powershell
-.\venv\Scripts\python.exe app.py
+uv run python -m zarvent_repuestos.interfaces.web.app
 ```
 
 ## Documentos principales
@@ -210,8 +185,10 @@ Despues levanta la app:
   justificacion del ERD desde el negocio.
 - [`docs/analysis`](docs/analysis): actores, procesos, procedimientos,
   requerimientos y recursos.
-- [`docs/deployment.md`](docs/deployment.md): guia para desplegar la app en
-  este equipo Windows con MySQL local.
+- [`docs/getting-started.md`](docs/getting-started.md): guia paso a paso para
+  levantar el proyecto en Linux, MacOS y Windows.
+- [`docs/uv.md`](docs/uv.md): explicacion de como usamos `uv` en el proyecto.
+- [`docs/deployment`](docs/deployment): guias cortas por sistema operativo.
 - [`database/schema.sql`](database/schema.sql): borrador manual del esquema SQL
   a completar en MySQL.
 
