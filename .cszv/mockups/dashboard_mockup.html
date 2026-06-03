@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Zarvent Repuestos - Dashboard</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "zarvent-red": "#E00010",
+                        "workshop-black": "#0D0B0C",
+                        "cold-white": "#F4F5F7",
+                        "pure-white": "#FFFFFF",
+                        "steel-gray": "#D1D5DB",
+                        "industrial-gray": "#4B5563",
+                        "muted-gold": "#C5A059",
+                        "on-tertiary": "#ffffff",
+                        "on-primary-fixed-variant": "#474646",
+                        "surface-bright": "#f9f9f7",
+                        "primary-container": "#1c1b1b",
+                        "error": "#ba1a1a",
+                        "secondary-fixed": "#ffdea5",
+                        "on-primary-container": "#858383",
+                        "on-secondary-fixed-variant": "#5d4201",
+                        "tertiary-fixed-dim": "#c7c6c6",
+                        "inverse-primary": "#c8c6c5",
+                        "primary-fixed": "#e5e2e1",
+                        "on-secondary-container": "#785a1a",
+                        "inverse-surface": "#2f3130",
+                        "on-error": "#ffffff",
+                        "on-surface-variant": "#444748",
+                        "surface-container-high": "#e8e8e6",
+                        "surface-variant": "#e2e3e1",
+                        "on-primary-fixed": "#1c1b1b",
+                        "on-secondary-fixed": "#261900",
+                        "ink-black": "#121212",
+                        "on-error-container": "#93000a",
+                        "on-surface": "#1a1c1b",
+                        "on-primary": "#ffffff",
+                        "surface-tint": "#5f5e5e",
+                        "secondary": "#775a19",
+                        "on-secondary": "#ffffff",
+                        "primary": "#000000",
+                        "tertiary-container": "#1b1c1c",
+                        "tertiary-fixed": "#e4e2e2",
+                        "on-tertiary-fixed": "#1b1c1c",
+                        "surface-dim": "#dadad8",
+                        "tertiary": "#000000",
+                        "inverse-on-surface": "#f1f1ef",
+                        "outline-variant": "#c4c7c7",
+                        "outline": "#747878",
+                        "surface-container": "#eeeeec",
+                        "primary-fixed-dim": "#c8c6c5",
+                        "surface": "#F4F5F7",
+                        "secondary-fixed-dim": "#e9c176",
+                        "surface-container-highest": "#e2e3e1",
+                        "error-container": "#ffdad6",
+                        "on-tertiary-fixed-variant": "#464747",
+                        "linen-gray": "#D1D5DB",
+                        "paper-white": "#FFFFFF",
+                        "secondary-container": "#fed488",
+                        "surface-container-lowest": "#ffffff",
+                        "background": "#F4F5F7",
+                        "on-tertiary-container": "#848484",
+                        "on-background": "#0D0B0C",
+                        "surface-container-low": "#F4F5F7"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "sm": "0.25rem",
+                        "md": "0.375rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "margin-tablet": "40px",
+                        "unit-xs": "4px",
+                        "unit-sm": "8px",
+                        "unit-md": "16px",
+                        "gutter": "24px",
+                        "unit-lg": "32px",
+                        "margin-mobile": "20px",
+                        "unit-xl": "64px",
+                        "margin-desktop": "80px"
+                    },
+                    "fontFamily": {
+                        "sans": ["Inter", "sans-serif"],
+                        "headline-md": ["Inter", "sans-serif"],
+                        "body-md": ["Inter", "sans-serif"],
+                        "display-lg": ["Inter", "sans-serif"],
+                        "display-lg-mobile": ["Inter", "sans-serif"],
+                        "label-sm": ["Inter", "sans-serif"],
+                        "headline-lg": ["Inter", "sans-serif"],
+                        "label-caps": ["Inter", "sans-serif"],
+                        "body-lg": ["Inter", "sans-serif"],
+                        "headline-xl": ["Inter", "sans-serif"]
+                    },
+                    "fontSize": {
+                        "headline-md": ["24px", { "lineHeight": "32px", "fontWeight": "700" }],
+                        "body-md": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+                        "display-lg": ["84px", { "lineHeight": "92px", "letterSpacing": "-0.02em", "fontWeight": "800" }],
+                        "display-lg-mobile": ["48px", { "lineHeight": "52px", "letterSpacing": "-0.01em", "fontWeight": "800" }],
+                        "label-sm": ["12px", { "lineHeight": "16px", "fontWeight": "500" }],
+                        "headline-lg": ["32px", { "lineHeight": "40px", "fontWeight": "700" }],
+                        "label-caps": ["12px", { "lineHeight": "16px", "letterSpacing": "0.1em", "fontWeight": "600" }],
+                        "body-lg": ["18px", { "lineHeight": "28px", "fontWeight": "400" }],
+                        "headline-xl": ["48px", { "lineHeight": "56px", "fontWeight": "700" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .icon-fill {
+            font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        body {
+            background-color: theme('colors.cold-white');
+            color: theme('colors.workshop-black');
+            font-family: 'Inter', sans-serif;
+        }
+        /* Hide scrollbar for clean editorial look */
+        ::-webkit-scrollbar {
+            width: 0px;
+            background: transparent;
+        }
+        .diagonal-accent {
+            position: relative;
+            overflow: hidden;
+        }
+        .diagonal-accent::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            right: -20px;
+            width: 40px;
+            height: 100%;
+            background-color: theme('colors.zarvent-red');
+            transform: skewX(-15deg);
+            z-index: 0;
+        }
+    </style>
+</head>
+<body class="flex h-screen overflow-hidden font-sans">
+<!-- SideNavBar (Desktop) -->
+<aside class="hidden md:flex flex-col h-full w-64 bg-workshop-black py-unit-lg flex-shrink-0 z-20">
+<div class="px-gutter mb-unit-xl">
+<h1 class="font-headline-md text-headline-md text-pure-white font-extrabold tracking-tight">ZARVENT</h1>
+<p class="font-label-caps text-label-caps text-industrial-gray mt-unit-xs">ADMIN SYSTEM</p>
+</div>
+<div class="px-gutter mb-unit-lg">
+<button class="w-full bg-zarvent-red text-pure-white font-label-caps text-label-caps py-unit-sm px-unit-md flex items-center justify-center gap-2 hover:bg-opacity-90 transition-colors rounded-sm shadow-sm">
+<span class="material-symbols-outlined icon-fill">add</span>
+                New Order
+            </button>
+</div>
+<nav class="flex-1 overflow-y-auto px-unit-sm space-y-2">
+<!-- Active Tab: Dashboard -->
+<a class="flex items-center gap-3 px-3 py-2 text-pure-white border-l-4 border-zarvent-red bg-white/5 transition-all duration-200 rounded-r-sm" href="#">
+<span class="material-symbols-outlined" data-icon="dashboard">dashboard</span>
+<span class="font-label-caps text-label-caps">Dashboard</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-2 text-industrial-gray hover:text-pure-white hover:bg-white/5 transition-all duration-200 border-l-4 border-transparent rounded-r-sm" href="#">
+<span class="material-symbols-outlined" data-icon="inventory_2">inventory_2</span>
+<span class="font-label-caps text-label-caps">Inventory</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-2 text-industrial-gray hover:text-pure-white hover:bg-white/5 transition-all duration-200 border-l-4 border-transparent rounded-r-sm" href="#">
+<span class="material-symbols-outlined" data-icon="shopping_cart">shopping_cart</span>
+<span class="font-label-caps text-label-caps">Sales</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-2 text-industrial-gray hover:text-pure-white hover:bg-white/5 transition-all duration-200 border-l-4 border-transparent rounded-r-sm" href="#">
+<span class="material-symbols-outlined" data-icon="local_shipping">local_shipping</span>
+<span class="font-label-caps text-label-caps">Purchases</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-2 text-industrial-gray hover:text-pure-white hover:bg-white/5 transition-all duration-200 border-l-4 border-transparent rounded-r-sm" href="#">
+<span class="material-symbols-outlined" data-icon="group">group</span>
+<span class="font-label-caps text-label-caps">Customers</span>
+</a>
+</nav>
+<div class="px-unit-sm mt-auto pt-unit-lg space-y-2">
+<a class="flex items-center gap-3 px-4 py-2 text-industrial-gray hover:text-pure-white hover:bg-white/5 transition-all duration-200 border-l-4 border-transparent rounded-r-sm" href="#">
+<span class="material-symbols-outlined" data-icon="help">help</span>
+<span class="font-label-caps text-label-caps">Support</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-2 text-industrial-gray hover:text-pure-white hover:bg-white/5 transition-all duration-200 border-l-4 border-transparent rounded-r-sm" href="#">
+<span class="material-symbols-outlined" data-icon="logout">logout</span>
+<span class="font-label-caps text-label-caps">Logout</span>
+</a>
+</div>
+</aside>
+<!-- Main Content Area -->
+<div class="flex-1 flex flex-col h-full overflow-hidden bg-cold-white relative">
+<!-- TopAppBar -->
+<header class="flex justify-between items-center w-full px-margin-mobile md:px-margin-desktop h-16 bg-pure-white border-b border-steel-gray z-10 flex-shrink-0 shadow-sm">
+<!-- Mobile Menu Icon -->
+<button class="md:hidden text-workshop-black p-2 hover:bg-cold-white transition-colors rounded-sm">
+<span class="material-symbols-outlined">menu</span>
+</button>
+<div class="font-headline-md text-headline-md font-extrabold text-workshop-black md:hidden tracking-tight">
+                ZARVENT
+            </div>
+<!-- Search (Desktop) -->
+<div class="hidden md:flex items-center flex-1 max-w-md relative">
+<span class="material-symbols-outlined absolute left-3 text-industrial-gray">search</span>
+<input class="w-full bg-cold-white border border-steel-gray rounded-sm focus:ring-1 focus:ring-zarvent-red focus:border-zarvent-red py-2 pl-10 font-body-md text-body-md placeholder:text-industrial-gray text-workshop-black shadow-inner" placeholder="Search inventory, orders..." type="text"/>
+</div>
+<div class="flex items-center gap-4">
+<button class="text-workshop-black hover:bg-cold-white transition-colors p-2 rounded-sm hidden md:block">
+<span class="material-symbols-outlined" data-icon="notifications">notifications</span>
+</button>
+<button class="text-workshop-black hover:bg-cold-white transition-colors p-2 rounded-sm hidden md:block">
+<span class="material-symbols-outlined" data-icon="settings">settings</span>
+</button>
+<div class="w-8 h-8 rounded-sm bg-cold-white overflow-hidden border border-steel-gray cursor-pointer active:opacity-80">
+<img alt="User profile avatar" class="w-full h-full object-cover" data-alt="A close-up portrait of a professional individual in a minimalist studio setting. The lighting is bright and high-key, emphasizing clean lines and a modern, high-end editorial aesthetic. The color palette is monochromatic with subtle warm tones." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCKMfMJ3SyxAZBtMGc_GGTpr5xaOxUD_2yyAHDr6MDyhBYKn8B2JF1_4JDPa6fz-zre77MfiJ8yy74Apnpqg23Vv-zGuruFAUcL-RPbE_k6XwF5bKkGFdeByQi3r1iboYRDJ8sfx_4-Rpa7zVG9QrDbaXrU21wcARncRgTubfPcB5933Lf0NvCwYcUUX_a90uZ_-htV4vf4A_KhVV_Mh4hMaedaEcCHd0PzwJWNhynrFjKY44RP7aJg9IVoIK-45Rj7K1ehBV0Zm6s"/>
+</div>
+</div>
+</header>
+<!-- Canvas -->
+<main class="flex-1 overflow-y-auto px-margin-mobile md:px-margin-desktop py-unit-xl">
+<div class="max-w-7xl mx-auto space-y-unit-xl">
+<!-- Page Header -->
+<div class="flex flex-col md:flex-row md:items-end justify-between gap-gutter">
+<div>
+<h2 class="font-display-lg-mobile md:font-display-lg text-display-lg-mobile md:text-display-lg text-workshop-black leading-none font-extrabold tracking-tighter">Overview</h2>
+<p class="font-body-lg text-body-lg text-industrial-gray mt-unit-sm">Operational status for today.</p>
+</div>
+<div class="flex gap-4">
+<button class="bg-pure-white border border-steel-gray text-workshop-black font-label-caps text-label-caps py-2 px-6 hover:bg-cold-white transition-colors rounded-sm shadow-sm flex items-center gap-2">
+<span class="material-symbols-outlined text-sm">download</span>
+                            Export Report
+                        </button>
+</div>
+</div>
+<!-- Metrics Bento Grid -->
+<div class="grid grid-cols-1 md:grid-cols-4 gap-gutter">
+<!-- Metric 1: Today's Sales -->
+<div class="col-span-1 md:col-span-2 bg-pure-white border border-steel-gray rounded-md p-unit-lg flex flex-col justify-between relative overflow-hidden group shadow-sm">
+<div class="absolute top-0 right-0 p-unit-md opacity-5 group-hover:opacity-10 transition-opacity">
+<span class="material-symbols-outlined text-8xl">payments</span>
+</div>
+<h3 class="font-label-caps text-label-caps text-industrial-gray font-bold tracking-widest uppercase">Today's Sales</h3>
+<div class="mt-auto pt-unit-xl">
+<div class="font-headline-xl text-headline-xl text-workshop-black font-extrabold tracking-tight">$12,450.00</div>
+<div class="flex items-center gap-1 text-label-sm font-label-sm text-industrial-gray mt-2 font-medium">
+<span class="material-symbols-outlined text-sm text-green-600">trending_up</span>
+<span class="text-green-600 font-semibold">+14%</span> vs yesterday
+                            </div>
+</div>
+</div>
+<!-- Metric 2: Low Stock -->
+<div class="bg-pure-white border border-zarvent-red border-opacity-30 rounded-md p-unit-lg flex flex-col justify-between shadow-sm relative overflow-hidden">
+<div class="absolute top-0 left-0 w-1 h-full bg-zarvent-red"></div>
+<div class="flex justify-between items-start pl-2">
+<h3 class="font-label-caps text-label-caps text-zarvent-red font-bold tracking-widest uppercase">Low Stock Alerts</h3>
+<span class="material-symbols-outlined text-zarvent-red">warning</span>
+</div>
+<div class="mt-auto pt-unit-lg pl-2">
+<div class="font-headline-xl text-headline-xl text-zarvent-red font-extrabold tracking-tight">24</div>
+<div class="text-label-sm font-label-sm text-industrial-gray mt-2 font-medium">Items require attention</div>
+</div>
+</div>
+<!-- Metric 3: Pending -->
+<div class="bg-pure-white border border-steel-gray rounded-md p-unit-lg flex flex-col justify-between shadow-sm">
+<div class="flex justify-between items-start">
+<h3 class="font-label-caps text-label-caps text-industrial-gray font-bold tracking-widest uppercase">Pending Purchases</h3>
+<span class="material-symbols-outlined text-industrial-gray">local_shipping</span>
+</div>
+<div class="mt-auto pt-unit-lg">
+<div class="font-headline-xl text-headline-xl text-workshop-black font-extrabold tracking-tight">8</div>
+<div class="text-label-sm font-label-sm text-industrial-gray mt-2 font-medium">Deliveries expected today</div>
+</div>
+</div>
+</div>
+<!-- Two Column Layout below metrics -->
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-gutter">
+<!-- Recent Activity List -->
+<div class="lg:col-span-2 space-y-unit-md">
+<div class="flex justify-between items-end border-b-2 border-workshop-black pb-unit-xs">
+<h3 class="font-headline-md text-headline-md text-workshop-black font-bold tracking-tight">Recent Activity</h3>
+<a class="font-label-caps text-label-caps text-industrial-gray hover:text-workshop-black transition-colors flex items-center gap-1 font-semibold" href="#">
+                                View All <span class="material-symbols-outlined text-sm">arrow_forward</span>
+</a>
+</div>
+<div class="space-y-2">
+<!-- List Item 1 -->
+<div class="flex items-center justify-between p-unit-md bg-pure-white border border-steel-gray rounded-sm hover:shadow-md transition-all group cursor-pointer">
+<div class="flex items-center gap-4">
+<div class="w-10 h-10 bg-cold-white rounded-sm border border-steel-gray flex items-center justify-center text-workshop-black">
+<span class="material-symbols-outlined text-sm">shopping_cart</span>
+</div>
+<div>
+<div class="font-body-md text-body-md text-workshop-black font-medium">Order #ORD-2023-089 fulfilled</div>
+<div class="font-label-sm text-label-sm text-industrial-gray mt-1">Juan Perez • 10 mins ago</div>
+</div>
+</div>
+<div class="opacity-0 group-hover:opacity-100 transition-opacity">
+<span class="material-symbols-outlined text-workshop-black">chevron_right</span>
+</div>
+</div>
+<!-- List Item 2 -->
+<div class="flex items-center justify-between p-unit-md bg-pure-white border border-zarvent-red border-opacity-30 rounded-sm hover:shadow-md transition-all group cursor-pointer relative overflow-hidden">
+<div class="absolute left-0 top-0 bottom-0 w-1 bg-zarvent-red opacity-50"></div>
+<div class="flex items-center gap-4 pl-2">
+<div class="w-10 h-10 bg-red-50 rounded-sm border border-red-100 flex items-center justify-center text-zarvent-red">
+<span class="material-symbols-outlined text-sm">inventory_2</span>
+</div>
+<div>
+<div class="font-body-md text-body-md text-workshop-black font-medium">Brake Pads (Front) stock low</div>
+<div class="font-label-sm text-label-sm text-zarvent-red mt-1 font-medium">System Alert • 45 mins ago</div>
+</div>
+</div>
+<div class="opacity-0 group-hover:opacity-100 transition-opacity">
+<span class="material-symbols-outlined text-workshop-black">chevron_right</span>
+</div>
+</div>
+<!-- List Item 3 -->
+<div class="flex items-center justify-between p-unit-md bg-pure-white border border-steel-gray rounded-sm hover:shadow-md transition-all group cursor-pointer">
+<div class="flex items-center gap-4">
+<div class="w-10 h-10 bg-cold-white rounded-sm border border-steel-gray flex items-center justify-center text-workshop-black">
+<span class="material-symbols-outlined text-sm">local_shipping</span>
+</div>
+<div>
+<div class="font-body-md text-body-md text-workshop-black font-medium">Purchase PO-442 received</div>
+<div class="font-label-sm text-label-sm text-industrial-gray mt-1">Warehouse A • 2 hours ago</div>
+</div>
+</div>
+<div class="opacity-0 group-hover:opacity-100 transition-opacity">
+<span class="material-symbols-outlined text-workshop-black">chevron_right</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Quick Actions Panel -->
+<div class="space-y-unit-md">
+<div class="border-b-2 border-workshop-black pb-unit-xs">
+<h3 class="font-headline-md text-headline-md text-workshop-black font-bold tracking-tight">Quick Actions</h3>
+</div>
+<div class="grid grid-cols-2 gap-4">
+<button class="bg-workshop-black text-pure-white rounded-md shadow-md aspect-square flex flex-col items-center justify-center gap-3 hover:bg-opacity-90 transition-all group">
+<span class="material-symbols-outlined text-3xl group-hover:scale-110 transition-transform">point_of_sale</span>
+<span class="font-label-caps text-label-caps font-bold tracking-widest">New Sale</span>
+</button>
+<button class="bg-pure-white border border-steel-gray rounded-md shadow-sm text-workshop-black aspect-square flex flex-col items-center justify-center gap-3 hover:bg-cold-white hover:border-industrial-gray transition-all group">
+<span class="material-symbols-outlined text-3xl group-hover:scale-110 transition-transform">qr_code_scanner</span>
+<span class="font-label-caps text-label-caps font-bold tracking-widest">Check Item</span>
+</button>
+<button class="bg-pure-white border border-steel-gray rounded-md shadow-sm text-workshop-black aspect-square flex flex-col items-center justify-center gap-3 hover:bg-cold-white hover:border-industrial-gray transition-all group">
+<span class="material-symbols-outlined text-3xl group-hover:scale-110 transition-transform">person_add</span>
+<span class="font-label-caps text-label-caps font-bold tracking-widest">Add Client</span>
+</button>
+<button class="bg-pure-white border border-steel-gray rounded-md shadow-sm text-workshop-black aspect-square flex flex-col items-center justify-center gap-3 hover:bg-cold-white hover:border-industrial-gray transition-all group">
+<span class="material-symbols-outlined text-3xl group-hover:scale-110 transition-transform">build</span>
+<span class="font-label-caps text-label-caps font-bold tracking-widest">Warranty</span>
+</button>
+</div>
+<!-- Mini Graphic/Card -->
+<div class="mt-unit-lg h-48 bg-pure-white border border-steel-gray rounded-md relative overflow-hidden flex items-end p-unit-md shadow-sm group cursor-default">
+<img alt="Warehouse shelves" class="absolute inset-0 w-full h-full object-cover opacity-10 grayscale mix-blend-multiply transition-transform duration-700 group-hover:scale-105" data-alt="A stark, minimalist photograph of industrial warehouse shelving filled with neatly organized automotive parts. The lighting is high-contrast black and white editorial style, emphasizing geometric shapes and the vast scale of the storage facility. Shadows are deep and structural." src="https://lh3.googleusercontent.com/aida-public/AB6AXuB00Nw3LUAdWwWbekpYws1JejyAar0wjEhsE79lQTznF4AGzZGrquvX8DtEi9HPZ8AobTGUsVU6tH2eRCevKo2LJUtyXsTbRaaWM4LRHa5JAgLtNotbXxrog_vE15T5EHYhrJq3vY7j7XEWAgfVs_9db-DabbTOe6ldAUrm8gBqLEhbLcJOIt-M4lMBMrycbQQhrxX_c-rfDoY2qpJhLOOwLfFONyQvfh8ZACcFEGVcQczSLAo8_olIZwVSnLcSUaFmYs_gsaNczfg"/>
+<div class="absolute inset-0 bg-gradient-to-t from-pure-white via-transparent to-transparent"></div>
+<div class="relative z-10 w-full">
+<div class="font-label-caps text-label-caps text-workshop-black mb-2 font-bold tracking-widest uppercase flex items-center justify-between">
+<span>Weekly Target</span>
+<span class="material-symbols-outlined text-sm text-industrial-gray">flag</span>
+</div>
+<div class="w-full h-2 bg-cold-white rounded-full overflow-hidden border border-steel-gray">
+<div class="h-full bg-zarvent-red w-[65%] rounded-r-full"></div>
+</div>
+<div class="flex justify-between mt-2 font-label-sm text-label-sm text-industrial-gray font-medium">
+<span class="text-workshop-black font-bold">$65k</span>
+<span>$100k</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</main>
+</div>
+</body></html>
