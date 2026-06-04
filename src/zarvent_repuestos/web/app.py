@@ -2,16 +2,37 @@
 
 import json
 import os
-from flask import Flask, render_template, request, redirect, url_for, session, flash, abort
+from flask import Flask, render_template, request, redirect, url_for, session, flash, abort, jsonify
 
 from zarvent_repuestos.access.user_service import authenticate_user
 from zarvent_repuestos.database.init_db import crear_tablas
+from zarvent_repuestos.database.sql_trace import (
+    clear_request_context,
+    clear_sql_trace_entries,
+    get_sql_trace_entries,
+    is_sql_trace_enabled,
+    set_request_context,
+)
 from zarvent_repuestos.crud import part_crud, customer_crud, sales_crud
 from zarvent_repuestos.models.part import Part
 
 
 app = Flask(__name__)
 app.secret_key = os.getenv("FLASK_SECRET_KEY", "zarvent-academic-secret-key-122")
+
+
+@app.before_request
+def capture_sql_trace_request_context():
+    """Labels SQL trace entries with the current Flask request."""
+    if is_sql_trace_enabled():
+        set_request_context(request.method, request.path)
+
+
+@app.teardown_request
+def release_sql_trace_request_context(_error=None):
+    """Clears SQL trace request labels after each Flask request."""
+    if is_sql_trace_enabled():
+        clear_request_context()
 
 
 def login_required(f):
@@ -231,6 +252,32 @@ def receipt(sales_order_id):
 
     # Render receipt template as preformatted raw text
     return render_template("receipt.html", order=order)
+
+
+@app.route("/sql-trace")
+@login_required
+def sql_trace():
+    """Shows live SQL statements executed by mysql-connector-python."""
+    return render_template(
+        "sql_trace.html",
+        active_page="sql_trace",
+        trace_enabled=is_sql_trace_enabled(),
+    )
+
+
+@app.route("/api/sql-trace")
+@login_required
+def api_sql_trace():
+    """Returns recent SQL trace entries for the live presentation view."""
+    return jsonify(get_sql_trace_entries())
+
+
+@app.route("/api/sql-trace/clear", methods=["POST"])
+@login_required
+def api_clear_sql_trace():
+    """Clears recent SQL trace entries."""
+    clear_sql_trace_entries()
+    return jsonify({"status": "ok"})
 
 
 if __name__ == "__main__":

@@ -1,0 +1,310 @@
+{% extends "layout.html" %}
+
+{% block title %}SQL Trace{% endblock %}
+
+{% block content %}
+<section class="space-y-5">
+    <div class="flex flex-col xl:flex-row xl:items-end xl:justify-between gap-4">
+        <div>
+            <p class="text-xs font-bold uppercase tracking-widest text-zarvent-red mb-2">MySQL Connector Trace</p>
+            <h2 class="text-3xl md:text-4xl font-extrabold text-workshop-black tracking-tight">Consultas SQL en vivo</h2>
+        </div>
+        <div class="flex flex-wrap items-center gap-2">
+            <span id="trace-status" class="text-xs font-bold uppercase tracking-wider px-3 py-2 rounded bg-green-50 text-green-700 border border-green-200">
+                En vivo
+            </span>
+            <button id="pause-trace" class="inline-flex items-center gap-2 bg-pure-white border border-steel-gray text-workshop-black text-xs font-bold uppercase tracking-wider py-2.5 px-3 rounded hover:border-zarvent-red transition-colors">
+                <span class="material-symbols-outlined text-[18px]">pause</span>
+                Pausar
+            </button>
+            <button id="clear-trace" class="inline-flex items-center gap-2 bg-workshop-black text-pure-white text-xs font-bold uppercase tracking-wider py-2.5 px-3 rounded hover:bg-zarvent-red transition-colors">
+                <span class="material-symbols-outlined text-[18px]">delete_sweep</span>
+                Limpiar
+            </button>
+        </div>
+    </div>
+
+    {% if not trace_enabled %}
+        <div class="border border-yellow-200 bg-yellow-50 text-yellow-800 rounded p-4 text-sm">
+            SQL Trace está desactivado. Inicia Flask con <code>SQL_TRACE_ENABLED=1</code> para registrar consultas.
+        </div>
+    {% endif %}
+
+    <div class="grid grid-cols-2 xl:grid-cols-5 gap-3">
+        <div class="bg-pure-white border border-steel-gray rounded p-4">
+            <p class="text-xs uppercase tracking-wider text-industrial-gray">Consultas</p>
+            <p id="trace-count" class="text-3xl font-extrabold text-workshop-black mt-1">0</p>
+        </div>
+        <div class="bg-pure-white border border-steel-gray rounded p-4">
+            <p class="text-xs uppercase tracking-wider text-industrial-gray">Última</p>
+            <p id="last-operation" class="text-2xl font-extrabold text-zarvent-red mt-1">-</p>
+        </div>
+        <div class="bg-pure-white border border-steel-gray rounded p-4">
+            <p class="text-xs uppercase tracking-wider text-industrial-gray">Promedio</p>
+            <p id="avg-duration" class="text-2xl font-extrabold text-workshop-black mt-1">-</p>
+        </div>
+        <div class="bg-pure-white border border-steel-gray rounded p-4">
+            <p class="text-xs uppercase tracking-wider text-industrial-gray">Ruta</p>
+            <p id="last-route" class="text-sm font-extrabold text-workshop-black mt-2 truncate">-</p>
+        </div>
+        <div class="bg-pure-white border border-steel-gray rounded p-4">
+            <p class="text-xs uppercase tracking-wider text-industrial-gray">Tablas</p>
+            <p id="last-tables" class="text-sm font-extrabold text-workshop-black mt-2 truncate">-</p>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 xl:grid-cols-[300px_1fr] gap-5">
+        <aside class="space-y-4">
+            <div class="bg-pure-white border border-steel-gray rounded p-4">
+                <h3 class="text-xs font-extrabold uppercase tracking-wider text-workshop-black mb-3">Operaciones</h3>
+                <div id="operation-bars" class="space-y-3"></div>
+            </div>
+
+            <div class="bg-pure-white border border-steel-gray rounded p-4">
+                <h3 class="text-xs font-extrabold uppercase tracking-wider text-workshop-black mb-3">Filtro</h3>
+                <div class="grid grid-cols-2 gap-2">
+                    <button data-filter="ALL" class="trace-filter rounded border border-workshop-black bg-workshop-black text-pure-white text-xs font-bold py-2">Todo</button>
+                    <button data-filter="SELECT" class="trace-filter rounded border border-steel-gray bg-pure-white text-workshop-black text-xs font-bold py-2">SELECT</button>
+                    <button data-filter="INSERT" class="trace-filter rounded border border-steel-gray bg-pure-white text-workshop-black text-xs font-bold py-2">INSERT</button>
+                    <button data-filter="UPDATE" class="trace-filter rounded border border-steel-gray bg-pure-white text-workshop-black text-xs font-bold py-2">UPDATE</button>
+                </div>
+            </div>
+
+            <div class="bg-workshop-black text-pure-white rounded p-4">
+                <h3 class="text-xs font-extrabold uppercase tracking-wider mb-3">Lectura para defensa</h3>
+                <div id="defense-readout" class="text-sm leading-6 text-steel-gray">
+                    Sin actividad capturada.
+                </div>
+            </div>
+        </aside>
+
+        <div class="bg-pure-white border border-steel-gray rounded overflow-hidden">
+            <div class="px-5 py-4 border-b border-steel-gray flex items-center justify-between">
+                <h3 class="text-sm font-extrabold uppercase tracking-wider text-workshop-black">Línea de tiempo</h3>
+                <p id="visible-count" class="text-xs font-bold uppercase tracking-wider text-industrial-gray">0 visibles</p>
+            </div>
+            <div id="trace-list" class="divide-y divide-steel-gray max-h-[68vh] overflow-y-auto"></div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    const traceList = document.getElementById("trace-list");
+    const traceCount = document.getElementById("trace-count");
+    const lastOperation = document.getElementById("last-operation");
+    const avgDuration = document.getElementById("avg-duration");
+    const lastRoute = document.getElementById("last-route");
+    const lastTables = document.getElementById("last-tables");
+    const traceStatus = document.getElementById("trace-status");
+    const clearTrace = document.getElementById("clear-trace");
+    const pauseTrace = document.getElementById("pause-trace");
+    const operationBars = document.getElementById("operation-bars");
+    const defenseReadout = document.getElementById("defense-readout");
+    const visibleCount = document.getElementById("visible-count");
+    const filterButtons = document.querySelectorAll(".trace-filter");
+
+    let currentFilter = "ALL";
+    let paused = false;
+    let cachedEntries = [];
+
+    const operationStyles = {
+        SELECT: "bg-blue-50 text-blue-700 border-blue-200",
+        INSERT: "bg-green-50 text-green-700 border-green-200",
+        UPDATE: "bg-amber-50 text-amber-700 border-amber-200",
+        DELETE: "bg-red-50 text-red-700 border-red-200",
+    };
+
+    function escapeHtml(value) {
+        return String(value)
+            .replaceAll("&", "&amp;")
+            .replaceAll("<", "&lt;")
+            .replaceAll(">", "&gt;")
+            .replaceAll('"', "&quot;")
+            .replaceAll("'", "&#039;");
+    }
+
+    function operationBase(entry) {
+        return String(entry.operation || "SQL").split(" ")[0];
+    }
+
+    function tablesLabel(entry) {
+        return entry.tables && entry.tables.length ? entry.tables.join(", ") : "-";
+    }
+
+    function filteredEntries(entries) {
+        if (currentFilter === "ALL") {
+            return entries;
+        }
+        return entries.filter((entry) => operationBase(entry) === currentFilter);
+    }
+
+    function renderOperationBars(entries) {
+        const operations = ["SELECT", "INSERT", "UPDATE", "DELETE"];
+        const counts = Object.fromEntries(operations.map((operation) => [operation, 0]));
+
+        for (const entry of entries) {
+            const operation = operationBase(entry);
+            if (operation in counts) {
+                counts[operation] += 1;
+            }
+        }
+
+        const maxCount = Math.max(1, ...Object.values(counts));
+        operationBars.innerHTML = operations.map((operation) => {
+            const percent = Math.round((counts[operation] / maxCount) * 100);
+            return `
+                <div>
+                    <div class="flex items-center justify-between text-xs font-bold uppercase tracking-wider mb-1">
+                        <span>${operation}</span>
+                        <span class="text-industrial-gray">${counts[operation]}</span>
+                    </div>
+                    <div class="h-2 rounded bg-cold-white overflow-hidden">
+                        <div class="h-full bg-zarvent-red" style="width: ${percent}%"></div>
+                    </div>
+                </div>
+            `;
+        }).join("");
+    }
+
+    function renderDefenseReadout(entries) {
+        if (!entries.length) {
+            defenseReadout.textContent = "Sin actividad capturada.";
+            return;
+        }
+
+        const entry = entries[0];
+        const tables = tablesLabel(entry);
+        defenseReadout.innerHTML = `
+            <span class="text-pure-white font-bold">${escapeHtml(entry.method)} ${escapeHtml(entry.route)}</span><br>
+            ${escapeHtml(entry.concept || "Ejecuta SQL")} sobre
+            <span class="text-pure-white font-bold">${escapeHtml(tables)}</span>.
+        `;
+    }
+
+    function renderTrace(entries) {
+        const visibleEntries = filteredEntries(entries);
+
+        traceCount.textContent = entries.length;
+        lastOperation.textContent = entries.length ? entries[0].operation : "-";
+        lastRoute.textContent = entries.length ? `${entries[0].method} ${entries[0].route}` : "-";
+        lastTables.textContent = entries.length ? tablesLabel(entries[0]) : "-";
+        visibleCount.textContent = `${visibleEntries.length} visibles`;
+        renderOperationBars(entries);
+        renderDefenseReadout(entries);
+
+        if (entries.length) {
+            const totalMs = entries.reduce((total, entry) => total + Number(entry.duration_ms || 0), 0);
+            avgDuration.textContent = `${(totalMs / entries.length).toFixed(2)} ms`;
+        } else {
+            avgDuration.textContent = "-";
+        }
+
+        if (!visibleEntries.length) {
+            traceList.innerHTML = `
+                <div class="p-8 text-center text-industrial-gray text-sm">
+                    Sin consultas para este filtro.
+                </div>
+            `;
+            return;
+        }
+
+        traceList.innerHTML = visibleEntries.map((entry) => {
+            const operation = operationBase(entry);
+            const statusClass = entry.status === "OK"
+                ? "bg-green-50 text-green-700 border-green-200"
+                : "bg-red-50 text-red-700 border-red-200";
+            const operationClass = operationStyles[operation] || "bg-cold-white text-workshop-black border-steel-gray";
+            const tables = tablesLabel(entry);
+
+            return `
+                <article class="p-5 hover:bg-cold-white transition-colors border-l-4 ${entry.status === "OK" ? "border-zarvent-red" : "border-error"}">
+                    <div class="flex flex-wrap items-center justify-between gap-3 mb-3">
+                        <div class="flex flex-wrap items-center gap-2">
+                            <span class="text-xs font-bold uppercase tracking-wider text-industrial-gray">${escapeHtml(entry.time)}</span>
+                            <span class="text-xs font-extrabold uppercase tracking-wider px-2 py-1 rounded border ${operationClass}">${escapeHtml(entry.operation)}</span>
+                            <span class="text-xs font-bold uppercase tracking-wider px-2 py-1 rounded bg-cold-white text-workshop-black border border-steel-gray">${escapeHtml(entry.method)} ${escapeHtml(entry.route)}</span>
+                        </div>
+                        <span class="text-xs font-bold uppercase tracking-wider px-2 py-1 rounded border ${statusClass}">${escapeHtml(entry.status)}</span>
+                    </div>
+                    <div class="grid grid-cols-1 2xl:grid-cols-[1fr_220px] gap-3">
+                        <pre class="text-sm bg-workshop-black text-pure-white rounded p-4 overflow-x-auto whitespace-pre-wrap">${escapeHtml(entry.sql)}</pre>
+                        <div class="rounded bg-cold-white border border-steel-gray p-3 text-xs space-y-3">
+                            <div>
+                                <p class="font-bold uppercase tracking-wider text-industrial-gray mb-1">Concepto</p>
+                                <p class="font-extrabold text-workshop-black">${escapeHtml(entry.concept || "Ejecuta SQL")}</p>
+                            </div>
+                            <div>
+                                <p class="font-bold uppercase tracking-wider text-industrial-gray mb-1">Tablas</p>
+                                <p class="font-extrabold text-workshop-black break-words">${escapeHtml(tables)}</p>
+                            </div>
+                            <div>
+                                <p class="font-bold uppercase tracking-wider text-industrial-gray mb-1">Tiempo</p>
+                                <p class="font-extrabold text-workshop-black">${escapeHtml(entry.duration_ms)} ms</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mt-3 rounded bg-cold-white px-3 py-2 text-xs text-industrial-gray">
+                        <span class="font-bold text-workshop-black">Parámetros:</span>
+                        <code class="break-words">${escapeHtml(entry.params)}</code>
+                    </div>
+                    ${entry.error ? `<div class="mt-2 text-xs text-red-700">${escapeHtml(entry.error)}</div>` : ""}
+                </article>
+            `;
+        }).join("");
+    }
+
+    async function loadTrace() {
+        if (paused) {
+            return;
+        }
+
+        try {
+            const response = await fetch("/api/sql-trace");
+            const entries = await response.json();
+            cachedEntries = entries;
+            renderTrace(cachedEntries);
+            traceStatus.textContent = "En vivo";
+            traceStatus.className = "text-xs font-bold uppercase tracking-wider px-3 py-2 rounded bg-green-50 text-green-700 border border-green-200";
+        } catch (error) {
+            traceStatus.textContent = "Sin conexión";
+            traceStatus.className = "text-xs font-bold uppercase tracking-wider px-3 py-2 rounded bg-red-50 text-red-700 border border-red-200";
+        }
+    }
+
+    filterButtons.forEach((button) => {
+        button.addEventListener("click", () => {
+            currentFilter = button.dataset.filter;
+            filterButtons.forEach((item) => {
+                item.className = "trace-filter rounded border border-steel-gray bg-pure-white text-workshop-black text-xs font-bold py-2";
+            });
+            button.className = "trace-filter rounded border border-workshop-black bg-workshop-black text-pure-white text-xs font-bold py-2";
+            renderTrace(cachedEntries);
+        });
+    });
+
+    pauseTrace.addEventListener("click", () => {
+        paused = !paused;
+        pauseTrace.innerHTML = paused
+            ? '<span class="material-symbols-outlined text-[18px]">play_arrow</span> Reanudar'
+            : '<span class="material-symbols-outlined text-[18px]">pause</span> Pausar';
+        traceStatus.textContent = paused ? "Pausado" : "En vivo";
+        traceStatus.className = paused
+            ? "text-xs font-bold uppercase tracking-wider px-3 py-2 rounded bg-amber-50 text-amber-700 border border-amber-200"
+            : "text-xs font-bold uppercase tracking-wider px-3 py-2 rounded bg-green-50 text-green-700 border border-green-200";
+    });
+
+    clearTrace.addEventListener("click", async () => {
+        await fetch("/api/sql-trace/clear", { method: "POST" });
+        cachedEntries = [];
+        renderTrace(cachedEntries);
+        if (!paused) {
+            await loadTrace();
+        }
+    });
+
+    loadTrace();
+    setInterval(loadTrace, 1000);
+</script>
+{% endblock %}

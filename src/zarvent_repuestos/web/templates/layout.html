@@ -110,6 +110,11 @@
                 <span class="material-symbols-outlined {% if active_page == 'sales' %}icon-fill text-zarvent-red{% endif %}">shopping_cart</span>
                 <span class="text-xs font-bold uppercase tracking-wider">Ventas</span>
             </a>
+
+            <a class="flex items-center gap-3 px-4 py-3 text-pure-white border-l-4 transition-all duration-200 rounded-r {% if active_page == 'sql_trace' %}border-zarvent-red bg-white/5{% else %}border-transparent text-industrial-gray hover:text-pure-white hover:bg-white/5{% endif %}" href="/sql-trace">
+                <span class="material-symbols-outlined {% if active_page == 'sql_trace' %}icon-fill text-zarvent-red{% endif %}">terminal</span>
+                <span class="text-xs font-bold uppercase tracking-wider">SQL Trace</span>
+            </a>
         </nav>
 
         <div class="px-2 mt-auto pt-6 space-y-1 border-t border-white/10">

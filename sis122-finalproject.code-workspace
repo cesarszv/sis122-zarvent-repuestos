@@ -1,13 +1,41 @@
 {
   "folders": [
     {
-      "name": "Zarvent Repuestos",
+      "name": "App Package",
+      "path": "src/zarvent_repuestos"
+    },
+    {
+      "name": "Database",
+      "path": "database"
+    },
+    {
+      "name": "Docs",
+      "path": "docs"
+    },
+    {
+      "name": "Defense",
+      "path": "docs/defense"
+    },
+    {
+      "name": "Web Templates",
+      "path": "src/zarvent_repuestos/web/templates"
+    },
+    {
+      "name": "Scripts",
+      "path": "scripts"
+    },
+    {
+      "name": "Tests",
+      "path": "tests"
+    },
+    {
+      "name": "Project Root",
       "path": "."
     }
   ],
   "settings": {
     // --- Python ---
-    "python.defaultInterpreterPath": "${workspaceFolder}/.venv/bin/python",
+    "python.defaultInterpreterPath": "${workspaceFolder:01 Project Root}/.venv/bin/python",
     "python.terminal.activateEnvironment": false,
 
     // --- Editor ---
@@ -103,6 +131,7 @@
         "type": "debugpy",
         "request": "launch",
         "module": "flask",
+        "cwd": "${workspaceFolder:01 Project Root}",
         "args": [
           "--app",
           "zarvent_repuestos.web.app:app",
@@ -111,7 +140,27 @@
         ],
         "env": {
           "FLASK_ENV": "development",
-          "PYTHONPATH": "${workspaceFolder}/src"
+          "PYTHONPATH": "${workspaceFolder:01 Project Root}/src"
+        },
+        "jinja": true,
+        "justMyCode": true
+      },
+      {
+        "name": "Flask: Run with SQL Trace",
+        "type": "debugpy",
+        "request": "launch",
+        "module": "flask",
+        "cwd": "${workspaceFolder:01 Project Root}",
+        "args": [
+          "--app",
+          "zarvent_repuestos.web.app:app",
+          "run",
+          "--debug"
+        ],
+        "env": {
+          "FLASK_ENV": "development",
+          "PYTHONPATH": "${workspaceFolder:01 Project Root}/src",
+          "SQL_TRACE_ENABLED": "1"
         },
         "jinja": true,
         "justMyCode": true
@@ -136,8 +185,28 @@
           "clear": true
         },
         "options": {
+          "cwd": "${workspaceFolder:01 Project Root}",
           "env": {
-            "PYTHONPATH": "${workspaceFolder}/src"
+            "PYTHONPATH": "${workspaceFolder:01 Project Root}/src"
+          }
+        },
+        "problemMatcher": []
+      },
+      {
+        "label": "Flask: Iniciar servidor con SQL Trace",
+        "type": "shell",
+        "command": "uv run python -m flask --app zarvent_repuestos.web.app:app run --debug",
+        "group": "build",
+        "presentation": {
+          "reveal": "always",
+          "panel": "dedicated",
+          "clear": true
+        },
+        "options": {
+          "cwd": "${workspaceFolder:01 Project Root}",
+          "env": {
+            "PYTHONPATH": "${workspaceFolder:01 Project Root}/src",
+            "SQL_TRACE_ENABLED": "1"
           }
         },
         "problemMatcher": []
@@ -152,6 +221,9 @@
           "panel": "shared",
           "clear": true
         },
+        "options": {
+          "cwd": "${workspaceFolder:01 Project Root}"
+        },
         "problemMatcher": []
       },
       {
@@ -162,6 +234,9 @@
         "presentation": {
           "reveal": "always",
           "panel": "shared"
+        },
+        "options": {
+          "cwd": "${workspaceFolder:01 Project Root}"
         },
         "problemMatcher": []
       },
@@ -174,6 +249,9 @@
           "reveal": "always",
           "panel": "shared"
         },
+        "options": {
+          "cwd": "${workspaceFolder:01 Project Root}"
+        },
         "problemMatcher": []
       },
       {
@@ -184,6 +262,9 @@
         "presentation": {
           "reveal": "always",
           "panel": "shared"
+        },
+        "options": {
+          "cwd": "${workspaceFolder:01 Project Root}"
         },
         "problemMatcher": []
       }
