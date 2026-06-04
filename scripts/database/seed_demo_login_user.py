@@ -1,4 +1,4 @@
-# Create or update the demo user.
+"""Create or update the demo login user."""
 
 import sys
 from pathlib import Path
@@ -10,8 +10,8 @@ SOURCE_ROOT = Path(__file__).resolve().parents[2] / "src"
 if str(SOURCE_ROOT) not in sys.path:
     sys.path.insert(0, str(SOURCE_ROOT))
 
-from zarvent_repuestos.infrastructure.mysql.connection import get_connection
-from zarvent_repuestos.modules.access.service import hash_password
+from zarvent_repuestos.access.user_service import hash_password
+from zarvent_repuestos.database.connection import get_database_connection
 
 
 DEFAULT_USERNAME = "admin"
@@ -24,7 +24,7 @@ def main():
     password_hashed = hash_password(password)
 
     try:
-        connection = get_connection()
+        connection = get_database_connection()
     except mysql.connector.Error as error:
         print("ERROR: could not connect to MySQL with the .env credentials.")
         print(error)

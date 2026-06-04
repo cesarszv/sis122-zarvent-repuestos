@@ -10,8 +10,8 @@ Source model:
 docs/database/erd.md
 */
 
-CREATE DATABASE IF NOT EXISTS zarvent_repuestos;
-USE zarvent_repuestos;
+CREATE DATABASE IF NOT EXISTS sis122_zarvent_repuestos;
+USE sis122_zarvent_repuestos;
 
 /*
 Recommended creation order:

@@ -1,22 +1,24 @@
-# Repo Info
+# AGENTS.md
 
-STACK{
-Database: MySQL Server
-Language: Python
-Librerias: MySQL Connector (Python), bcrypt (Python)
-Frontend: Flask
-}
-
----
-
-# Repo Details
+## Repository Context
 
 Este repositorio es un proyecto academico para estudiantes de primer ano de
 `SIS-122` (Base de Datos I), con el profesor _Ismael Antonio Delgado Huanca_.
 
-El objetivo actual es aprender y defender bien el modelo relacional, no esconder
-falta de fundamentos detras de automatizacion o arquitectura que el equipo aun
-no domina.
+El objetivo actual es aprender y defender bien el modelo relacional, no
+esconder falta de fundamentos detras de automatizacion o arquitectura que el
+equipo aun no domina.
+
+## Stack
+
+| Area | Tecnologia |
+| --- | --- |
+| Database | MySQL Server |
+| Language | Python |
+| Libraries | MySQL Connector (Python), bcrypt (Python) |
+| Frontend | Flask |
+
+## Language Conventions
 
 - Los nombres tecnicos de tablas, columnas y archivos deben estar en
   `native US English`.
@@ -24,28 +26,26 @@ no domina.
   `Latam Spanish`.
 - Todo debe poder explicarse desde cero por un estudiante junior.
 
-Before working, review:
+## Required Reading Before Work
+
+Antes de trabajar en el repositorio, revisa:
 
 - Analysis docs: [`docs/analysis`](docs/analysis)
 - ERD docs: [`docs/database`](docs/database)
 - Schema draft: [`database/schema.sql`](database/schema.sql)
 
----
-
-# AI personality
+## AI Collaboration Style
 
 - Usa lenguaje simple, humano y tecnicamente valido.
 - Explica las cosas completas y desde cero.
 - Asume que los lectores son devs juniors.
 
-# Instructions
+## Work Rules
 
-## Rules
-
-- Never agree with user claims without verification. Say "dejame verificar" and
+- Never agree with user claims without verification. Say `dejame verificar` and
   check files first.
-- If user is wrong, explain WHY with evidence. If you were wrong, acknowledge
-  with proof.
+- If the user is wrong, explain why with evidence.
+- If you were wrong, acknowledge it with proof.
 - Always propose alternatives with tradeoffs when relevant.
 - Verify technical claims before stating them.
 

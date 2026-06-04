@@ -1,9 +1,11 @@
-# Access module: users, passwords, and login operations.
+"""User access operations for login and password handling."""
 
 import bcrypt
 from typing import List, Optional, TypedDict, Union, cast
 
-from zarvent_repuestos.infrastructure.mysql.connection import get_connection
+import mysql.connector
+
+from zarvent_repuestos.database.connection import get_database_connection
 
 
 class User(TypedDict):
@@ -21,17 +23,25 @@ def hash_password(password: str) -> str:
     return password_hashed.decode("utf-8")
 
 
-def create_user(username: str, password_hashed: str) -> bool:
-    connection = get_connection()
+def password_matches(password: str, password_hashed: Union[str, bytes]) -> bool:
+    if isinstance(password_hashed, str):
+        password_hashed = password_hashed.encode("utf-8")
+
+    return bcrypt.checkpw(password.encode("utf-8"), password_hashed)
+
+
+def create_user(username: str, password: str) -> bool:
+    connection = get_database_connection()
     cursor = connection.cursor()
     query = "INSERT INTO users (username, password) VALUES (%s, %s)"
+    password_hashed = hash_password(password)
 
     try:
-        cursor.execute(query, (username, password_hashed,))
+        cursor.execute(query, (username, password_hashed))
         connection.commit()
         return True
 
-    except Exception:
+    except mysql.connector.Error:
         connection.rollback()
         return False
 
@@ -40,13 +50,13 @@ def create_user(username: str, password_hashed: str) -> bool:
         connection.close()
 
 
-def login(username: str, password: str) -> Optional[User]:
+def authenticate_user(username: str, password: str) -> Optional[User]:
     connection = None
     cursor = None
     query = "SELECT id, username, password FROM users WHERE username = %s"
 
     try:
-        connection = get_connection()
+        connection = get_database_connection()
         cursor = connection.cursor(dictionary=True)
         cursor.execute(query, (username,))
         row = cursor.fetchone()
@@ -57,12 +67,7 @@ def login(username: str, password: str) -> Optional[User]:
         user = cast(UserRow, row)
         password_hashed = user["password"]
 
-        if isinstance(password_hashed, str):
-            password_hashed = password_hashed.encode("utf-8")
-
-        password_ok = bcrypt.checkpw(password.encode("utf-8"), password_hashed)
-
-        if password_ok:
+        if password_matches(password, password_hashed):
             return {
                 "id": user["id"],
                 "username": user["username"],
@@ -77,23 +82,32 @@ def login(username: str, password: str) -> Optional[User]:
             connection.close()
 
 
-def read_user(user_id: Optional[int] = None) -> Union[List[User], Optional[User]]:
-    connection = get_connection()
+def list_users() -> List[User]:
+    connection = get_database_connection()
     cursor = connection.cursor(dictionary=True)
 
     try:
-        if user_id is None:
-            query = "SELECT id, username FROM users ORDER BY id"
-            cursor.execute(query)
-            return cast(List[User], cursor.fetchall())
+        query = "SELECT id, username FROM users ORDER BY id"
+        cursor.execute(query)
+        return cast(List[User], cursor.fetchall())
 
-        query = "SELECT id, username FROM users WHERE id = %s"
-        cursor.execute(query, (user_id,))
+    except mysql.connector.Error:
+        return []
+
+    finally:
+        cursor.close()
+        connection.close()
+
+
+def get_user_by_id(user_id: int) -> Optional[User]:
+    connection = get_database_connection()
+    cursor = connection.cursor(dictionary=True)
+
+    try:
+        cursor.execute("SELECT id, username FROM users WHERE id = %s", (user_id,))
         return cast(Optional[User], cursor.fetchone())
 
-    except Exception:
-        if user_id is None:
-            return []
+    except mysql.connector.Error:
         return None
 
     finally:
@@ -101,17 +115,18 @@ def read_user(user_id: Optional[int] = None) -> Union[List[User], Optional[User]
         connection.close()
 
 
-def update_user(user_id: int, username: str, password_hashed: str) -> bool:
-    connection = get_connection()
+def update_user(user_id: int, username: str, password: str) -> bool:
+    connection = get_database_connection()
     cursor = connection.cursor()
     query = "UPDATE users SET username = %s, password = %s WHERE id = %s"
+    password_hashed = hash_password(password)
 
     try:
-        cursor.execute(query, (username, password_hashed, user_id,))
+        cursor.execute(query, (username, password_hashed, user_id))
         connection.commit()
         return cursor.rowcount > 0
 
-    except Exception:
+    except mysql.connector.Error:
         connection.rollback()
         return False
 
@@ -121,7 +136,7 @@ def update_user(user_id: int, username: str, password_hashed: str) -> bool:
 
 
 def delete_user(user_id: int) -> bool:
-    connection = get_connection()
+    connection = get_database_connection()
     cursor = connection.cursor()
     query = "DELETE FROM users WHERE id = %s"
 
@@ -130,7 +145,7 @@ def delete_user(user_id: int) -> bool:
         connection.commit()
         return cursor.rowcount > 0
 
-    except Exception:
+    except mysql.connector.Error:
         connection.rollback()
         return False
 

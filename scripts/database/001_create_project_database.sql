@@ -1,4 +1,4 @@
--- archivo para crear la base de datos principal del proyecto
+-- Create the main project database.
 
 CREATE DATABASE IF NOT EXISTS sis122_zarvent_repuestos
 CHARACTER SET utf8mb4

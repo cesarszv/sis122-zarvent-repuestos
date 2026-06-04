@@ -1,8 +1,8 @@
-# Web interface for the Zarvent Repuestos Flask prototype.
+"""Flask web interface for the Zarvent Repuestos prototype."""
 
 from flask import Flask, render_template, request
 
-from zarvent_repuestos.modules.access.service import login
+from zarvent_repuestos.access.user_service import authenticate_user
 
 
 app = Flask(__name__)
@@ -17,9 +17,9 @@ def home():
         password = request.form.get("password", "")
 
         try:
-            user = login(username, password)
-        except Exception as e:
-            message = f"Error de base de datos: {e}"
+            user = authenticate_user(username, password)
+        except Exception as error:
+            message = f"Error de base de datos: {error}"
             return render_template("login.html", message=message)
 
         if user:
