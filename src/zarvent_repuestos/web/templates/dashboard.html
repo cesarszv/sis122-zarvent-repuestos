@@ -1,0 +1,152 @@
+{% extends "layout.html" %}
+
+{% block title %}Dashboard Overview{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto space-y-8">
+    
+    <!-- Page Header -->
+    <div class="flex flex-col md:flex-row md:items-end justify-between gap-4">
+        <div>
+            <h2 class="text-4xl md:text-5xl text-workshop-black leading-none font-extrabold tracking-tighter">Resumen General</h2>
+            <p class="text-lg text-industrial-gray mt-2">Estado operacional y alertas en tiempo real.</p>
+        </div>
+    </div>
+
+    <!-- Metrics Bento Grid -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <!-- Metric 1: Today's Sales -->
+        <div class="col-span-1 md:col-span-2 bg-pure-white border border-steel-gray rounded-md p-6 flex flex-col justify-between relative overflow-hidden group shadow-sm">
+            <div class="absolute top-0 right-0 p-6 opacity-5 group-hover:opacity-10 transition-opacity">
+                <span class="material-symbols-outlined text-8xl">payments</span>
+            </div>
+            <div>
+                <p class="text-xs font-bold uppercase tracking-wider text-industrial-gray">Ventas de Hoy</p>
+                <h3 class="text-5xl font-black text-workshop-black tracking-tight mt-2">
+                    ${{ "{:,.2f}".format(metrics.today_sales_amount) }}
+                </h3>
+            </div>
+            <p class="text-xs text-industrial-gray mt-4">
+                Total de ingresos acumulados en el día de hoy.
+            </p>
+        </div>
+
+        <!-- Metric 2: Low Stock Alerts -->
+        <div class="bg-pure-white border border-steel-gray rounded-md p-6 flex flex-col justify-between relative overflow-hidden group shadow-sm">
+            <div class="absolute top-0 right-0 p-6 opacity-5 group-hover:opacity-10 transition-opacity">
+                <span class="material-symbols-outlined text-8xl">warning</span>
+            </div>
+            <div>
+                <p class="text-xs font-bold uppercase tracking-wider text-industrial-gray">Alertas de Stock</p>
+                <h3 class="text-5xl font-black {% if metrics.low_stock_count > 0 %}text-zarvent-red{% else %}text-workshop-black{% endif %} tracking-tight mt-2">
+                    {{ metrics.low_stock_count }}
+                </h3>
+            </div>
+            <p class="text-xs text-industrial-gray mt-4">
+                Productos con existencias críticas bajo el mínimo.
+            </p>
+        </div>
+
+        <!-- Metric 3: Active Categories -->
+        <div class="bg-pure-white border border-steel-gray rounded-md p-6 flex flex-col justify-between relative overflow-hidden group shadow-sm">
+            <div class="absolute top-0 right-0 p-6 opacity-5 group-hover:opacity-10 transition-opacity">
+                <span class="material-symbols-outlined text-8xl">category</span>
+            </div>
+            <div>
+                <p class="text-xs font-bold uppercase tracking-wider text-industrial-gray">Categorías Activas</p>
+                <h3 class="text-5xl font-black text-workshop-black tracking-tight mt-2">
+                    {{ metrics.categories_count }}
+                </h3>
+            </div>
+            <p class="text-xs text-industrial-gray mt-4">
+                Clasificaciones vigentes en el catálogo.
+            </p>
+        </div>
+    </div>
+
+    <!-- Bento Grid Section 2: Recent Orders & Alerts -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Recent Orders (2/3 width) -->
+        <div class="lg:col-span-2 bg-pure-white border border-steel-gray rounded-md p-6 shadow-sm">
+            <h3 class="text-lg font-bold text-workshop-black border-b border-steel-gray pb-3 mb-4">
+                Últimas Órdenes de Venta
+            </h3>
+            
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr class="border-b border-steel-gray text-xs uppercase font-bold text-industrial-gray">
+                            <th class="py-2 px-3">Código</th>
+                            <th class="py-2 px-3">Cliente</th>
+                            <th class="py-2 px-3">Fecha</th>
+                            <th class="py-2 px-3 text-right">Monto</th>
+                            <th class="py-2 px-3 text-center">Estado</th>
+                        </tr>
+                    </thead>
+                    <tbody class="text-sm">
+                        {% if metrics.recent_orders %}
+                            {% for order in metrics.recent_orders %}
+                            <tr class="border-b border-steel-gray hover:bg-cold-white/50 transition-colors">
+                                <td class="py-3 px-3 font-mono text-xs text-industrial-gray">#ORD-{{ order.sales_order_id }}</td>
+                                <td class="py-3 px-3 font-semibold">{{ order.billing_name }}</td>
+                                <td class="py-3 px-3 text-industrial-gray">{{ order.order_date.strftime('%d/%m/%Y') if order.order_date else '-' }}</td>
+                                <td class="py-3 px-3 text-right font-semibold">${{ "{:,.2f}".format(order.total_amount) }}</td>
+                                <td class="py-3 px-3 text-center">
+                                    <span class="inline-block px-2 py-0.5 border border-green-200 text-green-700 rounded-sm text-xs bg-green-50">
+                                        {{ order.status }}
+                                    </span>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        {% else %}
+                            <tr>
+                                <td colspan="5" class="py-6 text-center text-industrial-gray text-xs">No hay ventas registradas hoy.</td>
+                            </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+            
+            <div class="mt-4 text-right">
+                <a href="/sales" class="text-xs font-bold text-zarvent-red hover:underline uppercase tracking-wider">Ver todas las ventas →</a>
+            </div>
+        </div>
+
+        <!-- Inventory Alerts Sidebar (1/3 width) -->
+        <div class="bg-pure-white border border-steel-gray rounded-md p-6 shadow-sm flex flex-col justify-between">
+            <div>
+                <h3 class="text-lg font-bold text-workshop-black border-b border-steel-gray pb-3 mb-4">
+                    Alertas de Reabastecimiento
+                </h3>
+                
+                <ul class="space-y-4">
+                    {% if metrics.low_stock_items %}
+                        {% for item in metrics.low_stock_items %}
+                        <li class="flex justify-between items-start gap-2 border-b border-steel-gray pb-2">
+                            <div>
+                                <p class="text-sm font-semibold text-workshop-black">{{ item.name }}</p>
+                                <p class="text-xs text-industrial-gray font-mono">{{ item.internal_code }} | {{ item.brand }}</p>
+                            </div>
+                            <div class="text-right">
+                                <span class="px-2 py-0.5 rounded text-xs font-bold border border-red-200 bg-red-50 text-zarvent-red">
+                                    Stock: {{ item.quantity_on_hand }}
+                                </span>
+                                <p class="text-[10px] text-industrial-gray mt-1">Mínimo: {{ item.reorder_level }}</p>
+                            </div>
+                        </li>
+                        {% endfor %}
+                    {% else %}
+                        <li class="py-4 text-center text-xs text-industrial-gray">
+                            🎉 ¡Todo el stock está en niveles óptimos!
+                        </li>
+                    {% endif %}
+                </ul>
+            </div>
+
+            <div class="mt-6 text-right">
+                <a href="/inventory" class="text-xs font-bold text-zarvent-red hover:underline uppercase tracking-wider">Ir al catálogo →</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

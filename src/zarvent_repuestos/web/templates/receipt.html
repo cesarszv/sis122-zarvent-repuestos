@@ -1,0 +1,47 @@
+<div class="border border-dashed border-workshop-black p-4 bg-amber-50/20 max-w-sm mx-auto shadow-inner rounded-sm font-mono text-[11px] text-workshop-black">
+    <div class="text-center font-bold border-b border-dashed border-workshop-black pb-2 mb-2">
+        <h4 class="text-sm font-extrabold uppercase">Zarvent Autoservicio</h4>
+        <p class="text-[10px] text-industrial-gray font-normal">Repuestos y Accesorios</p>
+        <p class="text-[10px] text-industrial-gray font-normal">Sucre - Bolivia</p>
+    </div>
+    
+    <div class="space-y-1 border-b border-dashed border-workshop-black pb-2 mb-2">
+        <p><strong>Nro. Venta:</strong> #ORD-{{ order.sales_order_id }}</p>
+        <p><strong>Fecha:</strong> {{ order.order_date.strftime('%d/%m/%Y') if order.order_date else '-' }}</p>
+        <p><strong>Cliente:</strong> {{ order.billing_name }}</p>
+        <p><strong>NIT/CI:</strong> {{ order.tax_id }}</p>
+    </div>
+    
+    <table class="w-full border-b border-dashed border-workshop-black pb-2 mb-2 text-left">
+        <thead>
+            <tr class="border-b border-dashed border-workshop-black font-bold">
+                <th class="pb-1">Repuesto</th>
+                <th class="pb-1 text-center">Cant.</th>
+                <th class="pb-1 text-right">P.Unit</th>
+                <th class="pb-1 text-right">Subt.</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in order.items %}
+            <tr>
+                <td class="py-1 max-w-[120px] truncate">[{{ item.internal_code }}] {{ item.name }}</td>
+                <td class="py-1 text-center font-bold">{{ item.quantity }}</td>
+                <td class="py-1 text-right">${{ "{:.2f}".format(item.unit_price) }}</td>
+                <td class="py-1 text-right">${{ "{:.2f}".format(item.unit_price * item.quantity) }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    
+    <div class="space-y-1 text-right font-bold">
+        <p>Subtotal: ${{ "{:.2f}".format(order.subtotal) }}</p>
+        {% if order.discount_amount > 0 %}
+        <p class="text-zarvent-red">Descuento: -${{ "{:.2f}".format(order.discount_amount) }}</p>
+        {% endif %}
+        <p class="text-sm font-black border-t border-dashed border-workshop-black pt-1 mt-1">TOTAL: ${{ "{:.2f}".format(order.total_amount) }}</p>
+    </div>
+    
+    <div class="text-center text-[9px] text-industrial-gray mt-4 border-t border-dashed border-workshop-black pt-2 uppercase font-medium">
+        ¡Gracias por su preferencia!<br>Zarvent Repuestos
+    </div>
+</div>

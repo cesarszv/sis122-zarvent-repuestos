@@ -1,17 +1,19 @@
 """MySQL connection helper for the application."""
 
-import os
-
 import mysql.connector
-from dotenv import load_dotenv
+from zarvent_repuestos.config.db_config import DB_CONFIG
 
 
 def get_database_connection():
-    load_dotenv()
-    return mysql.connector.connect(
-        host=os.getenv("DB_HOST", "127.0.0.1"),
-        port=int(os.getenv("DB_PORT", 3306)),
-        user=os.getenv("DB_USER"),
-        password=os.getenv("DB_PASSWORD"),
-        database=os.getenv("DB_NAME"),
-    )
+    """Returns a direct connection to MySQL based on the loaded DB_CONFIG."""
+    return mysql.connector.connect(**DB_CONFIG)
+
+
+def obtener_conexion():
+    """Alias for get_database_connection with error logging to support the teacher's style."""
+    try:
+        conexion = get_database_connection()
+        return conexion
+    except mysql.connector.Error as err:
+        print("❌ Error de conexión:", err)
+        return None

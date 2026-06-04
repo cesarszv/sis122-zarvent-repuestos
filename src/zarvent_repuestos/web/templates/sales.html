@@ -1,0 +1,438 @@
+{% extends "layout.html" %}
+
+{% block title %}Sales Management{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto space-y-6">
+    <!-- Header Section -->
+    <div class="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 mb-2">
+        <div>
+            <h2 class="text-4xl font-extrabold text-workshop-black tracking-tight mb-1">Órdenes de Venta</h2>
+            <p class="text-base text-industrial-gray">Administra y registra transacciones comerciales del autoservicio.</p>
+        </div>
+        <button onclick="toggleModal('new-order-modal', true)" class="bg-workshop-black text-pure-white font-semibold py-2.5 px-6 rounded hover:opacity-90 transition-opacity flex items-center gap-2 shadow-sm">
+            <span class="material-symbols-outlined text-[18px]">add</span>
+            Nueva Venta
+        </button>
+    </div>
+
+    <div class="flex flex-col xl:flex-row gap-6 items-start">
+        <!-- Sidebar Filters -->
+        <aside class="w-full xl:w-1/4 shrink-0 flex flex-col gap-6">
+            <form method="get" action="/sales" class="border border-steel-gray p-6 bg-pure-white rounded shadow-sm space-y-6">
+                <!-- Status Filter -->
+                <div>
+                    <h3 class="text-xs font-bold uppercase tracking-wider text-workshop-black mb-3 border-b border-steel-gray pb-2">Estado de Venta</h3>
+                    <div class="flex flex-col gap-2">
+                        <label class="flex items-center gap-2 cursor-pointer group">
+                            <input name="status" value="All Orders" type="radio" onchange="this.form.submit()" class="form-radio h-4 w-4 text-workshop-black border-steel-gray focus:ring-workshop-black" {% if not status_val or status_val == 'All Orders' %}checked{% endif %}/>
+                            <span class="text-sm text-workshop-black group-hover:text-zarvent-red transition-colors">Todas</span>
+                        </label>
+                        <label class="flex items-center gap-2 cursor-pointer group">
+                            <input name="status" value="Paid" type="radio" onchange="this.form.submit()" class="form-radio h-4 w-4 text-workshop-black border-steel-gray focus:ring-workshop-black" {% if status_val == 'Paid' %}checked{% endif %}/>
+                            <span class="text-sm text-workshop-black group-hover:text-zarvent-red transition-colors">Pagadas</span>
+                        </label>
+                        <label class="flex items-center gap-2 cursor-pointer group">
+                            <input name="status" value="Pending" type="radio" onchange="this.form.submit()" class="form-radio h-4 w-4 text-workshop-black border-steel-gray focus:ring-workshop-black" {% if status_val == 'Pending' %}checked{% endif %}/>
+                            <span class="text-sm text-workshop-black group-hover:text-zarvent-red transition-colors">Pendientes</span>
+                        </label>
+                        <label class="flex items-center gap-2 cursor-pointer group">
+                            <input name="status" value="Cancelled" type="radio" onchange="this.form.submit()" class="form-radio h-4 w-4 text-workshop-black border-steel-gray focus:ring-workshop-black" {% if status_val == 'Cancelled' %}checked{% endif %}/>
+                            <span class="text-sm text-workshop-black group-hover:text-zarvent-red transition-colors">Canceladas</span>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Date Filter -->
+                <div>
+                    <h3 class="text-xs font-bold uppercase tracking-wider text-workshop-black mb-3 border-b border-steel-gray pb-2">Rango de Fechas</h3>
+                    <div class="flex flex-col gap-3">
+                        <div>
+                            <label class="text-[10px] font-bold uppercase tracking-wider text-industrial-gray block mb-1">Desde</label>
+                            <input name="start_date" value="{{ start_val or '' }}" onchange="this.form.submit()" class="w-full bg-cold-white border border-steel-gray p-2 rounded text-xs" type="date"/>
+                        </div>
+                        <div>
+                            <label class="text-[10px] font-bold uppercase tracking-wider text-industrial-gray block mb-1">Hasta</label>
+                            <input name="end_date" value="{{ end_val or '' }}" onchange="this.form.submit()" class="w-full bg-cold-white border border-steel-gray p-2 rounded text-xs" type="date"/>
+                        </div>
+                    </div>
+                </div>
+
+                {% if status_val or start_val or end_val %}
+                <a href="/sales" class="w-full border border-steel-gray hover:bg-cold-white text-center py-2 rounded text-xs block font-semibold transition-colors">
+                    Limpiar Filtros
+                </a>
+                {% endif %}
+            </form>
+        </aside>
+
+        <!-- Data Table Area -->
+        <div class="w-full xl:w-3/4 overflow-x-auto bg-pure-white border border-steel-gray rounded shadow-sm">
+            <table class="w-full text-left border-collapse">
+                <thead>
+                    <tr class="border-b border-steel-gray bg-cold-white text-xs font-bold text-industrial-gray uppercase">
+                        <th class="py-3 px-4">Código</th>
+                        <th class="py-3 px-4">Cliente Facturación</th>
+                        <th class="py-3 px-4">Fecha</th>
+                        <th class="py-3 px-4 text-center">Estado</th>
+                        <th class="py-3 px-4 text-right">Total Cobrado</th>
+                        <th class="py-3 px-4"></th>
+                    </tr>
+                </thead>
+                <tbody class="text-sm text-workshop-black">
+                    {% if orders %}
+                        {% for order in orders %}
+                        <tr class="border-b border-steel-gray hover:bg-cold-white/50 transition-colors group">
+                            <td class="py-3.5 px-4 font-mono text-xs text-industrial-gray">#ORD-{{ order.sales_order_id }}</td>
+                            <td class="py-3.5 px-4 font-semibold">{{ order.billing_name }}</td>
+                            <td class="py-3.5 px-4 text-industrial-gray">{{ order.order_date.strftime('%d/%m/%Y') }}</td>
+                            <td class="py-3.5 px-4 text-center">
+                                <span class="inline-block px-2 py-0.5 border border-green-200 text-green-700 rounded-sm text-xs bg-green-50">
+                                    {{ order.status }}
+                                </span>
+                            </td>
+                            <td class="py-3.5 px-4 text-right font-bold text-base">${{ "{:,.2f}".format(order.total_amount) }}</td>
+                            <td class="py-3.5 px-4 text-right">
+                                <button onclick="viewReceipt('{{ order.sales_order_id }}')" class="text-industrial-gray hover:text-zarvent-red p-1" title="Ver Recibo">
+                                    <span class="material-symbols-outlined text-xl">receipt_long</span>
+                                </button>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    {% else %}
+                        <tr>
+                            <td colspan="6" class="py-8 text-center text-industrial-gray">No se encontraron órdenes de venta en este periodo.</td>
+                        </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- New Order Modal Overlay -->
+    <div id="new-order-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center hidden">
+        <div class="bg-pure-white border border-steel-gray rounded shadow-lg max-w-4xl w-full mx-4 overflow-hidden flex flex-col max-h-[90vh]">
+            <header class="bg-workshop-black text-pure-white px-6 py-4 flex justify-between items-center shrink-0">
+                <h3 class="text-lg font-bold tracking-tight uppercase">Registrar Nueva Venta</h3>
+                <button type="button" onclick="toggleModal('new-order-modal', false)" class="text-industrial-gray hover:text-pure-white transition-colors">
+                    <span class="material-symbols-outlined">close</span>
+                </button>
+            </header>
+
+            <form id="new-order-form" method="post" action="/sales" class="flex-1 overflow-y-auto p-6 space-y-6 flex flex-col justify-between">
+                <input type="hidden" name="items_json" id="items_json">
+                
+                <div class="space-y-6">
+                    <!-- Cliente section -->
+                    <div class="border-b border-steel-gray pb-4">
+                        <h4 class="text-sm font-bold uppercase tracking-wider text-workshop-black mb-3">Información del Cliente</h4>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div>
+                                <label class="block text-xs font-bold uppercase tracking-wider text-industrial-gray mb-1" for="client_mode">Tipo de Cliente</label>
+                                <select id="client_mode" onchange="toggleClientFields(this.value)" class="w-full bg-cold-white border border-steel-gray p-2.5 rounded text-sm cursor-pointer">
+                                    <option value="existing">Cliente Registrado</option>
+                                    <option value="new">Registrar Nuevo Cliente</option>
+                                </select>
+                            </div>
+
+                            <!-- Existing customer selection -->
+                            <div id="existing-client-field" class="md:col-span-2">
+                                <label class="block text-xs font-bold uppercase tracking-wider text-industrial-gray mb-1" for="customer_id">Seleccionar Cliente</label>
+                                <select id="customer_id" name="customer_id" class="w-full bg-cold-white border border-steel-gray p-2.5 rounded text-sm cursor-pointer">
+                                    <option value="">-- Seleccione un cliente del catálogo --</option>
+                                    {% for customer in customers %}
+                                    <option value="{{ customer.customer_id }}">{{ customer.first_name }} {{ customer.last_name }} ({{ customer.identity_number }})</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- Fields for quick registering new customer -->
+                        <div id="new-client-fields" class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4 hidden">
+                            <div>
+                                <label class="block text-xs font-bold uppercase tracking-wider text-industrial-gray mb-1" for="new_first_name">Nombres</label>
+                                <input id="new_first_name" name="new_first_name" class="w-full bg-cold-white border border-steel-gray p-2 rounded text-sm" placeholder="Ej. Carlos"/>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold uppercase tracking-wider text-industrial-gray mb-1" for="new_last_name">Apellidos</label>
+                                <input id="new_last_name" name="new_last_name" class="w-full bg-cold-white border border-steel-gray p-2 rounded text-sm" placeholder="Ej. Pérez"/>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold uppercase tracking-wider text-industrial-gray mb-1" for="new_identity_number">Documento (CI/NIT)</label>
+                                <input id="new_identity_number" name="new_identity_number" class="w-full bg-cold-white border border-steel-gray p-2 rounded text-sm" placeholder="Ej. 1029381"/>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Items selection section -->
+                    <div>
+                        <h4 class="text-sm font-bold uppercase tracking-wider text-workshop-black mb-3">Agregar Repuestos</h4>
+                        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 items-end bg-cold-white p-4 rounded border border-steel-gray">
+                            <!-- Product Select -->
+                            <div class="md:col-span-2">
+                                <label class="block text-xs font-bold uppercase tracking-wider text-industrial-gray mb-1" for="part_selector">Seleccionar Repuesto</label>
+                                <select id="part_selector" onchange="updateSelectedPartInfo()" class="w-full bg-pure-white border border-steel-gray p-2.5 rounded text-sm cursor-pointer font-medium">
+                                    <option value="">-- Buscar repuesto en stock --</option>
+                                    {% for part in parts %}
+                                    <option value="{{ part.part_id }}" 
+                                            data-code="{{ part.internal_code }}"
+                                            data-name="{{ part.name }}" 
+                                            data-price="{{ part.sale_price }}" 
+                                            data-stock="{{ part.quantity_on_hand }}">
+                                        [{{ part.internal_code }}] {{ part.name }} (Stock: {{ part.quantity_on_hand }} - ${{ part.sale_price }})
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            
+                            <!-- Quantity -->
+                            <div>
+                                <label class="block text-xs font-bold uppercase tracking-wider text-industrial-gray mb-1" for="part_quantity">Cantidad</label>
+                                <input id="part_quantity" type="number" min="1" value="1" class="w-full bg-pure-white border border-steel-gray p-2 rounded text-sm font-mono"/>
+                            </div>
+                            
+                            <!-- Add Button -->
+                            <button type="button" onclick="addProductRow()" class="w-full bg-workshop-black text-pure-white py-2 px-4 rounded hover:bg-opacity-95 text-sm font-bold transition-all uppercase tracking-wider">
+                                Agregar
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Order Details Table -->
+                    <div class="border border-steel-gray rounded overflow-hidden">
+                        <table class="w-full text-left border-collapse" id="details-table">
+                            <thead>
+                                <tr class="bg-cold-white border-b border-steel-gray text-xs font-bold text-industrial-gray uppercase">
+                                    <th class="py-2 px-4">Código</th>
+                                    <th class="py-2 px-4">Detalle del Producto</th>
+                                    <th class="py-2 px-4 text-right">P. Unitario</th>
+                                    <th class="py-2 px-4 text-center">Cant.</th>
+                                    <th class="py-2 px-4 text-right">Subtotal</th>
+                                    <th class="py-2 px-4"></th>
+                                </tr>
+                            </thead>
+                            <tbody class="text-sm" id="details-tbody">
+                                <tr id="empty-row-message">
+                                    <td colspan="6" class="py-6 text-center text-industrial-gray text-xs">No has agregado repuestos a esta orden todavía.</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="mt-6 pt-4 border-t border-steel-gray space-y-4">
+                    <!-- Summary & Payment -->
+                    <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                        <div>
+                            <label class="block text-xs font-bold uppercase tracking-wider text-industrial-gray mb-1" for="payment_method">Método de Pago</label>
+                            <select id="payment_method" name="payment_method" class="bg-cold-white border border-steel-gray p-2.5 rounded text-sm cursor-pointer font-medium w-48">
+                                <option value="Efectivo">Efectivo</option>
+                                <option value="Tarjeta de Débito">Tarjeta de Débito</option>
+                                <option value="Tarjeta de Crédito">Tarjeta de Crédito</option>
+                                <option value="Transferencia">Transferencia QR</option>
+                            </select>
+                        </div>
+                        
+                        <div class="text-right space-y-1">
+                            <span class="text-xs text-industrial-gray uppercase tracking-wider font-bold">Total a Pagar</span>
+                            <p class="text-3xl font-black text-zarvent-red font-mono" id="grand-total-label">$0.00</p>
+                        </div>
+                    </div>
+
+                    <!-- Actions -->
+                    <div class="flex justify-end gap-4">
+                        <button type="button" onclick="toggleModal('new-order-modal', false)" class="px-6 py-2.5 border border-steel-gray rounded hover:bg-cold-white transition-colors text-sm font-semibold">Cancelar</button>
+                        <button type="button" onclick="submitSalesOrder()" class="px-6 py-2.5 bg-zarvent-red text-pure-white rounded hover:bg-opacity-95 transition-all text-sm font-bold shadow-sm uppercase tracking-wider">Confirmar Venta</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- View Receipt Modal Overlay -->
+    <div id="receipt-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center hidden">
+        <div class="bg-pure-white border border-steel-gray rounded shadow-lg max-w-lg w-full mx-4 overflow-hidden">
+            <header class="bg-workshop-black text-pure-white px-6 py-4 flex justify-between items-center">
+                <h3 class="text-sm font-bold tracking-tight uppercase">Comprobante de Pago</h3>
+                <button type="button" onclick="toggleModal('receipt-modal', false)" class="text-industrial-gray hover:text-pure-white">
+                    <span class="material-symbols-outlined">close</span>
+                </button>
+            </header>
+            
+            <div id="receipt-content" class="p-6 space-y-4 font-mono text-xs">
+                <!-- Injected via AJAX -->
+            </div>
+            
+            <div class="p-6 border-t border-steel-gray bg-cold-white text-right">
+                <button onclick="window.print()" class="bg-workshop-black text-pure-white text-xs font-bold py-2 px-4 rounded hover:bg-opacity-90 transition-all uppercase tracking-wider">
+                    Imprimir Comprobante
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    let addedItems = [];
+
+    function toggleModal(modalId, show) {
+        const modal = document.getElementById(modalId);
+        if (show) {
+            modal.classList.remove('hidden');
+        } else {
+            modal.classList.add('hidden');
+        }
+    }
+
+    function toggleClientFields(value) {
+        const existingField = document.getElementById('existing-client-field');
+        const newFields = document.getElementById('new-client-fields');
+        if (value === 'new') {
+            existingField.classList.add('hidden');
+            newFields.classList.remove('hidden');
+            document.getElementById('new_first_name').setAttribute('required', 'required');
+            document.getElementById('new_last_name').setAttribute('required', 'required');
+            document.getElementById('new_identity_number').setAttribute('required', 'required');
+            document.getElementById('customer_id').removeAttribute('required');
+        } else {
+            existingField.classList.remove('hidden');
+            newFields.classList.add('hidden');
+            document.getElementById('new_first_name').removeAttribute('required');
+            document.getElementById('new_last_name').removeAttribute('required');
+            document.getElementById('new_identity_number').removeAttribute('required');
+            document.getElementById('customer_id').setAttribute('required', 'required');
+        }
+    }
+
+    function addProductRow() {
+        const selector = document.getElementById('part_selector');
+        const quantityInput = document.getElementById('part_quantity');
+        
+        if (!selector.value) {
+            alert('Por favor selecciona un repuesto.');
+            return;
+        }
+
+        const partId = parseInt(selector.value);
+        const qty = parseInt(quantityInput.value);
+        
+        if (isNaN(qty) || qty <= 0) {
+            alert('Por favor introduce una cantidad válida.');
+            return;
+        }
+
+        const option = selector.options[selector.selectedIndex];
+        const code = option.getAttribute('data-code');
+        const name = option.getAttribute('data-name');
+        const price = parseFloat(option.getAttribute('data-price'));
+        const stock = parseInt(option.getAttribute('data-stock'));
+
+        // Check if stock is sufficient
+        if (qty > stock) {
+            alert(`Stock insuficiente. Solo quedan ${stock} unidades disponibles.`);
+            return;
+        }
+
+        // Check if already added
+        if (addedItems.some(i => i.part_id === partId)) {
+            alert('Este producto ya fue agregado. Elimínalo si deseas cambiar la cantidad.');
+            return;
+        }
+
+        const subtotal = price * qty;
+        const item = { part_id: partId, quantity: qty, unit_price: price, discount_amount: 0.0 };
+        addedItems.push(item);
+
+        // Remove empty message
+        const emptyRow = document.getElementById('empty-row-message');
+        if (emptyRow) emptyRow.style.display = 'none';
+
+        // Add table row
+        const tbody = document.getElementById('details-tbody');
+        const tr = document.createElement('tr');
+        tr.id = `row-part-${partId}`;
+        tr.className = 'border-b border-steel-gray hover:bg-cold-white/30 transition-colors font-medium';
+        tr.innerHTML = `
+            <td class="py-3 px-4 font-mono text-xs text-zarvent-red">${code}</td>
+            <td class="py-3 px-4">${name}</td>
+            <td class="py-3 px-4 text-right font-mono">$${price.toFixed(2)}</td>
+            <td class="py-3 px-4 text-center font-mono">${qty}</td>
+            <td class="py-3 px-4 text-right font-mono">$${subtotal.toFixed(2)}</td>
+            <td class="py-3 px-4 text-right">
+                <button type="button" onclick="removeProductRow(${partId})" class="text-industrial-gray hover:text-zarvent-red p-1">
+                    <span class="material-symbols-outlined text-sm">delete</span>
+                </button>
+            </td>
+        `;
+        tbody.appendChild(tr);
+
+        // Recalculate totals
+        recalculateTotals();
+
+        // Clear values
+        selector.value = '';
+        quantityInput.value = 1;
+    }
+
+    function removeProductRow(partId) {
+        addedItems = addedItems.filter(i => i.part_id !== partId);
+        const row = document.getElementById(`row-part-${partId}`);
+        if (row) row.remove();
+
+        if (addedItems.length === 0) {
+            const emptyRow = document.getElementById('empty-row-message');
+            if (emptyRow) emptyRow.style.display = 'table-row';
+        }
+
+        recalculateTotals();
+    }
+
+    function recalculateTotals() {
+        let total = 0.0;
+        addedItems.forEach(i => {
+            total += i.unit_price * i.quantity;
+        });
+
+        document.getElementById('grand-total-label').innerText = `$${total.toFixed(2)}`;
+        document.getElementById('items_json').value = JSON.stringify(addedItems);
+    }
+
+    function submitSalesOrder() {
+        const clientMode = document.getElementById('client_mode').value;
+        const customerId = document.getElementById('customer_id').value;
+        
+        if (clientMode === 'existing' && !customerId) {
+            alert('Por favor selecciona un cliente de la lista.');
+            return;
+        }
+
+        if (addedItems.length === 0) {
+            alert('Por favor agrega al menos un repuesto a la venta.');
+            return;
+        }
+
+        document.getElementById('new-order-form').submit();
+    }
+
+    function viewReceipt(orderId) {
+        const contentDiv = document.getElementById('receipt-content');
+        contentDiv.innerHTML = '<p class="text-center">Cargando comprobante...</p>';
+        toggleModal('receipt-modal', true);
+        
+        fetch(`/sales/receipt/${orderId}`)
+            .then(res => {
+                if (!res.ok) throw new Error("Error al buscar recibo");
+                return res.text();
+            })
+            .then(html => {
+                contentDiv.innerHTML = html;
+            })
+            .catch(err => {
+                contentDiv.innerHTML = `<p class="text-zarvent-red text-center">Error: ${err.message}</p>`;
+            });
+    }
+</script>
+{% endblock %}

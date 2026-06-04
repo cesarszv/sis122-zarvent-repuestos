@@ -223,36 +223,30 @@ uv run python scripts\development\check_mysql_admin_connection.py
 
 El script pide la contrasena de `root` y no la guarda.
 
-## 7. Crear la base de datos desde los scripts
+## 7. Configuración unificada de Base de Datos y Datos de Prueba
 
-Esta es la forma recomendada porque usa Python y `mysql-connector-python`, no
-depende de que el comando `mysql` este configurado en el `PATH`.
+Esta es la forma recomendada y más rápida. Ejecuta el script unificado de configuración de base de datos de Python:
 
-### Linux
-
-```bash
-uv run python scripts/database/run_mysql_script.py scripts/database/001_create_project_database.sql --admin-user root
-uv run python scripts/database/run_mysql_script.py scripts/database/002_create_login_users_table.sql --admin-user root
-uv run python scripts/database/run_mysql_script.py scripts/database/003_create_mysql_app_users.sql --admin-user root
-```
-
-### MacOS
+### Linux / MacOS
 
 ```bash
-uv run python scripts/database/run_mysql_script.py scripts/database/001_create_project_database.sql --admin-user root
-uv run python scripts/database/run_mysql_script.py scripts/database/002_create_login_users_table.sql --admin-user root
-uv run python scripts/database/run_mysql_script.py scripts/database/003_create_mysql_app_users.sql --admin-user root
+uv run python scripts/database/setup_database.py
 ```
 
 ### Windows
 
 ```powershell
-uv run python scripts\database\run_mysql_script.py scripts\database\001_create_project_database.sql --admin-user root
-uv run python scripts\database\run_mysql_script.py scripts\database\002_create_login_users_table.sql --admin-user root
-uv run python scripts\database\run_mysql_script.py scripts\database\003_create_mysql_app_users.sql --admin-user root
+uv run python scripts\database\setup_database.py
 ```
 
-Cada comando pedira la contrasena del usuario administrador de MySQL.
+Este script unificado automatiza los siguientes pasos:
+1. Te pide la contraseña de `root` (u otro usuario administrador) de tu MySQL local.
+2. Crea la base de datos `sis122_zarvent_repuestos`.
+3. Crea el usuario local de la aplicación (indicado en tu `.env`, ej. `cesarszv` con contraseña `cesarszv`) y le otorga privilegios.
+4. Genera físicamente todas las tablas del esquema relacional del proyecto.
+5. Puebla las tablas de repuestos, categorías, clientes y ventas históricas para coincidir con tus mockups.
+
+*(Opcional: Si deseas ejecutar manualmente los scripts SQL individuales con un usuario administrador, puedes seguir el paso 8)*.
 
 | Script | Resultado |
 | --- | --- |
@@ -323,34 +317,30 @@ TO 'zarvent_app'@'%';
 FLUSH PRIVILEGES;
 ```
 
-## 9. Crear el usuario demo
+## 9. Poblar la base de datos con datos de prueba (Recomendado)
 
-### Linux
+Para que la aplicación muestre toda la información operativa (catálogo de repuestos, categorías, clientes y transacciones de ventas) de forma idéntica a los mockups de diseño, ejecuta el script de población completo:
 
-```bash
-uv run python scripts/database/seed_demo_login_user.py
-```
-
-### MacOS
+### Linux / MacOS
 
 ```bash
-uv run python scripts/database/seed_demo_login_user.py
+uv run python scripts/database/seed_project_data.py
 ```
 
 ### Windows
 
 ```powershell
-uv run python scripts\database\seed_demo_login_user.py
+uv run python scripts\database\seed_project_data.py
 ```
 
-Credenciales demo:
+Esto creará de forma automática en la base de datos:
+- El usuario administrativo `admin` con la contraseña `admin123` (encriptada con bcrypt).
+- Las categorías iniciales: *Engine Parts*, *Transmission*, *Electrical*, *Suspension*.
+- Los repuestos iniciales con sus códigos internos, OEM, costos y cantidades en stock.
+- Clientes de ejemplo registrados.
+- Historial de transacciones de ventas y pagos asociados.
 
-```text
-usuario: admin
-contrasena: admin123
-```
-
-La contrasena se guarda con hash `bcrypt`, no como texto plano.
+*(Si solo deseas crear el usuario administrativo básico vacío, puedes correr opcionalmente `uv run python scripts/database/seed_demo_login_user.py`)*.
 
 ## 10. Verificar la base de datos
 
