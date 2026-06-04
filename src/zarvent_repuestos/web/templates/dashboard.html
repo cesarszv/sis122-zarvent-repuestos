@@ -4,7 +4,7 @@
 
 {% block content %}
 <div class="max-w-7xl mx-auto space-y-8">
-    
+
     <!-- Page Header -->
     <div class="flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
@@ -71,7 +71,7 @@
             <h3 class="text-lg font-bold text-workshop-black border-b border-steel-gray pb-3 mb-4">
                 Últimas Órdenes de Venta
             </h3>
-            
+
             <div class="overflow-x-auto">
                 <table class="w-full text-left border-collapse">
                     <thead>
@@ -106,7 +106,7 @@
                     </tbody>
                 </table>
             </div>
-            
+
             <div class="mt-4 text-right">
                 <a href="/sales" class="text-xs font-bold text-zarvent-red hover:underline uppercase tracking-wider">Ver todas las ventas →</a>
             </div>
@@ -118,7 +118,7 @@
                 <h3 class="text-lg font-bold text-workshop-black border-b border-steel-gray pb-3 mb-4">
                     Alertas de Reabastecimiento
                 </h3>
-                
+
                 <ul class="space-y-4">
                     {% if metrics.low_stock_items %}
                         {% for item in metrics.low_stock_items %}

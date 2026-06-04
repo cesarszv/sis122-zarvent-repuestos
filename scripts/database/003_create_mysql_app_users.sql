@@ -3,11 +3,14 @@
 CREATE USER IF NOT EXISTS 'zarvent_app'@'localhost' IDENTIFIED BY 'change_me';
 CREATE USER IF NOT EXISTS 'zarvent_app'@'%' IDENTIFIED BY 'change_me';
 
-GRANT SELECT, INSERT, UPDATE, DELETE
+ALTER USER 'zarvent_app'@'localhost' IDENTIFIED BY 'change_me';
+ALTER USER 'zarvent_app'@'%' IDENTIFIED BY 'change_me';
+
+GRANT SELECT, INSERT, UPDATE, DELETE, CREATE, ALTER, INDEX, REFERENCES
 ON sis122_zarvent_repuestos.*
 TO 'zarvent_app'@'localhost';
 
-GRANT SELECT, INSERT, UPDATE, DELETE
+GRANT SELECT, INSERT, UPDATE, DELETE, CREATE, ALTER, INDEX, REFERENCES
 ON sis122_zarvent_repuestos.*
 TO 'zarvent_app'@'%';
 

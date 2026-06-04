@@ -121,12 +121,12 @@
 
             <form id="new-order-form" method="post" action="/sales" class="flex-1 overflow-y-auto p-6 space-y-6 flex flex-col justify-between">
                 <input type="hidden" name="items_json" id="items_json">
-                
+
                 <div class="space-y-6">
                     <!-- Cliente section -->
                     <div class="border-b border-steel-gray pb-4">
                         <h4 class="text-sm font-bold uppercase tracking-wider text-workshop-black mb-3">Información del Cliente</h4>
-                        
+
                         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                             <div>
                                 <label class="block text-xs font-bold uppercase tracking-wider text-industrial-gray mb-1" for="client_mode">Tipo de Cliente</label>
@@ -175,23 +175,23 @@
                                 <select id="part_selector" onchange="updateSelectedPartInfo()" class="w-full bg-pure-white border border-steel-gray p-2.5 rounded text-sm cursor-pointer font-medium">
                                     <option value="">-- Buscar repuesto en stock --</option>
                                     {% for part in parts %}
-                                    <option value="{{ part.part_id }}" 
+                                    <option value="{{ part.part_id }}"
                                             data-code="{{ part.internal_code }}"
-                                            data-name="{{ part.name }}" 
-                                            data-price="{{ part.sale_price }}" 
+                                            data-name="{{ part.name }}"
+                                            data-price="{{ part.sale_price }}"
                                             data-stock="{{ part.quantity_on_hand }}">
                                         [{{ part.internal_code }}] {{ part.name }} (Stock: {{ part.quantity_on_hand }} - ${{ part.sale_price }})
                                     </option>
                                     {% endfor %}
                                 </select>
                             </div>
-                            
+
                             <!-- Quantity -->
                             <div>
                                 <label class="block text-xs font-bold uppercase tracking-wider text-industrial-gray mb-1" for="part_quantity">Cantidad</label>
                                 <input id="part_quantity" type="number" min="1" value="1" class="w-full bg-pure-white border border-steel-gray p-2 rounded text-sm font-mono"/>
                             </div>
-                            
+
                             <!-- Add Button -->
                             <button type="button" onclick="addProductRow()" class="w-full bg-workshop-black text-pure-white py-2 px-4 rounded hover:bg-opacity-95 text-sm font-bold transition-all uppercase tracking-wider">
                                 Agregar
@@ -233,7 +233,7 @@
                                 <option value="Transferencia">Transferencia QR</option>
                             </select>
                         </div>
-                        
+
                         <div class="text-right space-y-1">
                             <span class="text-xs text-industrial-gray uppercase tracking-wider font-bold">Total a Pagar</span>
                             <p class="text-3xl font-black text-zarvent-red font-mono" id="grand-total-label">$0.00</p>
@@ -259,11 +259,11 @@
                     <span class="material-symbols-outlined">close</span>
                 </button>
             </header>
-            
+
             <div id="receipt-content" class="p-6 space-y-4 font-mono text-xs">
                 <!-- Injected via AJAX -->
             </div>
-            
+
             <div class="p-6 border-t border-steel-gray bg-cold-white text-right">
                 <button onclick="window.print()" class="bg-workshop-black text-pure-white text-xs font-bold py-2 px-4 rounded hover:bg-opacity-90 transition-all uppercase tracking-wider">
                     Imprimir Comprobante
@@ -310,7 +310,7 @@
     function addProductRow() {
         const selector = document.getElementById('part_selector');
         const quantityInput = document.getElementById('part_quantity');
-        
+
         if (!selector.value) {
             alert('Por favor selecciona un repuesto.');
             return;
@@ -318,7 +318,7 @@
 
         const partId = parseInt(selector.value);
         const qty = parseInt(quantityInput.value);
-        
+
         if (isNaN(qty) || qty <= 0) {
             alert('Por favor introduce una cantidad válida.');
             return;
@@ -403,7 +403,7 @@
     function submitSalesOrder() {
         const clientMode = document.getElementById('client_mode').value;
         const customerId = document.getElementById('customer_id').value;
-        
+
         if (clientMode === 'existing' && !customerId) {
             alert('Por favor selecciona un cliente de la lista.');
             return;
@@ -421,7 +421,7 @@
         const contentDiv = document.getElementById('receipt-content');
         contentDiv.innerHTML = '<p class="text-center">Cargando comprobante...</p>';
         toggleModal('receipt-modal', true);
-        
+
         fetch(`/sales/receipt/${orderId}`)
             .then(res => {
                 if (!res.ok) throw new Error("Error al buscar recibo");

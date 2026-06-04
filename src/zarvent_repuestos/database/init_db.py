@@ -6,10 +6,22 @@ from zarvent_repuestos.database.connection import get_database_connection
 
 
 def initialize_database():
-    """Creates the database if it does not exist."""
+    """Verifies the database exists, creating it only when the user can do it."""
+    db_name = DB_CONFIG.get("database", "sis122_zarvent_repuestos")
+
+    try:
+        conexion = get_database_connection()
+        conexion.close()
+        print(f"📦 Base de datos '{db_name}' verificada.")
+        return True
+    except mysql.connector.Error as err:
+        if getattr(err, "errno", None) != 1049:
+            print("❌ Error al conectar con la base de datos:", err)
+            return False
+
     temp_config = DB_CONFIG.copy()
-    db_name = temp_config.pop("database", "sis122_zarvent_repuestos")
-    
+    temp_config.pop("database", None)
+
     try:
         conexion = mysql.connector.connect(**temp_config)
         cursor = conexion.cursor()
@@ -23,23 +35,23 @@ def initialize_database():
         print(f"📦 Base de datos '{db_name}' verificada/creada.")
         return True
     except mysql.connector.Error as err:
-        print("❌ Error al crear/verificar base de datos:", err)
+        print("❌ Error al crear la base de datos:", err)
         return False
 
 
 def crear_tablas():
     """Creates all required tables in hierarchical order."""
     if not initialize_database():
-        return
+        return False
 
     try:
         conexion = get_database_connection()
     except mysql.connector.Error as err:
         print("❌ Error de conexión al crear tablas:", err)
-        return
+        return False
 
     cursor = conexion.cursor()
-    
+
     # 1. Person Table
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS person (
@@ -158,7 +170,8 @@ def crear_tablas():
     cursor.close()
     conexion.close()
     print("📦 Todas las tablas verificadas/creadas correctamente en MySQL.")
+    return True
 
 
 if __name__ == "__main__":
-    crear_tablas()
+    raise SystemExit(0 if crear_tablas() else 1)

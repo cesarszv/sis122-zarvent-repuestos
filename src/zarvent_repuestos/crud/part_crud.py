@@ -53,17 +53,17 @@ def crear_producto(part: Part, initial_stock: int = 0, location: str = "Aisle 1"
     """Creates a part and its initial stock in a single transaction."""
     conexion = get_database_connection()
     cursor = conexion.cursor()
-    
+
     sql_part = """
     INSERT INTO part (part_category_id, internal_code, oem_code, name, brand, unit, sale_price, purchase_cost, warranty_days, status)
     VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
     """
-    
+
     sql_stock = """
     INSERT INTO inventory_stock (part_id, location_name, quantity_on_hand, reorder_level)
     VALUES (%s, %s, %s, %s)
     """
-    
+
     try:
         # 1. Insert Part
         cursor.execute(sql_part, (
@@ -79,10 +79,10 @@ def crear_producto(part: Part, initial_stock: int = 0, location: str = "Aisle 1"
             part.status
         ))
         part_id = cursor.lastrowid
-        
+
         # 2. Insert Stock
         cursor.execute(sql_stock, (part_id, location, initial_stock, 10))
-        
+
         conexion.commit()
         return True
     except mysql.connector.Error as err:
@@ -94,37 +94,37 @@ def crear_producto(part: Part, initial_stock: int = 0, location: str = "Aisle 1"
         conexion.close()
 
 
-def actualizar_producto(part_id: int, part_category_id: int, internal_code: str, oem_code: str, 
-                        name: str, brand: str, sale_price: float, purchase_cost: float, 
+def actualizar_producto(part_id: int, part_category_id: int, internal_code: str, oem_code: str,
+                        name: str, brand: str, sale_price: float, purchase_cost: float,
                         warranty_days: int, status: str, stock_qty: Optional[int] = None) -> bool:
     """Updates part details and optionally its current stock quantity."""
     conexion = get_database_connection()
     cursor = conexion.cursor()
-    
+
     sql_part = """
-    UPDATE part 
-    SET part_category_id=%s, internal_code=%s, oem_code=%s, name=%s, brand=%s, 
+    UPDATE part
+    SET part_category_id=%s, internal_code=%s, oem_code=%s, name=%s, brand=%s,
         sale_price=%s, purchase_cost=%s, warranty_days=%s, status=%s
     WHERE part_id=%s
     """
-    
+
     sql_stock = """
     UPDATE inventory_stock
     SET quantity_on_hand=%s
     WHERE part_id=%s
     """
-    
+
     try:
         # Update part details
         cursor.execute(sql_part, (
             part_category_id, internal_code, oem_code, name, brand,
             sale_price, purchase_cost, warranty_days, status, part_id
         ))
-        
+
         # Optionally update stock qty
         if stock_qty is not None:
             cursor.execute(sql_stock, (stock_qty, part_id))
-            
+
         conexion.commit()
         return True
     except mysql.connector.Error as err:
@@ -153,40 +153,40 @@ def eliminar_producto(part_id: int) -> bool:
         conexion.close()
 
 
-def listar_productos(search: Optional[str] = None, category_id: Optional[int] = None, 
+def listar_productos(search: Optional[str] = None, category_id: Optional[int] = None,
                      brand: Optional[str] = None) -> List[Dict[str, Any]]:
     """Lists parts with their category name and stock details, applying filters."""
     conexion = get_database_connection()
     cursor = conexion.cursor(dictionary=True)
-    
+
     sql = """
-    SELECT p.part_id, p.part_category_id, p.internal_code, p.oem_code, p.name, 
+    SELECT p.part_id, p.part_category_id, p.internal_code, p.oem_code, p.name,
            p.brand, p.unit, p.sale_price, p.purchase_cost, p.warranty_days, p.status,
-           c.name AS category_name, 
+           c.name AS category_name,
            s.quantity_on_hand, s.location_name, s.reorder_level
     FROM part p
     JOIN part_category c ON p.part_category_id = c.part_category_id
     LEFT JOIN inventory_stock s ON p.part_id = s.part_id
     WHERE 1=1
     """
-    
+
     params = []
-    
+
     if search:
         search_wild = f"%{search}%"
         sql += " AND (p.internal_code LIKE %s OR p.oem_code LIKE %s OR p.name LIKE %s OR p.brand LIKE %s)"
         params.extend([search_wild, search_wild, search_wild, search_wild])
-        
+
     if category_id:
         sql += " AND p.part_category_id = %s"
         params.append(category_id)
-        
+
     if brand:
         sql += " AND p.brand = %s"
         params.append(brand)
-        
+
     sql += " ORDER BY p.internal_code"
-    
+
     products = []
     try:
         cursor.execute(sql, tuple(params))

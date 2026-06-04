@@ -11,8 +11,8 @@ class PartCategory:
 
 
 class Part:
-    def __init__(self, part_category_id, internal_code, name, sale_price, purchase_cost, 
-                 oem_code=None, brand=None, unit='pcs', warranty_days=0, status='active', 
+    def __init__(self, part_category_id, internal_code, name, sale_price, purchase_cost,
+                 oem_code=None, brand=None, unit='pcs', warranty_days=0, status='active',
                  part_id=None, category=None):
         self.part_id = part_id
         self.part_category_id = part_category_id
@@ -33,7 +33,7 @@ class Part:
 
 
 class InventoryStock:
-    def __init__(self, part_id, location_name, quantity_on_hand=0, reorder_level=10, 
+    def __init__(self, part_id, location_name, quantity_on_hand=0, reorder_level=10,
                  inventory_stock_id=None, part=None):
         self.inventory_stock_id = inventory_stock_id
         self.part_id = part_id

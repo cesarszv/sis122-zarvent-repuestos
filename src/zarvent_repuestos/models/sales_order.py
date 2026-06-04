@@ -1,7 +1,7 @@
 """Domain models representing SalesOrder, SalesOrderItem, and Payment entities."""
 
 class SalesOrder:
-    def __init__(self, customer_id, order_date, subtotal, total_amount, discount_amount=0.00, 
+    def __init__(self, customer_id, order_date, subtotal, total_amount, discount_amount=0.00,
                  status='pending', sales_order_id=None, customer=None, items=None):
         self.sales_order_id = sales_order_id
         self.customer_id = customer_id
@@ -19,7 +19,7 @@ class SalesOrder:
 
 
 class SalesOrderItem:
-    def __init__(self, sales_order_id, part_id, quantity, unit_price, discount_amount=0.00, 
+    def __init__(self, sales_order_id, part_id, quantity, unit_price, discount_amount=0.00,
                  sales_order_item_id=None, part=None):
         self.sales_order_item_id = sales_order_item_id
         self.sales_order_id = sales_order_id
@@ -36,7 +36,7 @@ class SalesOrderItem:
 
 
 class Payment:
-    def __init__(self, sales_order_id, payment_date, method, amount, reference_number=None, 
+    def __init__(self, sales_order_id, payment_date, method, amount, reference_number=None,
                  status='completed', payment_id=None):
         self.payment_id = payment_id
         self.sales_order_id = sales_order_id

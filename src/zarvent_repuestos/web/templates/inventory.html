@@ -43,7 +43,7 @@
                 </select>
                 <span class="material-symbols-outlined absolute right-2 top-1/2 -translate-y-1/2 text-industrial-gray pointer-events-none">arrow_drop_down</span>
             </div>
-            
+
             {% if search_val or cat_val or brand_val %}
             <a href="/inventory" class="py-2 px-4 border border-steel-gray hover:bg-cold-white transition-colors rounded text-sm flex items-center justify-center">
                 Limpiar
@@ -103,7 +103,7 @@
                     <span class="material-symbols-outlined">close</span>
                 </button>
             </header>
-            
+
             <form method="post" action="/inventory" class="p-6 space-y-4">
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <!-- Name -->
@@ -111,13 +111,13 @@
                         <label class="block text-xs font-bold uppercase tracking-wider text-industrial-gray mb-1" for="name">Nombre del Repuesto</label>
                         <input id="name" name="name" required class="w-full bg-cold-white border border-steel-gray focus:border-zarvent-red focus:ring-1 focus:ring-zarvent-red p-2.5 rounded text-sm text-workshop-black" type="text" placeholder="Ej. Filtro de Aceite Sintético"/>
                     </div>
-                    
+
                     <!-- Internal Code -->
                     <div>
                         <label class="block text-xs font-bold uppercase tracking-wider text-industrial-gray mb-1" for="internal_code">Código Interno (Zarvent)</label>
                         <input id="internal_code" name="internal_code" required class="w-full bg-cold-white border border-steel-gray focus:border-zarvent-red focus:ring-1 focus:ring-zarvent-red p-2.5 rounded text-sm text-workshop-black font-mono" type="text" placeholder="Ej. ZR-10495"/>
                     </div>
-                    
+
                     <!-- OEM Code -->
                     <div>
                         <label class="block text-xs font-bold uppercase tracking-wider text-industrial-gray mb-1" for="oem_code">Código OEM (Fabricante)</label>

@@ -61,7 +61,10 @@ La aplicacion usa una arquitectura modular simple. La idea es que el arbol diga
 rapido que partes existen y para que sirven:
 
 - `access`: login, usuarios y contrasenas.
+- `config`: variables de entorno de MySQL y Flask.
+- `crud`: operaciones SQL simples para inventario, clientes y ventas.
 - `database`: conexion tecnica con MySQL.
+- `models`: clases pequenas para representar entidades usadas por la app.
 - `web`: pantalla Flask y archivos visuales.
 
 Estructura actual del prototipo:
@@ -72,8 +75,16 @@ sis122-zarvent-repuestos/
 |   `-- zarvent_repuestos/
 |       |-- access/
 |       |   `-- user_service.py
+|       |-- config/
+|       |   `-- db_config.py
+|       |-- crud/
+|       |   |-- customer_crud.py
+|       |   |-- part_crud.py
+|       |   `-- sales_crud.py
 |       |-- database/
-|       |   `-- connection.py
+|       |   |-- connection.py
+|       |   `-- init_db.py
+|       |-- models/
 |       `-- web/
 |           |-- app.py
 |           |-- templates/
@@ -86,9 +97,8 @@ sis122-zarvent-repuestos/
 `-- .venv/
 ```
 
-No hay carpetas vacias para modulos futuros. Cuando el sistema crezca, se
-agregaran paquetes como `sales`, `inventory` o `purchases` solo cuando exista
-codigo real que los justifique.
+No hay carpetas vacias para modulos futuros. Cada carpeta debe tener codigo
+real que se pueda explicar en clase.
 
 ### Setup rapido con UV
 

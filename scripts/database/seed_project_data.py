@@ -11,14 +11,31 @@ SOURCE_ROOT = Path(__file__).resolve().parents[2] / "src"
 if str(SOURCE_ROOT) not in sys.path:
     sys.path.insert(0, str(SOURCE_ROOT))
 
+from zarvent_repuestos.access.user_service import create_user
 from zarvent_repuestos.database.connection import get_database_connection
-from zarvent_repuestos.crud import user_crud, part_crud, customer_crud, sales_crud
+from zarvent_repuestos.crud import part_crud, customer_crud, sales_crud
 from zarvent_repuestos.models.part import Part
+
+
+def has_operational_demo_data():
+    """Returns True when the demo catalog/customers/sales are already loaded."""
+    conexion = get_database_connection()
+    cursor = conexion.cursor()
+    try:
+        for table_name in ("part", "customer", "sales_order"):
+            cursor.execute(f"SELECT COUNT(*) FROM {table_name}")
+            row = cursor.fetchone()
+            if row and row[0] > 0:
+                return True
+        return False
+    finally:
+        cursor.close()
+        conexion.close()
 
 
 def main():
     print("🌱 Iniciando población de datos de prueba...")
-    
+
     try:
         conexion = get_database_connection()
         conexion.close()
@@ -27,10 +44,14 @@ def main():
         print(err)
         return 1
 
+    if has_operational_demo_data():
+        print("✅ La base ya tiene datos operativos. No se vuelve a poblar para evitar duplicados.")
+        return 0
+
     # 1. Seed admin user
     print("👤 Creando usuario administrador...")
-    user_crud.crear_usuario("admin", "admin123")
-    
+    create_user("admin", "admin123")
+
     # 2. Seed Categories
     print("📦 Creando categorías de repuestos...")
     categories = [
@@ -39,14 +60,14 @@ def main():
         ("Electrical", "Alternadores, arrancadores, sensores y cableado eléctrico."),
         ("Suspension", "Amortiguadores, resortes, bandejas y rótulas de suspensión.")
     ]
-    
+
     for name, desc in categories:
         part_crud.crear_categoria(name, desc)
-        
+
     # Get created categories to associate parts
     cats = part_crud.listar_categorias()
     cat_map = {c.name: c.part_category_id for c in cats}
-    
+
     # 3. Seed Products (Parts) & Stock
     print("⚙️ Creando repuestos y stock de inventario...")
     products = [
@@ -106,7 +127,7 @@ def main():
             "location": "Estante D-1"
         }
     ]
-    
+
     for prod in products:
         p = Part(
             part_category_id=cat_map[prod["category"]],
@@ -128,7 +149,7 @@ def main():
         {"first_name": "Silvia", "last_name": "Plath", "id_num": "5639103", "billing": "Silvia Plath", "tax": "5639103"},
         {"first_name": "Julian", "last_name": "Black", "id_num": "4930219", "billing": "Julian Black", "tax": "4930219"}
     ]
-    
+
     for cust in customers:
         customer_crud.crear_cliente(
             first_name=cust["first_name"],
@@ -137,17 +158,17 @@ def main():
             billing_name=cust["billing"],
             tax_id=cust["tax"]
         )
-        
+
     # Get created parts and customers to place sales orders
     catalog = part_crud.listar_productos()
     part_map = {p["internal_code"]: p["part_id"] for p in catalog}
-    
+
     cust_list = customer_crud.listar_clientes()
     cust_map = {c["first_name"]: c["customer_id"] for c in cust_list}
-    
+
     # 5. Seed Orders (Sales & Payments)
     print("💰 Creando ventas históricas...")
-    
+
     # Order 1: Elena Rostova ($1,240.00)
     # We will buy 4 Clutch Kits ($285.00 * 4 = $1,140) and 8 Spark Plugs ($8.25 * 8 = $66) + some oxygen sensors to total around $1,240
     # Let's seed it directly:
@@ -160,7 +181,7 @@ def main():
         ],
         payment_method="Transferencia"
     )
-    
+
     # Order 2: Marcus Vance ($450.50)
     sales_crud.crear_orden_venta(
         customer_id=cust_map["Marcus"],
@@ -171,7 +192,7 @@ def main():
         ],
         payment_method="Efectivo"
     )
-    
+
     # Order 3: Julian Black ($2,100.00)
     sales_crud.crear_orden_venta(
         customer_id=cust_map["Julian"],
@@ -182,7 +203,7 @@ def main():
         ],
         payment_method="Tarjeta de Crédito"
     )
-    
+
     print("✅ Población de datos completada con éxito.")
     return 0
 

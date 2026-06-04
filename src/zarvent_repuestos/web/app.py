@@ -1,16 +1,17 @@
 """Flask web interface for the Zarvent Repuestos prototype."""
 
 import json
+import os
 from flask import Flask, render_template, request, redirect, url_for, session, flash, abort
 
+from zarvent_repuestos.access.user_service import authenticate_user
 from zarvent_repuestos.database.init_db import crear_tablas
-from zarvent_repuestos.crud import user_crud, part_crud, customer_crud, sales_crud
+from zarvent_repuestos.crud import part_crud, customer_crud, sales_crud
 from zarvent_repuestos.models.part import Part
 
 
 app = Flask(__name__)
-# Secure secret key for session management
-app.secret_key = "zarvent-academic-secret-key-122"
+app.secret_key = os.getenv("FLASK_SECRET_KEY", "zarvent-academic-secret-key-122")
 
 
 def login_required(f):
@@ -37,10 +38,10 @@ def home():
         password = request.form.get("password", "")
 
         try:
-            user = user_crud.autenticar_usuario(username, password)
+            user = authenticate_user(username, password)
             if user:
-                session["user_id"] = user.id
-                session["username"] = user.username
+                session["user_id"] = user["id"]
+                session["username"] = user["username"]
                 return redirect(url_for("dashboard"))
             else:
                 message = "Usuario o contraseña incorrectos."
@@ -139,16 +140,16 @@ def sales():
         # Check customer mode
         client_mode = request.form.get("client_mode", "existing")
         payment_method = request.form.get("payment_method", "Efectivo")
-        
+
         customer_id = None
-        
+
         try:
             # 1. Quick Customer Registration
             if client_mode == "new":
                 first_name = request.form.get("new_first_name", "").strip()
                 last_name = request.form.get("new_last_name", "").strip()
                 identity_number = request.form.get("new_identity_number", "").strip()
-                
+
                 # Check if customer already exists by identity number
                 existing = customer_crud.buscar_cliente_por_doc(identity_number)
                 if existing:
@@ -173,25 +174,25 @@ def sales():
             # 2. Parse Items JSON
             items_json = request.form.get("items_json", "[]")
             items = json.loads(items_json)
-            
+
             if not items:
                 raise ValueError("La orden debe tener al menos un ítem.")
-                
+
             # 3. Create Sales Order (handles inventory subtraction and payment)
             sales_order_id = sales_crud.crear_orden_venta(
                 customer_id=customer_id,
                 items=items,
                 payment_method=payment_method
             )
-            
+
             if sales_order_id:
                 flash(f"Venta #{sales_order_id} registrada correctamente.", "success")
             else:
                 flash("Error al registrar la venta.", "error")
-                
+
         except Exception as e:
             flash(f"Error al procesar venta: {e}", "error")
-            
+
         return redirect(url_for("sales"))
 
     # GET requests - Listing filters
@@ -204,7 +205,7 @@ def sales():
         start_date=start_date if start_date else None,
         end_date=end_date if end_date else None
     )
-    
+
     parts = part_crud.listar_productos()
     customers = customer_crud.listar_clientes()
 
@@ -227,12 +228,13 @@ def receipt(sales_order_id):
     order = sales_crud.obtener_detalles_orden(sales_order_id)
     if not order:
         return abort(404, "Venta no encontrada")
-        
+
     # Render receipt template as preformatted raw text
     return render_template("receipt.html", order=order)
 
 
 if __name__ == "__main__":
     # Ensure MySQL tables are created before starting Flask
-    crear_tablas()
+    if not crear_tablas():
+        raise SystemExit(1)
     app.run(debug=True)

@@ -4,14 +4,14 @@
         <p class="text-[10px] text-industrial-gray font-normal">Repuestos y Accesorios</p>
         <p class="text-[10px] text-industrial-gray font-normal">Sucre - Bolivia</p>
     </div>
-    
+
     <div class="space-y-1 border-b border-dashed border-workshop-black pb-2 mb-2">
         <p><strong>Nro. Venta:</strong> #ORD-{{ order.sales_order_id }}</p>
         <p><strong>Fecha:</strong> {{ order.order_date.strftime('%d/%m/%Y') if order.order_date else '-' }}</p>
         <p><strong>Cliente:</strong> {{ order.billing_name }}</p>
         <p><strong>NIT/CI:</strong> {{ order.tax_id }}</p>
     </div>
-    
+
     <table class="w-full border-b border-dashed border-workshop-black pb-2 mb-2 text-left">
         <thead>
             <tr class="border-b border-dashed border-workshop-black font-bold">
@@ -32,7 +32,7 @@
             {% endfor %}
         </tbody>
     </table>
-    
+
     <div class="space-y-1 text-right font-bold">
         <p>Subtotal: ${{ "{:.2f}".format(order.subtotal) }}</p>
         {% if order.discount_amount > 0 %}
@@ -40,7 +40,7 @@
         {% endif %}
         <p class="text-sm font-black border-t border-dashed border-workshop-black pt-1 mt-1">TOTAL: ${{ "{:.2f}".format(order.total_amount) }}</p>
     </div>
-    
+
     <div class="text-center text-[9px] text-industrial-gray mt-4 border-t border-dashed border-workshop-black pt-2 uppercase font-medium">
         ¡Gracias por su preferencia!<br>Zarvent Repuestos
     </div>

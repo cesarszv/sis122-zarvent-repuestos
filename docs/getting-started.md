@@ -8,12 +8,13 @@ La meta es dejar funcionando:
 
 - MySQL Server con la base `sis122_zarvent_repuestos`.
 - El entorno Python creado por `uv`.
-- La tabla `users` del prototipo de login.
+- Las tablas del prototipo operativo.
 - Un usuario demo para entrar a la pantalla web.
 - Flask en `http://127.0.0.1:5000`.
 
 El modelo relacional completo se defiende desde `docs/database`. La app Flask
-actual solo demuestra conexion a MySQL, login y contrasenas con `bcrypt`.
+actual demuestra conexión a MySQL, login con `bcrypt`, dashboard, inventario,
+ventas y recibos.
 
 ## 1. Instalar UV
 
@@ -169,13 +170,13 @@ Git.
 ### Linux
 
 ```bash
-cp .env.example .env
+cp -n .env.example .env
 ```
 
 ### MacOS
 
 ```bash
-cp .env.example .env
+cp -n .env.example .env
 ```
 
 ### Windows
@@ -192,11 +193,16 @@ DB_PORT=3306
 DB_NAME=sis122_zarvent_repuestos
 DB_USER=zarvent_app
 DB_PASSWORD=change_me
+FLASK_SECRET_KEY=zarvent-academic-secret-key-122
 ```
 
 Lo importante es que `DB_USER` y `DB_PASSWORD` coincidan con un usuario real de
 MySQL. El script `003_create_mysql_app_users.sql` crea `zarvent_app` para el
 prototipo.
+
+Si ya tenías un `.env` viejo, revisa que no tenga otro usuario o contraseña. La
+configuración recomendada para empezar es `DB_USER=zarvent_app` y
+`DB_PASSWORD=change_me`.
 
 ## 6. Probar el acceso administrador a MySQL
 
@@ -225,12 +231,20 @@ El script pide la contrasena de `root` y no la guarda.
 
 ## 7. Configuración unificada de Base de Datos y Datos de Prueba
 
-Esta es la forma recomendada y más rápida. Ejecuta el script unificado de configuración de base de datos de Python:
+Esta es la forma recomendada y más rápida. Ejecuta **una sola vez** el script
+unificado de configuración de base de datos de Python.
 
 ### Linux / MacOS
 
 ```bash
 uv run python scripts/database/setup_database.py
+```
+
+Si estás en Linux y `root` funciona con `sudo mysql` pero no con contraseña,
+usa:
+
+```bash
+uv run python scripts/database/setup_database.py --admin-mode sudo-mysql
 ```
 
 ### Windows
@@ -240,13 +254,18 @@ uv run python scripts\database\setup_database.py
 ```
 
 Este script unificado automatiza los siguientes pasos:
+
 1. Te pide la contraseña de `root` (u otro usuario administrador) de tu MySQL local.
 2. Crea la base de datos `sis122_zarvent_repuestos`.
-3. Crea el usuario local de la aplicación (indicado en tu `.env`, ej. `cesarszv` con contraseña `cesarszv`) y le otorga privilegios.
+3. Crea el usuario local de la aplicación indicado en tu `.env` y le otorga privilegios.
 4. Genera físicamente todas las tablas del esquema relacional del proyecto.
 5. Puebla las tablas de repuestos, categorías, clientes y ventas históricas para coincidir con tus mockups.
 
-*(Opcional: Si deseas ejecutar manualmente los scripts SQL individuales con un usuario administrador, puedes seguir el paso 8)*.
+Después de ejecutar este paso, pasa directamente al **paso 10** para verificar.
+No ejecutes el paso 9 si ya usaste este setup unificado.
+
+Si deseas ejecutar manualmente los scripts SQL individuales con un usuario
+administrador, puedes seguir el paso 8.
 
 | Script | Resultado |
 | --- | --- |
@@ -305,21 +324,42 @@ CREATE TABLE IF NOT EXISTS users (
 
 CREATE USER IF NOT EXISTS 'zarvent_app'@'localhost' IDENTIFIED BY 'change_me';
 CREATE USER IF NOT EXISTS 'zarvent_app'@'%' IDENTIFIED BY 'change_me';
+ALTER USER 'zarvent_app'@'localhost' IDENTIFIED BY 'change_me';
+ALTER USER 'zarvent_app'@'%' IDENTIFIED BY 'change_me';
 
-GRANT SELECT, INSERT, UPDATE, DELETE
+GRANT SELECT, INSERT, UPDATE, DELETE, CREATE, ALTER, INDEX, REFERENCES
 ON sis122_zarvent_repuestos.*
 TO 'zarvent_app'@'localhost';
 
-GRANT SELECT, INSERT, UPDATE, DELETE
+GRANT SELECT, INSERT, UPDATE, DELETE, CREATE, ALTER, INDEX, REFERENCES
 ON sis122_zarvent_repuestos.*
 TO 'zarvent_app'@'%';
 
 FLUSH PRIVILEGES;
 ```
 
+Después de ejecutar ese SQL, crea las tablas operativas desde Python:
+
+### Linux / MacOS
+
+```bash
+uv run python -m zarvent_repuestos.database.init_db
+```
+
+### Windows
+
+```powershell
+uv run python -m zarvent_repuestos.database.init_db
+```
+
 ## 9. Poblar la base de datos con datos de prueba (Recomendado)
 
-Para que la aplicación muestre toda la información operativa (catálogo de repuestos, categorías, clientes y transacciones de ventas) de forma idéntica a los mockups de diseño, ejecuta el script de población completo:
+Ejecuta este paso solo si hiciste la configuración manual del paso 8 o si tu
+base ya existe pero todavía no tiene datos de prueba. Si ya ejecutaste
+`setup_database.py`, este paso ya fue realizado.
+
+Para que la aplicación muestre toda la información operativa (catálogo de
+repuestos, categorías, clientes y transacciones de ventas), ejecuta:
 
 ### Linux / MacOS
 
@@ -431,8 +471,8 @@ contrasena: admin123
 2. MySQL Server esta encendido.
 3. `uv sync` ya fue ejecutado.
 4. `.env` existe y apunta a `sis122_zarvent_repuestos`.
-5. Los tres scripts SQL ya fueron ejecutados.
-6. `seed_demo_login_user.py` ya creo el usuario `admin`.
+5. `setup_database.py` ya fue ejecutado, o hiciste la alternativa manual.
+6. `seed_project_data.py` ya creó el usuario `admin` y los datos demo.
 7. `check_login_database.py` muestra `Table users: OK`.
 8. Flask abre en `http://127.0.0.1:5000`.
 9. El login funciona con `admin` y `admin123`.
@@ -447,6 +487,7 @@ contrasena: admin123
 | `Table 'users' doesn't exist` | Falta la tabla del login. | Ejecuta `002_create_login_users_table.sql`. |
 | Login incorrecto | Falta el usuario demo o la clave cambio. | Ejecuta `seed_demo_login_user.py`. |
 | Puerto `5000` ocupado | Ya hay otra app usando ese puerto. | Cierra la app anterior o usa otro puerto. |
+| `ERROR 1698` con `root` en Linux | MySQL usa autenticación por socket para `root`. | Usa `uv run python scripts/database/setup_database.py --admin-mode sudo-mysql`. |
 
 ## 14. Que explicar en la defensa
 
@@ -456,8 +497,8 @@ Para no confundir el alcance:
 - La explicacion tabla por tabla esta en `docs/database/db_explanation.md`.
 - La defensa tecnica esta en `docs/database/erd_explanation.md`.
 - El borrador del esquema completo esta en `database/schema.sql`.
-- La app Flask actual solo demuestra conexion, tabla `users`, login y hash de
-  contrasena.
+- La app Flask actual demuestra login, dashboard, inventario, ventas y recibos
+  sobre tablas MySQL.
 
 La idea importante es simple: `uv` facilita ejecutar el proyecto, pero la
 defensa principal sigue siendo el modelo relacional.

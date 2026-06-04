@@ -1,5 +1,7 @@
 .env
 .venv/
+.agents/
+skills-lock.json
 .idea/
 __pycache__/
 *.py[cod]

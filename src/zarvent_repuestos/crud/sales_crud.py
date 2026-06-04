@@ -11,35 +11,45 @@ def crear_orden_venta(customer_id: int, items: List[Dict[str, Any]], payment_met
     """
     Creates a sales order, registers items, updates stock, and registers the payment.
     All operations are atomic and run under a single transaction.
-    
+
     `items` format: [{"part_id": 1, "quantity": 2, "unit_price": 12.00, "discount_amount": 0.00}]
     """
     if not items:
         print("❌ No se enviaron ítems en la venta.")
         return None
 
-    conexion = get_database_connection()
-    cursor = conexion.cursor()
-    
-    # Calculate amounts
+    # Validate client-provided values before opening a database transaction.
     subtotal = 0.0
     discount_total = 0.0
     for item in items:
         qty = int(item["quantity"])
         price = float(item["unit_price"])
         disc = float(item.get("discount_amount", 0.0))
+
+        if qty <= 0:
+            raise ValueError("La cantidad de cada producto debe ser mayor que cero.")
+        if price <= 0:
+            raise ValueError("El precio unitario debe ser mayor que cero.")
+        if disc < 0:
+            raise ValueError("El descuento no puede ser negativo.")
+        if disc > price:
+            raise ValueError("El descuento no puede ser mayor que el precio unitario.")
+
         subtotal += price * qty
         discount_total += disc * qty
-        
+
     total_amount = subtotal - discount_total
     order_date = datetime.date.today()
-    
+
+    conexion = get_database_connection()
+    cursor = conexion.cursor()
+
     try:
         # 1. Verify and lock stock for all items
         for item in items:
             part_id = int(item["part_id"])
             qty_needed = int(item["quantity"])
-            
+
             cursor.execute(
                 "SELECT quantity_on_hand FROM inventory_stock WHERE part_id = %s FOR UPDATE",
                 (part_id,)
@@ -47,7 +57,7 @@ def crear_orden_venta(customer_id: int, items: List[Dict[str, Any]], payment_met
             stock_row = cursor.fetchone()
             if not stock_row:
                 raise ValueError(f"El producto con ID {part_id} no está registrado en el inventario.")
-                
+
             qty_available = stock_row[0]
             if qty_available < qty_needed:
                 raise ValueError(
@@ -69,17 +79,17 @@ def crear_orden_venta(customer_id: int, items: List[Dict[str, Any]], payment_met
         VALUES (%s, %s, %s, %s, %s)
         """
         sql_deduct = """
-        UPDATE inventory_stock 
+        UPDATE inventory_stock
         SET quantity_on_hand = quantity_on_hand - %s
         WHERE part_id = %s
         """
-        
+
         for item in items:
             part_id = int(item["part_id"])
             qty = int(item["quantity"])
             price = float(item["unit_price"])
             disc = float(item.get("discount_amount", 0.0))
-            
+
             # Insert item line
             cursor.execute(sql_item, (sales_order_id, part_id, qty, price, disc))
             # Deduct inventory stock
@@ -96,7 +106,7 @@ def crear_orden_venta(customer_id: int, items: List[Dict[str, Any]], payment_met
         conexion.commit()
         print(f"✅ Venta #{sales_order_id} guardada con éxito.")
         return sales_order_id
-        
+
     except (mysql.connector.Error, ValueError) as err:
         conexion.rollback()
         print("❌ Error en la transacción de venta:", err)
@@ -106,12 +116,12 @@ def crear_orden_venta(customer_id: int, items: List[Dict[str, Any]], payment_met
         conexion.close()
 
 
-def listar_ordenes_venta(status: Optional[str] = None, start_date: Optional[str] = None, 
+def listar_ordenes_venta(status: Optional[str] = None, start_date: Optional[str] = None,
                         end_date: Optional[str] = None) -> List[Dict[str, Any]]:
     """Retrieves all sales orders with customer and billing information, applying filters."""
     conexion = get_database_connection()
     cursor = conexion.cursor(dictionary=True)
-    
+
     sql = """
     SELECT o.sales_order_id, o.order_date, o.status, o.subtotal, o.discount_amount, o.total_amount,
            c.billing_name, c.tax_id, p.first_name, p.last_name
@@ -121,21 +131,21 @@ def listar_ordenes_venta(status: Optional[str] = None, start_date: Optional[str]
     WHERE 1=1
     """
     params = []
-    
+
     if status and status != "All Orders":
         sql += " AND o.status = %s"
         params.append(status)
-        
+
     if start_date:
         sql += " AND o.order_date >= %s"
         params.append(start_date)
-        
+
     if end_date:
         sql += " AND o.order_date <= %s"
         params.append(end_date)
-        
+
     sql += " ORDER BY o.sales_order_id DESC"
-    
+
     orders = []
     try:
         cursor.execute(sql, tuple(params))
@@ -152,7 +162,7 @@ def obtener_detalles_orden(sales_order_id: int) -> Optional[Dict[str, Any]]:
     """Returns details of a specific sales order and all its list items."""
     conexion = get_database_connection()
     cursor = conexion.cursor(dictionary=True)
-    
+
     sql_order = """
     SELECT o.sales_order_id, o.order_date, o.status, o.subtotal, o.discount_amount, o.total_amount,
            c.billing_name, c.tax_id, p.phone, p.email, p.address
@@ -161,7 +171,7 @@ def obtener_detalles_orden(sales_order_id: int) -> Optional[Dict[str, Any]]:
     JOIN person p ON c.person_id = p.person_id
     WHERE o.sales_order_id = %s
     """
-    
+
     sql_items = """
     SELECT i.sales_order_item_id, i.quantity, i.unit_price, i.discount_amount,
            p.internal_code, p.name, p.brand
@@ -169,18 +179,18 @@ def obtener_detalles_orden(sales_order_id: int) -> Optional[Dict[str, Any]]:
     JOIN part p ON i.part_id = p.part_id
     WHERE i.sales_order_id = %s
     """
-    
+
     try:
         # Fetch order header
         cursor.execute(sql_order, (sales_order_id,))
         order = cursor.fetchone()
         if not order:
             return None
-            
+
         # Fetch items
         cursor.execute(sql_items, (sales_order_id,))
         order["items"] = cursor.fetchall()
-        
+
         return order
     except mysql.connector.Error as err:
         print("❌ Error al obtener detalles de venta:", err)
@@ -194,7 +204,7 @@ def obtener_metricas_dashboard() -> Dict[str, Any]:
     """Calculates all key metrics for the operational overview dashboard."""
     conexion = get_database_connection()
     cursor = conexion.cursor()
-    
+
     metrics = {
         "today_sales_amount": 0.0,
         "categories_count": 0,
@@ -203,7 +213,7 @@ def obtener_metricas_dashboard() -> Dict[str, Any]:
         "recent_orders": [],
         "low_stock_items": []
     }
-    
+
     try:
         # 1. Today's sales amount
         cursor.execute(
@@ -212,28 +222,28 @@ def obtener_metricas_dashboard() -> Dict[str, Any]:
         )
         row = cursor.fetchone()
         metrics["today_sales_amount"] = float(row[0]) if row else 0.0
-        
+
         # 2. Categories count
         cursor.execute("SELECT COUNT(*) FROM part_category")
         row = cursor.fetchone()
         metrics["categories_count"] = row[0] if row else 0
-        
+
         # 3. Low stock count
         cursor.execute(
             "SELECT COUNT(*) FROM inventory_stock WHERE quantity_on_hand <= reorder_level"
         )
         row = cursor.fetchone()
         metrics["low_stock_count"] = row[0] if row else 0
-        
+
         # 4. Total orders count
         cursor.execute("SELECT COUNT(*) FROM sales_order")
         row = cursor.fetchone()
         metrics["total_orders_count"] = row[0] if row else 0
-        
+
         # 5. Recent orders (last 5)
         cursor.close() # Refresh to fetch dict cursor
         cursor = conexion.cursor(dictionary=True)
-        
+
         sql_recent = """
         SELECT o.sales_order_id, o.order_date, o.status, o.total_amount, c.billing_name
         FROM sales_order o
@@ -242,7 +252,7 @@ def obtener_metricas_dashboard() -> Dict[str, Any]:
         """
         cursor.execute(sql_recent)
         metrics["recent_orders"] = cursor.fetchall()
-        
+
         # 6. Low stock items (first 5)
         sql_low = """
         SELECT p.internal_code, p.name, p.brand, s.quantity_on_hand, s.reorder_level
@@ -259,5 +269,5 @@ def obtener_metricas_dashboard() -> Dict[str, Any]:
     finally:
         cursor.close()
         conexion.close()
-        
+
     return metrics
