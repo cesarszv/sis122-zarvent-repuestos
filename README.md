@@ -1,6 +1,6 @@
 # Zarvent Repuestos
 
-Proyecto academico para la asignatura `SIS-122` (Base de Datos I) con el
+Proyecto academico para la materia `SIS-122` (Base de Datos I), con el
 profesor *Ismael Antonio Delgado Huanca*.
 
 Realizado por:
@@ -8,206 +8,278 @@ Realizado por:
 - Cesar Sebastian Zambrana Ventura
 - Emanuel Justiniano Peralta
 
-## Objetivo
+## Introduccion
 
-Zarvent Repuestos modela una empresa ficticia de venta de repuestos de
-vehiculos.
+Zarvent Repuestos es un sistema academico para una empresa ficticia que vende
+repuestos de vehiculos.
 
-El objetivo actual del repositorio es **defender el modelo de base de datos**:
+El proyecto busca demostrar como una base de datos relacional puede ordenar la
+informacion principal del negocio: clientes, repuestos, inventario, ventas,
+pagos, proveedores, compras y devoluciones.
+
+El objetivo principal no es hacer una aplicacion grande ni una arquitectura
+avanzada. El objetivo es entender y defender bien el modelo relacional:
 entidades, atributos, claves primarias, claves foraneas, relaciones,
-normalizacion y consultas posibles.
+normalizacion y reglas de negocio.
 
-No estamos intentando demostrar arquitectura de software avanzada. Eso seria
-ruido para este punto del proyecto.
+## Antecedentes
 
-## Alcance actual
+### Descripcion actual del sistema
 
-El modelo cubre:
+En un negocio pequeno de repuestos, muchas tareas pueden hacerse con papel,
+Excel, WhatsApp y memoria del personal.
 
-- clientes
-- proveedores
-- catalogo de repuestos
-- compatibilidad de repuestos con vehiculos
-- stock actual
-- ventas
-- pagos
-- compras
-- devoluciones y garantias
-- reportes derivados de las tablas operativas
+Ese metodo puede funcionar al inicio, pero se vuelve dificil de controlar
+cuando aumentan los clientes, los productos y las ventas. La informacion queda
+separada en varios lugares y no siempre se sabe cual dato es el correcto.
 
-## Stack academico
+En Zarvent Repuestos, el flujo basico del negocio es:
 
-Por exigencia del curso, el gestor elegido es **MySQL Server**.
+1. El cliente consulta por un repuesto.
+2. El vendedor identifica el vehiculo, la pieza o el codigo.
+3. Se revisa si el repuesto existe en el catalogo.
+4. Se valida precio, compatibilidad y stock.
+5. Si el cliente compra, se registra la venta.
+6. Se registra el pago.
+7. El inventario descuenta la cantidad vendida.
+8. Si el stock queda bajo, se planifica una compra al proveedor.
+9. Si hay devolucion o garantia, se revisa contra la venta original.
 
-Por ahora el foco sigue siendo la base de datos. Primero se entiende el modelo;
-despues se escribe cualquier codigo de aplicacion.
+El sistema propuesto centraliza esos datos en MySQL Server y los conecta con
+una aplicacion web basica hecha en Flask.
 
-## Entorno de Python
+## Problema
 
-El proyecto usa **UV** como flujo oficial de Python.
+El problema principal es que los procesos manuales de registro pueden provocar
+datos duplicados, errores en ventas y perdida de informacion importante.
 
-`uv` lee `pyproject.toml` y `uv.lock`, crea o actualiza `.venv/` y ejecuta los
-comandos dentro del entorno del proyecto. No usamos `pip` manual ni `python -m
-venv` como pasos de trabajo del repositorio.
+Cuando clientes, repuestos, precios, pagos y stock se registran en lugares
+separados, el negocio no puede consultar la informacion con confianza.
 
-Las dependencias externas son pocas:
+### Causas
 
-- `mysql-connector-python`: permite conectar Python con MySQL Server.
-- `python-dotenv`: permite leer las credenciales desde `.env`.
-- `bcrypt`: permite trabajar contrasenas con hash.
-- `flask`: permite mostrar una pantalla web simple para el login.
+- Los clientes pueden registrarse mas de una vez.
+- Los repuestos pueden escribirse con nombres o codigos diferentes.
+- El stock puede quedar desactualizado despues de una venta o compra.
+- Los pagos pueden quedar separados de la venta original.
+- Las devoluciones pueden registrarse sin relacion clara con la venta.
+- Los reportes dependen de revisar papeles, planillas o mensajes sueltos.
 
-La aplicacion usa una arquitectura modular simple. La idea es que el arbol diga
-rapido que partes existen y para que sirven:
+### Efectos
 
-- `access`: login, usuarios y contrasenas.
-- `config`: variables de entorno de MySQL y Flask.
-- `crud`: operaciones SQL simples para inventario, clientes y ventas.
-- `database`: conexion tecnica con MySQL.
-- `models`: clases pequenas para representar entidades usadas por la app.
-- `web`: pantalla Flask y archivos visuales.
+- Se pueden vender repuestos sin stock suficiente.
+- Se puede vender una pieza incompatible con el vehiculo del cliente.
+- Se pierde historial de precios y costos.
+- Es dificil saber que productos deben reponerse.
+- La gerencia no tiene reportes rapidos para tomar decisiones.
+- El equipo no puede defender bien la informacion si no hay relaciones claras.
 
-Estructura actual del prototipo:
+## Objetivos
 
-```text
-sis122-zarvent-repuestos/
-|-- src/
-|   `-- zarvent_repuestos/
-|       |-- access/
-|       |   `-- user_service.py
-|       |-- config/
-|       |   `-- db_config.py
-|       |-- crud/
-|       |   |-- customer_crud.py
-|       |   |-- part_crud.py
-|       |   `-- sales_crud.py
-|       |-- database/
-|       |   |-- connection.py
-|       |   `-- init_db.py
-|       |-- models/
-|       `-- web/
-|           |-- app.py
-|           |-- templates/
-|           `-- static/
-|-- scripts/
-|   |-- database/
-|   `-- development/
-|-- database/
-|-- docs/
-`-- .venv/
-```
+### Objetivo general
 
-No hay carpetas vacias para modulos futuros. Cada carpeta debe tener codigo
-real que se pueda explicar en clase.
+Disenar una base de datos relacional en MySQL Server y una aplicacion web
+basica para registrar y consultar informacion operativa de Zarvent Repuestos.
 
-### Setup rapido con UV
+### Objetivos especificos
 
-```powershell
-uv python install 3.14
-uv sync
-uv run python scripts\development\check_python_environment.py
-uv run python -m zarvent_repuestos.web.app
-```
+1. Analizar los actores, procesos, procedimientos y recursos del negocio.
+2. Identificar las entidades principales del sistema y sus relaciones.
+3. Disenar un diagrama entidad-relacion defendible para Base de Datos I.
+4. Traducir el modelo a tablas, claves primarias, claves foraneas y reglas de
+   integridad.
+5. Implementar un prototipo web conectado a MySQL para mostrar login,
+   dashboard, inventario, clientes, ventas, pagos y recibos.
+6. Documentar el proyecto con lenguaje simple para que un estudiante junior
+   pueda explicarlo desde cero.
 
-### Ejecutar la pantalla de login
+## Resultados
 
-Cuando la aplicacion Flask este corriendo, abre:
+### Diagrama entidad-relacion
 
-- `http://127.0.0.1:5000`
-- `http://localhost:5000`
+El proyecto tiene un ERD compacto en:
 
-### Archivo `.env`
+- [`docs/database/erd.md`](docs/database/erd.md)
 
-Crea una copia local de ejemplo:
+El modelo separa conceptos importantes:
 
-```powershell
-Copy-Item .env.example .env
-```
+- `PERSON` no es lo mismo que `CUSTOMER`.
+- `PART` no es lo mismo que `INVENTORY_STOCK`.
+- `SALES_ORDER` no es lo mismo que `PAYMENT`.
+- `PURCHASE_ORDER` no es lo mismo que `PURCHASE_ORDER_ITEM`.
+- `RETURN_ORDER` debe relacionarse con una venta real.
+- `PART_COMPATIBILITY` resuelve la compatibilidad entre repuestos y vehiculos.
 
-Despues edita `.env` con las credenciales reales de MySQL del equipo.
+### Base de datos en MySQL
 
-### Preparar MySQL
-
-La base de datos del proyecto debe llamarse exactamente:
+La base de datos del proyecto se llama:
 
 ```text
 sis122_zarvent_repuestos
 ```
 
-Los scripts estan numerados para poder repetir el proceso paso por paso:
+El esquema conceptual completo se explica en:
 
-```text
-scripts/
-|-- database/
-|   |-- run_mysql_script.py
-|   |-- 001_create_project_database.sql
-|   |-- 002_create_login_users_table.sql
-|   |-- 003_create_mysql_app_users.sql
-|   |-- seed_demo_login_user.py
-|   `-- check_login_database.py
-`-- development/
-    `-- check_python_environment.py
+- [`docs/database/db_explanation.md`](docs/database/db_explanation.md)
+- [`docs/database/erd_explanation.md`](docs/database/erd_explanation.md)
+
+El borrador manual del esquema SQL esta en:
+
+- [`database/schema.sql`](database/schema.sql)
+
+Ese archivo sirve para estudiar el orden de creacion de tablas y completar el
+SQL desde el ERD.
+
+### Codigo SQL y scripts
+
+El repositorio tambien incluye scripts para preparar una base local de
+demostracion:
+
+- [`scripts/database/001_create_project_database.sql`](scripts/database/001_create_project_database.sql)
+- [`scripts/database/002_create_login_users_table.sql`](scripts/database/002_create_login_users_table.sql)
+- [`scripts/database/003_create_mysql_app_users.sql`](scripts/database/003_create_mysql_app_users.sql)
+- [`scripts/database/setup_database.py`](scripts/database/setup_database.py)
+- [`scripts/database/seed_project_data.py`](scripts/database/seed_project_data.py)
+
+Estos scripts ayudan a crear la base, configurar el usuario de la aplicacion y
+cargar datos de prueba.
+
+### Aplicacion web conectada a la base de datos
+
+El prototipo web esta hecho con Flask y se conecta a MySQL usando
+`mysql-connector-python`.
+
+La aplicacion actual permite:
+
+- iniciar sesion con un usuario demo;
+- ver un dashboard operativo;
+- consultar categorias, repuestos y stock;
+- registrar nuevos repuestos;
+- registrar clientes durante una venta;
+- crear ventas con varias lineas;
+- descontar stock en una transaccion;
+- registrar el pago asociado a la venta;
+- generar un recibo simple.
+
+El codigo principal esta en:
+
+- [`src/zarvent_repuestos/web/app.py`](src/zarvent_repuestos/web/app.py)
+- [`src/zarvent_repuestos/database/init_db.py`](src/zarvent_repuestos/database/init_db.py)
+- [`src/zarvent_repuestos/crud`](src/zarvent_repuestos/crud)
+
+Importante: el ERD documentado es mas amplio que el prototipo web actual. El
+prototipo implementa el flujo necesario para demostrar clientes, inventario,
+ventas y pagos. Proveedores, compras completas, compatibilidad vehicular y
+devoluciones quedan documentados como parte del modelo y como mejora futura de
+la aplicacion.
+
+### Documentacion de apoyo
+
+- [`docs/analysis`](docs/analysis): actores, procesos, procedimientos,
+  requerimientos y recursos.
+- [`docs/database`](docs/database): ERD, explicacion de tablas y defensa del
+  modelo.
+- [`docs/getting-started.md`](docs/getting-started.md): guia para levantar el
+  proyecto.
+- [`docs/uv.md`](docs/uv.md): uso de `uv` en el repositorio.
+- [`ARCHITECTURE.md`](ARCHITECTURE.md): estructura simple del codigo.
+
+## Como ejecutar el prototipo
+
+El flujo oficial de Python usa `uv`.
+
+```bash
+uv sync
 ```
 
-Como el comando `mysql` puede no estar en el `PATH`, el repo incluye un
-ejecutor pequeno que usa `mysql-connector-python` y pide la contrasena del
-usuario administrador sin guardarla:
+Copia el archivo de entorno:
+
+```bash
+cp -n .env.example .env
+```
+
+En Windows:
 
 ```powershell
-uv run python scripts\database\run_mysql_script.py scripts\database\001_create_project_database.sql --admin-user root
-uv run python scripts\database\run_mysql_script.py scripts\database\002_create_login_users_table.sql --admin-user root
-uv run python scripts\database\run_mysql_script.py scripts\database\003_create_mysql_app_users.sql --admin-user root
-uv run python scripts\database\seed_demo_login_user.py
-uv run python scripts\database\check_login_database.py
+Copy-Item .env.example .env
 ```
 
-Si prefieres MySQL Workbench, ejecuta estos SQL en el mismo orden:
+Luego revisa que `.env` tenga las credenciales correctas de MySQL:
 
-```sql
-SOURCE scripts/database/001_create_project_database.sql;
-SOURCE scripts/database/002_create_login_users_table.sql;
-SOURCE scripts/database/003_create_mysql_app_users.sql;
+```text
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_NAME=sis122_zarvent_repuestos
+DB_USER=zarvent_app
+DB_PASSWORD=change_me
+FLASK_SECRET_KEY=zarvent-academic-secret-key-122
 ```
 
-El usuario demo queda asi si no pasas argumentos:
+Prepara la base de datos y los datos demo:
+
+```bash
+uv run python scripts/database/setup_database.py
+```
+
+Si estas en Linux y `root` funciona con `sudo mysql`, usa:
+
+```bash
+uv run python scripts/database/setup_database.py --admin-mode sudo-mysql
+```
+
+Inicia Flask:
+
+```bash
+uv run python -m zarvent_repuestos.web.app
+```
+
+Abre:
+
+```text
+http://127.0.0.1:5000
+```
+
+Usuario demo:
 
 ```text
 usuario: admin
 contrasena: admin123
 ```
 
-Despues levanta la app:
+Para una guia mas completa por sistema operativo, revisar
+[`docs/getting-started.md`](docs/getting-started.md).
 
-```powershell
-uv run python -m zarvent_repuestos.web.app
-```
+## Conclusiones
 
-## Documentos principales
+El proyecto logro organizar el problema de Zarvent Repuestos desde el punto de
+vista de Base de Datos I.
 
-- [`ARCHITECTURE.md`](ARCHITECTURE.md): arquitectura simple del codigo y reglas
-  para crecer sin sobreingenieria.
-- [`docs/database/erd.md`](docs/database/erd.md): diagrama ERD compacto.
-- [`docs/database/db_explanation.md`](docs/database/db_explanation.md):
-  explicacion tabla por tabla.
-- [`docs/database/erd_explanation.md`](docs/database/erd_explanation.md):
-  defensa profunda del modelo.
-- [`docs/database/erd_business_research.md`](docs/database/erd_business_research.md):
-  justificacion del ERD desde el negocio.
-- [`docs/analysis`](docs/analysis): actores, procesos, procedimientos,
-  requerimientos y recursos.
-- [`docs/getting-started.md`](docs/getting-started.md): guia paso a paso para
-  levantar el proyecto en Linux, MacOS y Windows.
-- [`docs/uv.md`](docs/uv.md): explicacion de como usamos `uv` en el proyecto.
-- [`docs/deployment`](docs/deployment): guias cortas por sistema operativo.
-- [`database/schema.sql`](database/schema.sql): borrador manual del esquema SQL
-  a completar en MySQL.
+El aporte principal es el modelo relacional: cada tabla nace de un proceso real
+y cada relacion protege una regla del negocio. Por eso el sistema puede
+explicar mejor clientes, repuestos, stock, ventas, pagos, compras y
+devoluciones.
 
-## Como trabajar este repo
+Tambien se implemento un prototipo web conectado a MySQL. Este prototipo no
+reemplaza la defensa del ERD, pero ayuda a mostrar que la base de datos puede
+usarse desde una aplicacion real.
 
-1. Lee primero `docs/analysis`.
-2. Estudia el ERD en `docs/database/erd.md`.
-3. Revisa la explicacion tabla por tabla.
-4. Escribe el SQL manualmente en `database/schema.sql`.
-5. Valida cada tabla entendiendo que regla del negocio protege.
+La mejora futura mas importante es completar la aplicacion para todas las
+entidades del ERD, especialmente proveedores, compras, compatibilidad vehicular,
+devoluciones y movimientos historicos de inventario.
 
-La regla es simple: si no puedes explicar una tabla, no la metas.
+## Bibliografia
+
+- Chen, Peter P. *The Entity-Relationship Model: Toward a Unified View of
+  Data*. ACM, 1976. <https://dl.acm.org/doi/10.1145/320434.320440>
+- Codd, E. F. *A Relational Model of Data for Large Shared Data Banks*. IBM,
+  1970. <https://research.ibm.com/publications/a-relational-model-of-data-for-large-shared-data-banks>
+- Oracle. *MySQL 8.4 Reference Manual*.
+  <https://dev.mysql.com/doc/refman/8.4/en/>
+- Oracle. *MySQL Connector/Python Developer Guide*.
+  <https://dev.mysql.com/doc/connector-python/en/>
+- Python Software Foundation. *Python Documentation*.
+  <https://docs.python.org/3/>
+- Pallets. *Flask Documentation*.
+  <https://flask.palletsprojects.com/>
+- Astral. *uv Documentation*. <https://docs.astral.sh/uv/>
+- Python Package Index. *bcrypt*. <https://pypi.org/project/bcrypt/>
