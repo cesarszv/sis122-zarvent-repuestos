@@ -15,5 +15,38 @@ dependencies = [
     "python-dotenv>=1.2.1",
 ]
 
+[project.optional-dependencies]
+# Lightweight dev tools: pytest for unit tests, ruff for linting.
+# Run `uv sync --extra dev` to install.
+dev = [
+    "pytest>=8.0",
+    "ruff>=0.5",
+]
+
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.pytest.ini_options]
+# Discover tests from the tests/ directory using pytest's default
+# file discovery (test_*.py). We keep the unittest-style tests so
+# the project also runs under `python -m unittest`.
+# `pythonpath=["."]` lets tests/ import scripts.* (e.g. the
+# build_admin_sql test imports scripts.database.setup_database).
+# Package imports from src/ work because uv adds src/ to sys.path
+# automatically when running from the project root.
+testpaths = ["tests"]
+pythonpath = ["."]
+addopts = "-q"
+
+[tool.ruff]
+# Minimal config: only the default ruleset, line length tuned for
+# the project's existing layout.
+line-length = 100
+target-version = "py39"
+src = ["src", "tests", "scripts"]
+
+[tool.ruff.lint.per-file-ignores]
+# Scripts under scripts/ are CLI entry points that adjust sys.path
+# before importing project modules. That ordering is required for
+# `uv run python scripts/...` to work, so we silence E402 there.
+"scripts/**" = ["E402"]

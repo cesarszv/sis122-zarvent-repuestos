@@ -1,4 +1,10 @@
-"""Domain models representing PartCategory, Part, and InventoryStock entities."""
+"""Domain models for the Part and PartCategory entities.
+
+These classes exist because the inventory route in app.py and the
+seed script instantiate ``Part`` directly. ``PartCategory`` is
+returned as a typed object by ``part_crud.listar_categorias`` so
+templates can use attribute access.
+"""
 
 class PartCategory:
     def __init__(self, name, description=None, part_category_id=None):
@@ -30,19 +36,3 @@ class Part:
 
     def __str__(self):
         return f"[{self.internal_code}] {self.name} - {self.brand or 'Generic'}"
-
-
-class InventoryStock:
-    def __init__(self, part_id, location_name, quantity_on_hand=0, reorder_level=10,
-                 inventory_stock_id=None, part=None):
-        self.inventory_stock_id = inventory_stock_id
-        self.part_id = part_id
-        self.location_name = location_name
-        self.quantity_on_hand = quantity_on_hand
-        self.reorder_level = reorder_level
-        # Relation
-        self.part = part
-
-    def __str__(self):
-        part_name = self.part.name if self.part else f"Part ID {self.part_id}"
-        return f"{part_name} at {self.location_name}: {self.quantity_on_hand} units"

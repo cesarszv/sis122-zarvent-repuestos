@@ -1,10 +1,14 @@
 """CRUD operations for parts, categories, and inventory stock."""
 
+import logging
 import mysql.connector
-from typing import List, Optional, Tuple, Dict, Any
+from typing import List, Optional, Dict, Any
 
 from zarvent_repuestos.database.connection import get_database_connection
-from zarvent_repuestos.models.part import Part, PartCategory, InventoryStock
+from zarvent_repuestos.models.part import Part, PartCategory
+
+
+logger = logging.getLogger(__name__)
 
 
 # --- CATEGORY CRUD ---
@@ -19,7 +23,7 @@ def crear_categoria(name: str, description: str = None) -> bool:
         return True
     except mysql.connector.Error as err:
         conexion.rollback()
-        print("❌ Error al crear categoría:", err)
+        logger.error("Error al crear categoría: %s", err)
         return False
     finally:
         cursor.close()
@@ -40,7 +44,7 @@ def listar_categorias() -> List[PartCategory]:
                 description=row["description"]
             ))
     except mysql.connector.Error as err:
-        print("❌ Error al listar categorías:", err)
+        logger.error("Error al listar categorías: %s", err)
     finally:
         cursor.close()
         conexion.close()
@@ -87,66 +91,7 @@ def crear_producto(part: Part, initial_stock: int = 0, location: str = "Aisle 1"
         return True
     except mysql.connector.Error as err:
         conexion.rollback()
-        print("❌ Error al crear producto con stock:", err)
-        return False
-    finally:
-        cursor.close()
-        conexion.close()
-
-
-def actualizar_producto(part_id: int, part_category_id: int, internal_code: str, oem_code: str,
-                        name: str, brand: str, sale_price: float, purchase_cost: float,
-                        warranty_days: int, status: str, stock_qty: Optional[int] = None) -> bool:
-    """Updates part details and optionally its current stock quantity."""
-    conexion = get_database_connection()
-    cursor = conexion.cursor()
-
-    sql_part = """
-    UPDATE part
-    SET part_category_id=%s, internal_code=%s, oem_code=%s, name=%s, brand=%s,
-        sale_price=%s, purchase_cost=%s, warranty_days=%s, status=%s
-    WHERE part_id=%s
-    """
-
-    sql_stock = """
-    UPDATE inventory_stock
-    SET quantity_on_hand=%s
-    WHERE part_id=%s
-    """
-
-    try:
-        # Update part details
-        cursor.execute(sql_part, (
-            part_category_id, internal_code, oem_code, name, brand,
-            sale_price, purchase_cost, warranty_days, status, part_id
-        ))
-
-        # Optionally update stock qty
-        if stock_qty is not None:
-            cursor.execute(sql_stock, (stock_qty, part_id))
-
-        conexion.commit()
-        return True
-    except mysql.connector.Error as err:
-        conexion.rollback()
-        print("❌ Error al actualizar producto:", err)
-        return False
-    finally:
-        cursor.close()
-        conexion.close()
-
-
-def eliminar_producto(part_id: int) -> bool:
-    conexion = get_database_connection()
-    cursor = conexion.cursor()
-    sql = "DELETE FROM part WHERE part_id=%s"
-    try:
-        cursor.execute(sql, (part_id,))
-        conexion.commit()
-        return cursor.rowcount > 0
-    except mysql.connector.Error as err:
-        conexion.rollback()
-        print("❌ Error al eliminar producto:", err)
+        logger.error("Error al crear producto con stock: %s", err)
         return False
     finally:
         cursor.close()
@@ -192,7 +137,7 @@ def listar_productos(search: Optional[str] = None, category_id: Optional[int] = 
         cursor.execute(sql, tuple(params))
         products = cursor.fetchall()
     except mysql.connector.Error as err:
-        print("❌ Error al buscar productos:", err)
+        logger.error("Error al buscar productos: %s", err)
     finally:
         cursor.close()
         conexion.close()
@@ -209,31 +154,8 @@ def obtener_marcas() -> List[str]:
         cursor.execute(sql)
         brands = [row[0] for row in cursor.fetchall()]
     except mysql.connector.Error as err:
-        print("❌ Error al obtener marcas:", err)
+        logger.error("Error al obtener marcas: %s", err)
     finally:
         cursor.close()
         conexion.close()
     return brands
-
-
-def obtener_alertas_stock() -> List[Dict[str, Any]]:
-    """Retrieves products whose stock is at or below the reorder level."""
-    conexion = get_database_connection()
-    cursor = conexion.cursor(dictionary=True)
-    sql = """
-    SELECT p.part_id, p.internal_code, p.name, p.brand, s.quantity_on_hand, s.reorder_level
-    FROM part p
-    JOIN inventory_stock s ON p.part_id = s.part_id
-    WHERE s.quantity_on_hand <= s.reorder_level
-    ORDER BY s.quantity_on_hand ASC
-    """
-    alerts = []
-    try:
-        cursor.execute(sql)
-        alerts = cursor.fetchall()
-    except mysql.connector.Error as err:
-        print("❌ Error al obtener alertas de stock:", err)
-    finally:
-        cursor.close()
-        conexion.close()
-    return alerts

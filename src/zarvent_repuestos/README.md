@@ -113,11 +113,7 @@ Hace estas tareas:
 - protege contrasenas con `bcrypt`;
 - compara la contrasena escrita en el login con la contrasena guardada;
 - crea usuarios;
-- autentica usuarios;
-- lista usuarios;
-- busca usuarios por ID;
-- actualiza usuarios;
-- elimina usuarios.
+- autentica usuarios.
 
 La funcion mas importante para la demo es `authenticate_user()`.
 
@@ -164,6 +160,7 @@ Ese diccionario se usa cuando Python necesita abrir una conexion con MySQL.
 crud/
 |-- customer_crud.py
 |-- part_crud.py
+|-- purchase_crud.py
 +-- sales_crud.py
 ```
 
@@ -222,10 +219,8 @@ Sirve para:
 - listar categorias;
 - crear repuestos;
 - guardar stock inicial;
-- actualizar repuestos;
 - listar repuestos con filtros;
-- obtener marcas;
-- ver alertas de stock bajo.
+- obtener marcas.
 
 Relacion principal:
 
@@ -352,9 +347,7 @@ Python, esas funciones ejecutan SQL, y MySQL responde.
 
 ```text
 models/
-|-- customer.py
-|-- part.py
-+-- sales_order.py
++-- part.py
 ```
 
 Esta carpeta contiene clases simples del negocio.
@@ -363,27 +356,6 @@ Una clase de modelo representa un objeto importante en Python.
 
 No son tablas por si solas. Solo ayudan a ordenar datos antes de guardarlos o
 mostrarlos.
-
-### `models/customer.py`
-
-```text
-models/
-+-- customer.py
-```
-
-Define:
-
-- `Person`: persona con nombre, apellido, documento, telefono, correo y
-  direccion.
-- `Customer`: persona registrada como cliente del negocio.
-
-Idea importante:
-
-```text
-persona != cliente
-```
-
-Una persona guarda datos personales. Un cliente participa en ventas.
 
 ### `models/part.py`
 
@@ -396,38 +368,15 @@ Define:
 
 - `PartCategory`: categoria del repuesto.
 - `Part`: repuesto del catalogo.
-- `InventoryStock`: cantidad y ubicacion del repuesto.
 
 Relacion principal:
 
 ```text
-categoria -> repuesto -> stock
+categoria -> repuesto -> stock (en inventario, no como clase)
 ```
 
-La categoria ordena productos. El stock se separa porque una cosa es el
-repuesto y otra cosa es cuantas unidades hay.
-
-### `models/sales_order.py`
-
-```text
-models/
-+-- sales_order.py
-```
-
-Define:
-
-- `SalesOrder`: cabecera de la venta.
-- `SalesOrderItem`: linea o detalle de la venta.
-- `Payment`: pago asociado a la venta.
-
-Relacion principal:
-
-```text
-venta -> items de venta -> pago
-```
-
-Una venta puede tener varios repuestos. Por eso los items van separados de la
-cabecera de la venta.
+La categoria ordena productos. El stock se trabaja con columnas crudas
+devueltas por las consultas SQL, sin una clase propia en Python.
 
 ## `web/`
 

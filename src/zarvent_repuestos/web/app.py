@@ -1,7 +1,10 @@
 """Flask web interface for the Zarvent Repuestos prototype."""
 
 import json
+import logging
 import os
+from functools import wraps
+
 from flask import Flask, render_template, request, redirect, url_for, session, flash, abort, jsonify
 
 from zarvent_repuestos.access.user_service import authenticate_user
@@ -20,10 +23,23 @@ from zarvent_repuestos.models.part import Part
 
 
 app = Flask(__name__)
-app.secret_key = os.getenv("FLASK_SECRET_KEY", "zarvent-academic-secret-key-122")
+# Default SECRET_KEY is for local development only. Production/demo servers
+# must set FLASK_SECRET_KEY to a strong, random value via the environment.
+app.config["SECRET_KEY"] = os.getenv("FLASK_SECRET_KEY", "zarvent-academic-secret-key-122")
 # Reload Jinja templates on every request so template edits are picked up
 # without restarting the process. Safe in development with --no-reload.
 app.config["TEMPLATES_AUTO_RELOAD"] = True
+
+
+logger = logging.getLogger(__name__)
+# Configure root logging once. Defaults to INFO so that flow logs
+# (e.g. "Venta #N guardada con éxito") are visible, and ERROR/WARNING
+# messages from CRUDs propagate. Override with LOG_LEVEL=DEBUG for
+# verbose output during the defense demo.
+logging.basicConfig(
+    level=os.getenv("LOG_LEVEL", "INFO"),
+    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+)
 
 
 # Ensure MySQL tables exist (idempotent via CREATE TABLE IF NOT EXISTS) so the app
@@ -33,7 +49,7 @@ app.config["TEMPLATES_AUTO_RELOAD"] = True
 try:
     crear_tablas()
 except Exception as _init_error:
-    print(f"⚠️ No se pudieron crear/verificar las tablas al iniciar: {_init_error}")
+    logger.warning("No se pudieron crear/verificar las tablas al iniciar: %s", _init_error)
 
 
 @app.before_request
@@ -52,7 +68,6 @@ def release_sql_trace_request_context(_error=None):
 
 def login_required(f):
     """Decorator to require login on private routes."""
-    from functools import wraps
     @wraps(f)
     def decorated_function(*args, **kwargs):
         if "user_id" not in session:
@@ -515,4 +530,5 @@ def receive_purchase(purchase_order_id):
 
 if __name__ == "__main__":
     # Tables were already ensured at module load; just start Flask here.
-    app.run(debug=True)
+    # Debug mode is opt-in via FLASK_DEBUG=1 so the default is safe for demos.
+    app.run(debug=os.getenv("FLASK_DEBUG", "0") == "1")

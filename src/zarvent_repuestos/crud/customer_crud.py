@@ -1,10 +1,13 @@
 """CRUD operations for Customers and Persons."""
 
+import logging
 import mysql.connector
 from typing import List, Optional, Dict, Any
 
 from zarvent_repuestos.database.connection import get_database_connection
-from zarvent_repuestos.models.customer import Customer, Person
+
+
+logger = logging.getLogger(__name__)
 
 
 class CustomerHasSalesError(Exception):
@@ -68,7 +71,7 @@ def crear_cliente(first_name: str, last_name: str, identity_number: str,
         return True
     except mysql.connector.Error as err:
         conexion.rollback()
-        print("❌ Error al crear cliente:", err)
+        logger.error("Error al crear cliente: %s", err)
         return False
     finally:
         cursor.close()
@@ -105,7 +108,7 @@ def listar_clientes(search: Optional[str] = None) -> List[Dict[str, Any]]:
         cursor.execute(sql, tuple(params))
         customers = cursor.fetchall()
     except mysql.connector.Error as err:
-        print("❌ Error al listar clientes:", err)
+        logger.error("Error al listar clientes: %s", err)
     finally:
         cursor.close()
         conexion.close()
@@ -130,7 +133,7 @@ def buscar_cliente_por_doc(identity_number: str) -> Optional[Dict[str, Any]]:
         cursor.execute(sql, (identity_number,))
         customer = cursor.fetchone()
     except mysql.connector.Error as err:
-        print("❌ Error al buscar cliente:", err)
+        logger.error("Error al buscar cliente: %s", err)
     finally:
         cursor.close()
         conexion.close()
@@ -155,7 +158,7 @@ def get_customer(customer_id: int) -> Optional[Dict[str, Any]]:
         cursor.execute(sql, (customer_id,))
         customer = cursor.fetchone()
     except mysql.connector.Error as err:
-        print("❌ Error al obtener cliente:", err)
+        logger.error("Error al obtener cliente: %s", err)
     finally:
         cursor.close()
         conexion.close()
@@ -199,7 +202,7 @@ def update_customer(customer_id: int, first_name: str, last_name: str,
         return True
     except mysql.connector.Error as err:
         conexion.rollback()
-        print("❌ Error al actualizar cliente:", err)
+        logger.error("Error al actualizar cliente: %s", err)
         return False
     finally:
         cursor.close()
@@ -231,7 +234,7 @@ def delete_customer(customer_id: int) -> bool:
             # truthful error message.
             fresh_count = _count_customer_sales(customer_id)
             raise CustomerHasSalesError(customer_id, fresh_count) from err
-        print("❌ Error al eliminar cliente:", err)
+        logger.error("Error al eliminar cliente: %s", err)
         return False
     finally:
         cursor.close()

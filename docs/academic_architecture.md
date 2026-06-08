@@ -61,17 +61,19 @@ Usuario (navegador)
 
 ### Capa de Modelos
 
-- **`src/zarvent_repuestos/models/`** (`customer.py`, `part.py`,
-  `sales_order.py`)
+- **`src/zarvent_repuestos/models/`** (`part.py`)
   - Contiene clases simples de Python para representar entidades usadas por la
     aplicación.
   - No reemplaza al modelo relacional. Solo ayuda a pasar datos dentro del
     código.
+  - `Part` se usa al registrar repuestos y `PartCategory` al listar
+    categorías; el resto del flujo trabaja con `dict` planos devueltos por
+    las consultas SQL.
 
 ### Capa CRUD
 
 - **`src/zarvent_repuestos/crud/`** (`part_crud.py`, `customer_crud.py`,
-  `sales_crud.py`)
+  `sales_crud.py`, `purchase_crud.py`)
   - Contiene operaciones SQL para inventario, clientes y ventas.
   - Usa SQL parametrizado con `%s`, no concatenación de valores del usuario.
   - Cada función abre conexión, ejecuta, confirma o revierte, y cierra recursos.

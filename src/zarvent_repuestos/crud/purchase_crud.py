@@ -1,10 +1,14 @@
 """CRUD and transactional operations for suppliers, purchase orders, and stock reception."""
 
 import datetime
+import logging
 import mysql.connector
 from typing import Any, Dict, List, Optional
 
 from zarvent_repuestos.database.connection import get_database_connection
+
+
+logger = logging.getLogger(__name__)
 
 
 def _today_date() -> datetime.date:
@@ -42,7 +46,7 @@ def create_supplier(business_name: str, tax_id: str, phone: Optional[str] = None
         return cursor.lastrowid
     except mysql.connector.Error as err:
         conexion.rollback()
-        print("❌ Error al crear proveedor:", err)
+        logger.error("Error al crear proveedor: %s", err)
         return None
     finally:
         cursor.close()
@@ -65,7 +69,7 @@ def list_suppliers(active_only: bool = True) -> List[Dict[str, Any]]:
         cursor.execute(sql)
         rows = cursor.fetchall()
     except mysql.connector.Error as err:
-        print("❌ Error al listar proveedores:", err)
+        logger.error("Error al listar proveedores: %s", err)
     finally:
         cursor.close()
         conexion.close()
@@ -86,7 +90,7 @@ def get_supplier(supplier_id: int) -> Optional[Dict[str, Any]]:
         cursor.execute(sql, (supplier_id,))
         row = cursor.fetchone()
     except mysql.connector.Error as err:
-        print("❌ Error al obtener proveedor:", err)
+        logger.error("Error al obtener proveedor: %s", err)
     finally:
         cursor.close()
         conexion.close()
@@ -159,7 +163,7 @@ def create_purchase_order(supplier_id: int, expected_date: Optional[str],
         return purchase_order_id
     except (mysql.connector.Error, ValueError) as err:
         conexion.rollback()
-        print("❌ Error al crear orden de compra:", err)
+        logger.error("Error al crear orden de compra: %s", err)
         raise
     finally:
         cursor.close()
@@ -188,7 +192,7 @@ def list_purchase_orders(status: Optional[str] = None) -> List[Dict[str, Any]]:
         cursor.execute(sql, tuple(params))
         rows = cursor.fetchall()
     except mysql.connector.Error as err:
-        print("❌ Error al listar órdenes de compra:", err)
+        logger.error("Error al listar órdenes de compra: %s", err)
     finally:
         cursor.close()
         conexion.close()
@@ -223,7 +227,7 @@ def get_purchase_order_details(purchase_order_id: int) -> Optional[Dict[str, Any
         order["items"] = cursor.fetchall()
         return order
     except mysql.connector.Error as err:
-        print("❌ Error al obtener detalles de orden de compra:", err)
+        logger.error("Error al obtener detalles de orden de compra: %s", err)
         return None
     finally:
         cursor.close()
@@ -319,7 +323,7 @@ def receive_purchase_order(purchase_order_id: int,
         return get_purchase_order_details(purchase_order_id)
     except (mysql.connector.Error, ValueError) as err:
         conexion.rollback()
-        print("❌ Error al recibir orden de compra:", err)
+        logger.error("Error al recibir orden de compra: %s", err)
         raise
     finally:
         cursor.close()

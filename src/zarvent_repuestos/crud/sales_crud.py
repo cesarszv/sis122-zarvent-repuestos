@@ -1,10 +1,14 @@
 """CRUD and transactional operations for sales orders, items, payments, and dashboard metrics."""
 
 import datetime
+import logging
 import mysql.connector
 from typing import List, Optional, Dict, Any
 
 from zarvent_repuestos.database.connection import get_database_connection
+
+
+logger = logging.getLogger(__name__)
 
 
 def crear_orden_venta(customer_id: int, items: List[Dict[str, Any]], payment_method: str) -> Optional[int]:
@@ -15,8 +19,7 @@ def crear_orden_venta(customer_id: int, items: List[Dict[str, Any]], payment_met
     `items` format: [{"part_id": 1, "quantity": 2, "unit_price": 12.00, "discount_amount": 0.00}]
     """
     if not items:
-        print("❌ No se enviaron ítems en la venta.")
-        return None
+        raise ValueError("La orden de venta debe tener al menos un ítem.")
 
     # Validate client-provided values before opening a database transaction.
     subtotal = 0.0
@@ -104,12 +107,12 @@ def crear_orden_venta(customer_id: int, items: List[Dict[str, Any]], payment_met
         cursor.execute(sql_payment, (sales_order_id, order_date, payment_method, total_amount, ref_num, "Completed"))
 
         conexion.commit()
-        print(f"✅ Venta #{sales_order_id} guardada con éxito.")
+        logger.info("Venta #%s guardada con éxito.", sales_order_id)
         return sales_order_id
 
     except (mysql.connector.Error, ValueError) as err:
         conexion.rollback()
-        print("❌ Error en la transacción de venta:", err)
+        logger.error("Error en la transacción de venta: %s", err)
         raise err
     finally:
         cursor.close()
@@ -151,7 +154,7 @@ def listar_ordenes_venta(status: Optional[str] = None, start_date: Optional[str]
         cursor.execute(sql, tuple(params))
         orders = cursor.fetchall()
     except mysql.connector.Error as err:
-        print("❌ Error al listar ventas:", err)
+        logger.error("Error al listar ventas: %s", err)
     finally:
         cursor.close()
         conexion.close()
@@ -193,7 +196,7 @@ def obtener_detalles_orden(sales_order_id: int) -> Optional[Dict[str, Any]]:
 
         return order
     except mysql.connector.Error as err:
-        print("❌ Error al obtener detalles de venta:", err)
+        logger.error("Error al obtener detalles de venta: %s", err)
         return None
     finally:
         cursor.close()
@@ -265,7 +268,7 @@ def obtener_metricas_dashboard() -> Dict[str, Any]:
         metrics["low_stock_items"] = cursor.fetchall()
 
     except mysql.connector.Error as err:
-        print("❌ Error al obtener métricas del dashboard:", err)
+        logger.error("Error al obtener métricas del dashboard: %s", err)
     finally:
         cursor.close()
         conexion.close()

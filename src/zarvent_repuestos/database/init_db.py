@@ -1,8 +1,13 @@
 """Database and tables initialization script following the project's ERD schema."""
 
+import logging
+
 import mysql.connector
 from zarvent_repuestos.config.db_config import DB_CONFIG
 from zarvent_repuestos.database.connection import get_database_connection
+
+
+logger = logging.getLogger(__name__)
 
 
 def initialize_database():
@@ -16,7 +21,7 @@ def initialize_database():
         return True
     except mysql.connector.Error as err:
         if getattr(err, "errno", None) != 1049:
-            print("❌ Error al conectar con la base de datos:", err)
+            logger.error("Error al conectar con la base de datos: %s", err)
             return False
 
     temp_config = DB_CONFIG.copy()
@@ -35,7 +40,7 @@ def initialize_database():
         print(f"📦 Base de datos '{db_name}' verificada/creada.")
         return True
     except mysql.connector.Error as err:
-        print("❌ Error al crear la base de datos:", err)
+        logger.error("Error al crear la base de datos: %s", err)
         return False
 
 
@@ -47,7 +52,7 @@ def crear_tablas():
     try:
         conexion = get_database_connection()
     except mysql.connector.Error as err:
-        print("❌ Error de conexión al crear tablas:", err)
+        logger.error("Error de conexión al crear tablas: %s", err)
         return False
 
     cursor = conexion.cursor()
