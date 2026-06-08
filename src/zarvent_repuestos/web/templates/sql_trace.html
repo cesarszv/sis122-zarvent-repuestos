@@ -55,6 +55,22 @@
 
     <div class="grid grid-cols-1 xl:grid-cols-[300px_1fr] gap-5">
         <aside class="space-y-4">
+            <div id="trace-summary" class="bg-cold-white border border-steel-gray rounded p-4 text-workshop-black hidden">
+                <h3 class="text-xs font-extrabold uppercase tracking-wider mb-3">Resumen</h3>
+                <div class="flex flex-wrap items-center gap-5 mb-3">
+                    <div>
+                        <p class="text-xs uppercase tracking-wider text-industrial-gray">Total</p>
+                        <p id="summary-total" class="text-2xl font-extrabold">0</p>
+                    </div>
+                    <div>
+                        <p class="text-xs uppercase tracking-wider text-industrial-gray">Errores</p>
+                        <p id="summary-errors" class="text-2xl font-extrabold text-error">0</p>
+                    </div>
+                </div>
+                <p class="text-xs uppercase tracking-wider text-industrial-gray mb-2">Tablas más usadas</p>
+                <div id="summary-tables" class="flex flex-wrap gap-2"></div>
+            </div>
+
             <div class="bg-pure-white border border-steel-gray rounded p-4">
                 <h3 class="text-xs font-extrabold uppercase tracking-wider text-workshop-black mb-3">Operaciones</h3>
                 <div id="operation-bars" class="space-y-3"></div>
@@ -67,6 +83,8 @@
                     <button data-filter="SELECT" class="trace-filter rounded border border-steel-gray bg-pure-white text-workshop-black text-xs font-bold py-2">SELECT</button>
                     <button data-filter="INSERT" class="trace-filter rounded border border-steel-gray bg-pure-white text-workshop-black text-xs font-bold py-2">INSERT</button>
                     <button data-filter="UPDATE" class="trace-filter rounded border border-steel-gray bg-pure-white text-workshop-black text-xs font-bold py-2">UPDATE</button>
+                    <button data-filter="DELETE" class="trace-filter rounded border border-steel-gray bg-pure-white text-workshop-black text-xs font-bold py-2">DELETE</button>
+                    <button data-filter="ERROR" class="trace-filter rounded border border-steel-gray bg-pure-white text-workshop-black text-xs font-bold py-2">ERROR</button>
                 </div>
             </div>
 
@@ -104,6 +122,10 @@
     const defenseReadout = document.getElementById("defense-readout");
     const visibleCount = document.getElementById("visible-count");
     const filterButtons = document.querySelectorAll(".trace-filter");
+    const traceSummary = document.getElementById("trace-summary");
+    const summaryTotal = document.getElementById("summary-total");
+    const summaryErrors = document.getElementById("summary-errors");
+    const summaryTables = document.getElementById("summary-tables");
 
     let currentFilter = "ALL";
     let paused = false;
@@ -137,7 +159,32 @@
         if (currentFilter === "ALL") {
             return entries;
         }
+        if (currentFilter === "ERROR") {
+            return entries.filter((entry) => entry.status === "ERROR");
+        }
         return entries.filter((entry) => operationBase(entry) === currentFilter);
+    }
+
+    function renderSummary(summary) {
+        if (!summary) {
+            traceSummary.classList.add("hidden");
+            return;
+        }
+        traceSummary.classList.remove("hidden");
+        summaryTotal.textContent = summary.total || 0;
+        summaryErrors.textContent = summary.errors || 0;
+
+        const tables = summary.tables || {};
+        const entries = Object.entries(tables);
+        if (!entries.length) {
+            summaryTables.innerHTML = `<span class="text-xs text-industrial-gray">Sin tablas registradas.</span>`;
+            return;
+        }
+        summaryTables.innerHTML = entries.map(([name, count]) => `
+            <span class="text-xs font-bold uppercase tracking-wider px-2 py-1 rounded bg-pure-white border border-steel-gray text-workshop-black">
+                ${escapeHtml(name)} <span class="text-industrial-gray">(${escapeHtml(count)})</span>
+            </span>
+        `).join("");
     }
 
     function renderOperationBars(entries) {
@@ -262,9 +309,12 @@
 
         try {
             const response = await fetch("/api/sql-trace");
-            const entries = await response.json();
+            const data = await response.json();
+            const entries = Array.isArray(data) ? data : (data.entries || []);
+            const summary = Array.isArray(data) ? null : (data.summary || null);
             cachedEntries = entries;
             renderTrace(cachedEntries);
+            renderSummary(summary);
             traceStatus.textContent = "En vivo";
             traceStatus.className = "text-xs font-bold uppercase tracking-wider px-3 py-2 rounded bg-green-50 text-green-700 border border-green-200";
         } catch (error) {
@@ -299,6 +349,7 @@
         await fetch("/api/sql-trace/clear", { method: "POST" });
         cachedEntries = [];
         renderTrace(cachedEntries);
+        renderSummary({ total: 0, errors: 0, operations: {}, tables: {} });
         if (!paused) {
             await loadTrace();
         }

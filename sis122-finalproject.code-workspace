@@ -98,7 +98,8 @@
     // --- SQL ---
     "[sql]": {
       "editor.tabSize": 2
-    }
+    },
+    "liveServer.settings.multiRootWorkspaceName": "App Package"
   },
 
   "extensions": {

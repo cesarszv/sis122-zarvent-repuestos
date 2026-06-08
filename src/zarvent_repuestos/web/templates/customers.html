@@ -1,0 +1,237 @@
+{% extends "layout.html" %}
+
+{% block title %}Gestión de Clientes{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto space-y-6">
+    <!-- Header Section -->
+    <div class="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 mb-2">
+        <div class="flex-1">
+            <h2 class="text-4xl font-extrabold text-workshop-black tracking-tight mb-1">Clientes</h2>
+            <p class="text-base text-industrial-gray">Administra los clientes registrados, sus datos de contacto y de facturación.</p>
+        </div>
+        {% if not editing %}
+        <button onclick="toggleModal('add-customer-modal', true)" class="bg-zarvent-red text-pure-white font-semibold py-2.5 px-6 flex items-center gap-2 hover:bg-opacity-90 transition-all rounded shadow-sm">
+            <span class="material-symbols-outlined text-[18px]">add</span>
+            Nuevo Cliente
+        </button>
+        {% endif %}
+    </div>
+
+    {% if editing %}
+    <!-- Edit Customer Section (Full Width, no modal) -->
+    <div class="bg-pure-white border border-steel-gray rounded shadow-sm">
+        <div class="px-6 py-4 border-b border-steel-gray flex flex-col md:flex-row md:justify-between md:items-center gap-3">
+            <h3 class="text-lg font-bold text-workshop-black tracking-tight uppercase">Editar Cliente</h3>
+            <span class="inline-flex items-center gap-1 bg-zarvent-red text-pure-white text-xs font-bold uppercase tracking-wider px-3 py-1 rounded">
+                <span class="material-symbols-outlined text-[14px]">edit</span>
+                Editando cliente #{{ editing.customer_id }}
+            </span>
+        </div>
+
+        <form method="post" action="/customers/{{ editing.customer_id }}/edit" class="p-6 space-y-4">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <!-- First Name -->
+                <div>
+                    <label class="block text-xs font-bold uppercase tracking-wider text-industrial-gray mb-1" for="edit_first_name">Nombres</label>
+                    <input id="edit_first_name" name="first_name" required value="{{ editing.first_name or '' }}" class="w-full bg-cold-white border border-steel-gray focus:border-zarvent-red focus:ring-1 focus:ring-zarvent-red p-2.5 rounded text-sm text-workshop-black" type="text" placeholder="Ej. Carlos"/>
+                </div>
+
+                <!-- Last Name -->
+                <div>
+                    <label class="block text-xs font-bold uppercase tracking-wider text-industrial-gray mb-1" for="edit_last_name">Apellidos</label>
+                    <input id="edit_last_name" name="last_name" required value="{{ editing.last_name or '' }}" class="w-full bg-cold-white border border-steel-gray focus:border-zarvent-red focus:ring-1 focus:ring-zarvent-red p-2.5 rounded text-sm text-workshop-black" type="text" placeholder="Ej. Pérez Mamani"/>
+                </div>
+
+                <!-- Identity Number -->
+                <div>
+                    <label class="block text-xs font-bold uppercase tracking-wider text-industrial-gray mb-1" for="edit_identity_number">Documento de Identidad (CI/NIT)</label>
+                    <input id="edit_identity_number" name="identity_number" required value="{{ editing.identity_number or '' }}" class="w-full bg-cold-white border border-steel-gray focus:border-zarvent-red focus:ring-1 focus:ring-zarvent-red p-2.5 rounded text-sm text-workshop-black font-mono" type="text" placeholder="Ej. 1029381"/>
+                </div>
+
+                <!-- Phone -->
+                <div>
+                    <label class="block text-xs font-bold uppercase tracking-wider text-industrial-gray mb-1" for="edit_phone">Teléfono</label>
+                    <input id="edit_phone" name="phone" value="{{ editing.phone or '' }}" class="w-full bg-cold-white border border-steel-gray focus:border-zarvent-red focus:ring-1 focus:ring-zarvent-red p-2.5 rounded text-sm text-workshop-black" type="text" placeholder="Ej. 70123456"/>
+                </div>
+
+                <!-- Email -->
+                <div>
+                    <label class="block text-xs font-bold uppercase tracking-wider text-industrial-gray mb-1" for="edit_email">Correo Electrónico</label>
+                    <input id="edit_email" name="email" value="{{ editing.email or '' }}" class="w-full bg-cold-white border border-steel-gray focus:border-zarvent-red focus:ring-1 focus:ring-zarvent-red p-2.5 rounded text-sm text-workshop-black" type="email" placeholder="Ej. cliente@correo.com"/>
+                </div>
+
+                <!-- Address -->
+                <div>
+                    <label class="block text-xs font-bold uppercase tracking-wider text-industrial-gray mb-1" for="edit_address">Dirección</label>
+                    <input id="edit_address" name="address" value="{{ editing.address or '' }}" class="w-full bg-cold-white border border-steel-gray focus:border-zarvent-red focus:ring-1 focus:ring-zarvent-red p-2.5 rounded text-sm text-workshop-black" type="text" placeholder="Ej. Av. Siempre Viva 742"/>
+                </div>
+
+                <!-- Billing Name -->
+                <div>
+                    <label class="block text-xs font-bold uppercase tracking-wider text-industrial-gray mb-1" for="edit_billing_name">Razón Social (Facturación)</label>
+                    <input id="edit_billing_name" name="billing_name" value="{{ editing.billing_name or '' }}" class="w-full bg-cold-white border border-steel-gray focus:border-zarvent-red focus:ring-1 focus:ring-zarvent-red p-2.5 rounded text-sm text-workshop-black" type="text" placeholder="Ej. Carlos Pérez Mamani"/>
+                </div>
+
+                <!-- Tax ID -->
+                <div>
+                    <label class="block text-xs font-bold uppercase tracking-wider text-industrial-gray mb-1" for="edit_tax_id">NIT</label>
+                    <input id="edit_tax_id" name="tax_id" value="{{ editing.tax_id or '' }}" class="w-full bg-cold-white border border-steel-gray focus:border-zarvent-red focus:ring-1 focus:ring-zarvent-red p-2.5 rounded text-sm text-workshop-black font-mono" type="text" placeholder="Ej. 1029381013"/>
+                </div>
+            </div>
+
+            <div class="pt-4 border-t border-steel-gray flex justify-end gap-4">
+                <a href="/customers" class="px-6 py-2.5 border border-steel-gray rounded hover:bg-cold-white transition-colors text-sm font-semibold">Cancelar</a>
+                <button type="submit" class="px-6 py-2.5 bg-zarvent-red text-pure-white rounded hover:bg-opacity-95 transition-all text-sm font-semibold shadow-sm">Guardar Cambios</button>
+            </div>
+        </form>
+    </div>
+    {% endif %}
+
+    <!-- Filters & Search Bar -->
+    <form method="get" action="/customers" class="flex flex-col md:flex-row gap-4 mb-4 bg-pure-white p-4 border border-steel-gray rounded shadow-sm">
+        <div class="flex-1 relative">
+            <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-industrial-gray">search</span>
+            <input name="search" value="{{ search_val or '' }}" class="w-full bg-cold-white border border-steel-gray focus:border-zarvent-red focus:ring-1 focus:ring-zarvent-red pl-10 py-2 rounded text-sm placeholder:text-industrial-gray transition-colors" placeholder="Buscar por nombre, documento o NIT..." type="text"/>
+        </div>
+        <div class="flex gap-4 shrink-0">
+            {% if search_val %}
+            <a href="/customers" class="py-2 px-4 border border-steel-gray hover:bg-cold-white transition-colors rounded text-sm flex items-center justify-center">
+                Limpiar
+            </a>
+            {% endif %}
+        </div>
+    </form>
+
+    <!-- Data Table -->
+    <div class="overflow-x-auto w-full bg-pure-white border border-steel-gray rounded shadow-sm">
+        <table class="w-full text-left border-collapse">
+            <thead>
+                <tr class="border-b-2 border-steel-gray bg-cold-white">
+                    <th class="py-3 px-4 text-xs font-bold text-industrial-gray whitespace-nowrap uppercase">ID</th>
+                    <th class="py-3 px-4 text-xs font-bold text-industrial-gray whitespace-nowrap uppercase">Nombre Completo</th>
+                    <th class="py-3 px-4 text-xs font-bold text-industrial-gray whitespace-nowrap uppercase">Documento</th>
+                    <th class="py-3 px-4 text-xs font-bold text-industrial-gray whitespace-nowrap uppercase">Teléfono</th>
+                    <th class="py-3 px-4 text-xs font-bold text-industrial-gray whitespace-nowrap uppercase">Correo</th>
+                    <th class="py-3 px-4 text-xs font-bold text-industrial-gray whitespace-nowrap uppercase">Facturación</th>
+                    <th class="py-3 px-4 text-xs font-bold text-industrial-gray whitespace-nowrap uppercase">NIT</th>
+                    <th class="py-3 px-4 text-xs font-bold text-industrial-gray text-right whitespace-nowrap uppercase">Acciones</th>
+                </tr>
+            </thead>
+            <tbody class="text-sm text-workshop-black">
+                {% if customers %}
+                    {% for customer in customers %}
+                    <tr class="border-b border-steel-gray hover:bg-cold-white/50 transition-colors group {% if editing and editing.customer_id == customer.customer_id %}bg-cold-white{% endif %}">
+                        <td class="py-3 px-4 whitespace-nowrap font-mono font-medium text-zarvent-red">#{{ customer.customer_id }}</td>
+                        <td class="py-3 px-4 font-semibold">{{ customer.first_name }} {{ customer.last_name }}</td>
+                        <td class="py-3 px-4 whitespace-nowrap text-industrial-gray font-mono">{{ customer.identity_number }}</td>
+                        <td class="py-3 px-4 whitespace-nowrap">{{ customer.phone or '—' }}</td>
+                        <td class="py-3 px-4 whitespace-nowrap">{{ customer.email or '—' }}</td>
+                        <td class="py-3 px-4">{{ customer.billing_name or '—' }}</td>
+                        <td class="py-3 px-4 whitespace-nowrap text-industrial-gray font-mono">{{ customer.tax_id or '—' }}</td>
+                        <td class="py-3 px-4 text-right whitespace-nowrap">
+                            <div class="flex items-center justify-end gap-1">
+                                <a href="/customers/{{ customer.customer_id }}/edit" class="text-industrial-gray hover:text-zarvent-red p-1 transition-colors" title="Editar cliente">
+                                    <span class="material-symbols-outlined text-xl">edit</span>
+                                </a>
+                                <form method="post" action="/customers/{{ customer.customer_id }}/delete" class="inline" onsubmit="return confirm('¿Eliminar cliente? Si tiene ventas, la operación será rechazada.')">
+                                    <button type="submit" class="text-industrial-gray hover:text-zarvent-red p-1 transition-colors" title="Eliminar cliente">
+                                        <span class="material-symbols-outlined text-xl">delete</span>
+                                    </button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                {% else %}
+                    <tr>
+                        <td colspan="8" class="py-8 text-center text-industrial-gray">No se encontraron clientes registrados.</td>
+                    </tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Add Customer Modal Overlay -->
+<div id="add-customer-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center hidden">
+    <div class="bg-pure-white border border-steel-gray rounded shadow-lg max-w-2xl w-full mx-4 overflow-hidden">
+        <header class="bg-workshop-black text-pure-white px-6 py-4 flex justify-between items-center">
+            <h3 class="text-lg font-bold tracking-tight uppercase">Registrar Nuevo Cliente</h3>
+            <button type="button" onclick="toggleModal('add-customer-modal', false)" class="text-industrial-gray hover:text-pure-white transition-colors">
+                <span class="material-symbols-outlined">close</span>
+            </button>
+        </header>
+
+        <form method="post" action="/customers" class="p-6 space-y-4">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <!-- First Name -->
+                <div>
+                    <label class="block text-xs font-bold uppercase tracking-wider text-industrial-gray mb-1" for="modal_first_name">Nombres</label>
+                    <input id="modal_first_name" name="first_name" required class="w-full bg-cold-white border border-steel-gray focus:border-zarvent-red focus:ring-1 focus:ring-zarvent-red p-2.5 rounded text-sm text-workshop-black" type="text" placeholder="Ej. Carlos"/>
+                </div>
+
+                <!-- Last Name -->
+                <div>
+                    <label class="block text-xs font-bold uppercase tracking-wider text-industrial-gray mb-1" for="modal_last_name">Apellidos</label>
+                    <input id="modal_last_name" name="last_name" required class="w-full bg-cold-white border border-steel-gray focus:border-zarvent-red focus:ring-1 focus:ring-zarvent-red p-2.5 rounded text-sm text-workshop-black" type="text" placeholder="Ej. Pérez Mamani"/>
+                </div>
+
+                <!-- Identity Number -->
+                <div>
+                    <label class="block text-xs font-bold uppercase tracking-wider text-industrial-gray mb-1" for="modal_identity_number">Documento de Identidad (CI/NIT)</label>
+                    <input id="modal_identity_number" name="identity_number" required class="w-full bg-cold-white border border-steel-gray focus:border-zarvent-red focus:ring-1 focus:ring-zarvent-red p-2.5 rounded text-sm text-workshop-black font-mono" type="text" placeholder="Ej. 1029381"/>
+                </div>
+
+                <!-- Phone -->
+                <div>
+                    <label class="block text-xs font-bold uppercase tracking-wider text-industrial-gray mb-1" for="modal_phone">Teléfono</label>
+                    <input id="modal_phone" name="phone" class="w-full bg-cold-white border border-steel-gray focus:border-zarvent-red focus:ring-1 focus:ring-zarvent-red p-2.5 rounded text-sm text-workshop-black" type="text" placeholder="Ej. 70123456"/>
+                </div>
+
+                <!-- Email -->
+                <div>
+                    <label class="block text-xs font-bold uppercase tracking-wider text-industrial-gray mb-1" for="modal_email">Correo Electrónico</label>
+                    <input id="modal_email" name="email" class="w-full bg-cold-white border border-steel-gray focus:border-zarvent-red focus:ring-1 focus:ring-zarvent-red p-2.5 rounded text-sm text-workshop-black" type="email" placeholder="Ej. cliente@correo.com"/>
+                </div>
+
+                <!-- Address -->
+                <div>
+                    <label class="block text-xs font-bold uppercase tracking-wider text-industrial-gray mb-1" for="modal_address">Dirección</label>
+                    <input id="modal_address" name="address" class="w-full bg-cold-white border border-steel-gray focus:border-zarvent-red focus:ring-1 focus:ring-zarvent-red p-2.5 rounded text-sm text-workshop-black" type="text" placeholder="Ej. Av. Siempre Viva 742"/>
+                </div>
+
+                <!-- Billing Name -->
+                <div>
+                    <label class="block text-xs font-bold uppercase tracking-wider text-industrial-gray mb-1" for="modal_billing_name">Razón Social (Facturación)</label>
+                    <input id="modal_billing_name" name="billing_name" class="w-full bg-cold-white border border-steel-gray focus:border-zarvent-red focus:ring-1 focus:ring-zarvent-red p-2.5 rounded text-sm text-workshop-black" type="text" placeholder="Ej. Carlos Pérez Mamani"/>
+                </div>
+
+                <!-- Tax ID -->
+                <div>
+                    <label class="block text-xs font-bold uppercase tracking-wider text-industrial-gray mb-1" for="modal_tax_id">NIT</label>
+                    <input id="modal_tax_id" name="tax_id" class="w-full bg-cold-white border border-steel-gray focus:border-zarvent-red focus:ring-1 focus:ring-zarvent-red p-2.5 rounded text-sm text-workshop-black font-mono" type="text" placeholder="Ej. 1029381013"/>
+                </div>
+            </div>
+
+            <div class="pt-4 border-t border-steel-gray flex justify-end gap-4">
+                <button type="button" onclick="toggleModal('add-customer-modal', false)" class="px-6 py-2.5 border border-steel-gray rounded hover:bg-cold-white transition-colors text-sm font-semibold">Cancelar</button>
+                <button type="submit" class="px-6 py-2.5 bg-zarvent-red text-pure-white rounded hover:bg-opacity-95 transition-all text-sm font-semibold shadow-sm">Guardar Cliente</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function toggleModal(modalId, show) {
+        const modal = document.getElementById(modalId);
+        if (show) {
+            modal.classList.remove('hidden');
+        } else {
+            modal.classList.add('hidden');
+        }
+    }
+</script>
+{% endblock %}

@@ -13,7 +13,7 @@ if str(SOURCE_ROOT) not in sys.path:
 
 from zarvent_repuestos.access.user_service import create_user
 from zarvent_repuestos.database.connection import get_database_connection
-from zarvent_repuestos.crud import part_crud, customer_crud, sales_crud
+from zarvent_repuestos.crud import part_crud, customer_crud, sales_crud, purchase_crud
 from zarvent_repuestos.models.part import Part
 
 
@@ -33,6 +33,65 @@ def has_operational_demo_data():
         conexion.close()
 
 
+def has_purchase_demo_data():
+    """Returns True when the demo purchase orders are already loaded."""
+    conexion = get_database_connection()
+    cursor = conexion.cursor()
+    try:
+        cursor.execute("SELECT COUNT(*) FROM purchase_order")
+        row = cursor.fetchone()
+        return bool(row and row[0] > 0)
+    finally:
+        cursor.close()
+        conexion.close()
+
+
+def seed_demo_purchases():
+    """Inserts one demo supplier and one pending purchase order, if missing."""
+    print("🚚 Creando proveedor demo y orden de compra pendiente...")
+
+    existing_suppliers = purchase_crud.list_suppliers(active_only=False)
+    if existing_suppliers:
+        supplier = existing_suppliers[0]
+    else:
+        supplier_id = purchase_crud.create_supplier(
+            business_name="AutoPartes Bolivianas SRL",
+            tax_id="10293874001",
+            phone="+591 2 245 7788",
+            email="ventas@autopartes-bo.example",
+            address="Av. Montes Esq. Capitan Ravelo, La Paz",
+        )
+        if not supplier_id:
+            print("⚠️ No se pudo crear el proveedor demo.")
+            return
+        supplier = purchase_crud.get_supplier(supplier_id)
+
+    catalog = part_crud.listar_productos()
+    if len(catalog) < 2:
+        print("⚠️ No hay suficientes productos en el catálogo para crear la compra demo.")
+        return
+
+    low_stock_part = min(catalog, key=lambda p: p["quantity_on_hand"])
+    other_part = next(p for p in catalog if p["part_id"] != low_stock_part["part_id"])
+
+    purchase_crud.create_purchase_order(
+        supplier_id=supplier["supplier_id"],
+        expected_date=(datetime.date.today() + datetime.timedelta(days=7)).isoformat(),
+        items=[
+            {
+                "part_id": low_stock_part["part_id"],
+                "quantity_ordered": 20,
+                "unit_cost": float(low_stock_part["purchase_cost"]),
+            },
+            {
+                "part_id": other_part["part_id"],
+                "quantity_ordered": 10,
+                "unit_cost": float(other_part["purchase_cost"]),
+            },
+        ],
+    )
+
+
 def main():
     print("🌱 Iniciando población de datos de prueba...")
 
@@ -46,6 +105,8 @@ def main():
 
     if has_operational_demo_data():
         print("✅ La base ya tiene datos operativos. No se vuelve a poblar para evitar duplicados.")
+        if not has_purchase_demo_data():
+            seed_demo_purchases()
         return 0
 
     # 1. Seed admin user
@@ -205,6 +266,10 @@ def main():
     )
 
     print("✅ Población de datos completada con éxito.")
+
+    if not has_purchase_demo_data():
+        seed_demo_purchases()
+
     return 0
 
 

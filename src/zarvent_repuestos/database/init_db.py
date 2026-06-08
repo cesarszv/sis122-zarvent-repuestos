@@ -76,7 +76,20 @@ def crear_tablas():
     ) ENGINE=InnoDB;
     """)
 
-    # 3. Part Category Table
+    # 3. Supplier Table
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS supplier (
+        supplier_id INT AUTO_INCREMENT PRIMARY KEY,
+        business_name VARCHAR(150) NOT NULL,
+        tax_id VARCHAR(50) UNIQUE NOT NULL,
+        phone VARCHAR(50),
+        email VARCHAR(100),
+        address VARCHAR(255),
+        is_active BOOLEAN DEFAULT TRUE
+    ) ENGINE=InnoDB;
+    """)
+
+    # 4. Part Category Table
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS part_category (
         part_category_id INT AUTO_INCREMENT PRIMARY KEY,
@@ -85,7 +98,7 @@ def crear_tablas():
     ) ENGINE=InnoDB;
     """)
 
-    # 4. Part Table
+    # 5. Part Table
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS part (
         part_id INT AUTO_INCREMENT PRIMARY KEY,
@@ -103,7 +116,7 @@ def crear_tablas():
     ) ENGINE=InnoDB;
     """)
 
-    # 5. Inventory Stock Table
+    # 6. Inventory Stock Table
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS inventory_stock (
         inventory_stock_id INT AUTO_INCREMENT PRIMARY KEY,
@@ -115,7 +128,7 @@ def crear_tablas():
     ) ENGINE=InnoDB;
     """)
 
-    # 6. Sales Order Table
+    # 7. Sales Order Table
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS sales_order (
         sales_order_id INT AUTO_INCREMENT PRIMARY KEY,
@@ -129,7 +142,7 @@ def crear_tablas():
     ) ENGINE=InnoDB;
     """)
 
-    # 7. Sales Order Item Table
+    # 8. Sales Order Item Table
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS sales_order_item (
         sales_order_item_id INT AUTO_INCREMENT PRIMARY KEY,
@@ -143,7 +156,7 @@ def crear_tablas():
     ) ENGINE=InnoDB;
     """)
 
-    # 8. Payment Table
+    # 9. Payment Table
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS payment (
         payment_id INT AUTO_INCREMENT PRIMARY KEY,
@@ -157,7 +170,34 @@ def crear_tablas():
     ) ENGINE=InnoDB;
     """)
 
-    # 9. System Users Table for Login
+    # 10. Purchase Order Table
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS purchase_order (
+        purchase_order_id INT AUTO_INCREMENT PRIMARY KEY,
+        supplier_id INT NOT NULL,
+        order_date DATE NOT NULL,
+        expected_date DATE,
+        status VARCHAR(50) DEFAULT 'Pending',
+        total_amount DECIMAL(10, 2) NOT NULL,
+        FOREIGN KEY (supplier_id) REFERENCES supplier (supplier_id) ON DELETE RESTRICT
+    ) ENGINE=InnoDB;
+    """)
+
+    # 11. Purchase Order Item Table
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS purchase_order_item (
+        purchase_order_item_id INT AUTO_INCREMENT PRIMARY KEY,
+        purchase_order_id INT NOT NULL,
+        part_id INT NOT NULL,
+        quantity_ordered INT NOT NULL,
+        quantity_received INT NOT NULL DEFAULT 0,
+        unit_cost DECIMAL(10, 2) NOT NULL,
+        FOREIGN KEY (purchase_order_id) REFERENCES purchase_order (purchase_order_id) ON DELETE CASCADE,
+        FOREIGN KEY (part_id) REFERENCES part (part_id) ON DELETE RESTRICT
+    ) ENGINE=InnoDB;
+    """)
+
+    # 12. System Users Table for Login
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS users (
         id INT AUTO_INCREMENT PRIMARY KEY,

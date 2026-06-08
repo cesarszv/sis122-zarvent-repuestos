@@ -7,18 +7,33 @@ from flask import Flask, render_template, request, redirect, url_for, session, f
 from zarvent_repuestos.access.user_service import authenticate_user
 from zarvent_repuestos.database.init_db import crear_tablas
 from zarvent_repuestos.database.sql_trace import (
+    build_summary,
     clear_request_context,
     clear_sql_trace_entries,
     get_sql_trace_entries,
     is_sql_trace_enabled,
     set_request_context,
 )
-from zarvent_repuestos.crud import part_crud, customer_crud, sales_crud
+from zarvent_repuestos.crud import part_crud, customer_crud, sales_crud, purchase_crud
+from zarvent_repuestos.crud.customer_crud import CustomerHasSalesError
 from zarvent_repuestos.models.part import Part
 
 
 app = Flask(__name__)
 app.secret_key = os.getenv("FLASK_SECRET_KEY", "zarvent-academic-secret-key-122")
+# Reload Jinja templates on every request so template edits are picked up
+# without restarting the process. Safe in development with --no-reload.
+app.config["TEMPLATES_AUTO_RELOAD"] = True
+
+
+# Ensure MySQL tables exist (idempotent via CREATE TABLE IF NOT EXISTS) so the app
+# works whether it is started with `python -m zarvent_repuestos.web.app` or with
+# the `flask --app zarvent_repuestos.web.app:app run` CLI (which skips the
+# `if __name__ == "__main__":` block at the bottom of this file).
+try:
+    crear_tablas()
+except Exception as _init_error:
+    print(f"⚠️ No se pudieron crear/verificar las tablas al iniciar: {_init_error}")
 
 
 @app.before_request
@@ -269,7 +284,8 @@ def sql_trace():
 @login_required
 def api_sql_trace():
     """Returns recent SQL trace entries for the live presentation view."""
-    return jsonify(get_sql_trace_entries())
+    entries = get_sql_trace_entries()
+    return jsonify({"entries": entries, "summary": build_summary(entries)})
 
 
 @app.route("/api/sql-trace/clear", methods=["POST"])
@@ -280,8 +296,223 @@ def api_clear_sql_trace():
     return jsonify({"status": "ok"})
 
 
+# --- CUSTOMERS ---
+
+@app.route("/customers", methods=["GET", "POST"])
+@login_required
+def customers():
+    """Lists customers with search, and creates new ones via POST."""
+    if request.method == "POST":
+        first_name = request.form.get("first_name", "").strip()
+        last_name = request.form.get("last_name", "").strip()
+        identity_number = request.form.get("identity_number", "").strip()
+        phone = request.form.get("phone", "").strip() or None
+        email = request.form.get("email", "").strip() or None
+        address = request.form.get("address", "").strip() or None
+        billing_name = request.form.get("billing_name", "").strip() or None
+        tax_id = request.form.get("tax_id", "").strip() or None
+
+        if not first_name or not last_name or not identity_number:
+            flash("Nombre, apellido y documento son obligatorios.", "error")
+            return redirect(url_for("customers"))
+
+        try:
+            ok = customer_crud.crear_cliente(
+                first_name=first_name,
+                last_name=last_name,
+                identity_number=identity_number,
+                billing_name=billing_name,
+                tax_id=tax_id,
+                phone=phone,
+                email=email,
+                address=address,
+            )
+        except Exception as err:
+            flash(f"Error al crear cliente: {err}", "error")
+            return redirect(url_for("customers"))
+
+        if ok:
+            flash(f"Cliente '{first_name} {last_name}' creado con éxito.", "success")
+        else:
+            flash("No se pudo crear el cliente (revisa datos duplicados o el log del servidor).", "error")
+        return redirect(url_for("customers"))
+
+    search = request.args.get("search", "").strip() or None
+    customers_list = customer_crud.listar_clientes(search=search)
+    return render_template(
+        "customers.html",
+        active_page="customers",
+        customers=customers_list,
+        search_val=search or "",
+    )
+
+
+@app.route("/customers/<int:customer_id>/edit", methods=["GET", "POST"])
+@login_required
+def edit_customer(customer_id):
+    """Edits an existing customer."""
+    if request.method == "POST":
+        first_name = request.form.get("first_name", "").strip()
+        last_name = request.form.get("last_name", "").strip()
+        identity_number = request.form.get("identity_number", "").strip()
+        phone = request.form.get("phone", "").strip() or None
+        email = request.form.get("email", "").strip() or None
+        address = request.form.get("address", "").strip() or None
+        billing_name = request.form.get("billing_name", "").strip() or None
+        tax_id = request.form.get("tax_id", "").strip() or None
+
+        if not first_name or not last_name or not identity_number:
+            flash("Nombre, apellido y documento son obligatorios.", "error")
+            return redirect(url_for("edit_customer", customer_id=customer_id))
+
+        ok = customer_crud.update_customer(
+            customer_id=customer_id,
+            first_name=first_name,
+            last_name=last_name,
+            identity_number=identity_number,
+            billing_name=billing_name or f"{first_name} {last_name}",
+            tax_id=tax_id or identity_number,
+            phone=phone,
+            email=email,
+            address=address,
+        )
+        if ok:
+            flash("Cliente actualizado con éxito.", "success")
+            return redirect(url_for("customers"))
+        flash("No se pudo actualizar el cliente.", "error")
+        return redirect(url_for("edit_customer", customer_id=customer_id))
+
+    customer = customer_crud.get_customer(customer_id)
+    if not customer:
+        return abort(404, "Cliente no encontrado")
+    return render_template(
+        "customers.html",
+        active_page="customers",
+        customers=customer_crud.listar_clientes(),
+        search_val="",
+        editing=customer,
+    )
+
+
+@app.route("/customers/<int:customer_id>/delete", methods=["POST"])
+@login_required
+def delete_customer(customer_id):
+    """Deletes a customer, refusing the operation if it has linked sales."""
+    try:
+        deleted = customer_crud.delete_customer(customer_id)
+    except CustomerHasSalesError as err:
+        flash(str(err), "error")
+        return redirect(url_for("customers"))
+
+    if deleted:
+        flash("Cliente eliminado con éxito.", "success")
+    else:
+        flash("No se pudo eliminar el cliente.", "error")
+    return redirect(url_for("customers"))
+
+
+# --- PURCHASES ---
+
+@app.route("/purchases", methods=["GET", "POST"])
+@login_required
+def purchases():
+    """Lists purchase orders and creates new ones via POST."""
+    if request.method == "POST":
+        try:
+            supplier_id = int(request.form.get("supplier_id", "0"))
+        except ValueError:
+            flash("Proveedor inválido.", "error")
+            return redirect(url_for("purchases"))
+        expected_date = request.form.get("expected_date", "").strip() or None
+        items_json = request.form.get("items_json", "[]")
+        try:
+            items = json.loads(items_json)
+        except json.JSONDecodeError:
+            flash("Items de la orden están mal formados.", "error")
+            return redirect(url_for("purchases"))
+
+        if supplier_id <= 0:
+            flash("Selecciona un proveedor.", "error")
+            return redirect(url_for("purchases"))
+
+        try:
+            purchase_order_id = purchase_crud.create_purchase_order(
+                supplier_id=supplier_id,
+                expected_date=expected_date,
+                items=items,
+            )
+        except ValueError as err:
+            flash(f"Error de validación: {err}", "error")
+            return redirect(url_for("purchases"))
+        except Exception as err:
+            flash(f"Error al crear la orden de compra: {err}", "error")
+            return redirect(url_for("purchases"))
+
+        if purchase_order_id:
+            flash(f"Orden de compra #{purchase_order_id} creada con éxito.", "success")
+            return redirect(url_for("purchase_detail", purchase_order_id=purchase_order_id))
+        flash("No se pudo crear la orden de compra.", "error")
+        return redirect(url_for("purchases"))
+
+    status = request.args.get("status", "").strip() or None
+    orders = purchase_crud.list_purchase_orders(status=status)
+    suppliers = purchase_crud.list_suppliers(active_only=True)
+    parts = part_crud.listar_productos()
+    return render_template(
+        "purchases.html",
+        active_page="purchases",
+        orders=orders,
+        suppliers=suppliers,
+        parts=parts,
+        status_val=status or "",
+    )
+
+
+@app.route("/purchases/<int:purchase_order_id>")
+@login_required
+def purchase_detail(purchase_order_id):
+    """Shows a purchase order and its items; provides a form to register reception."""
+    order = purchase_crud.get_purchase_order_details(purchase_order_id)
+    if not order:
+        return abort(404, "Orden de compra no encontrada")
+    return render_template(
+        "purchase_detail.html",
+        active_page="purchases",
+        order=order,
+    )
+
+
+@app.route("/purchases/<int:purchase_order_id>/receive", methods=["POST"])
+@login_required
+def receive_purchase(purchase_order_id):
+    """Registers the received quantities for a purchase order."""
+    items_json = request.form.get("items_json", "[]")
+    try:
+        received_items = json.loads(items_json)
+    except json.JSONDecodeError:
+        flash("Cantidades recibidas mal formadas.", "error")
+        return redirect(url_for("purchase_detail", purchase_order_id=purchase_order_id))
+
+    if not received_items:
+        flash("Indica al menos una cantidad recibida.", "error")
+        return redirect(url_for("purchase_detail", purchase_order_id=purchase_order_id))
+
+    try:
+        purchase_crud.receive_purchase_order(
+            purchase_order_id=purchase_order_id,
+            received_items=received_items,
+        )
+    except ValueError as err:
+        flash(f"Error de validación: {err}", "error")
+        return redirect(url_for("purchase_detail", purchase_order_id=purchase_order_id))
+    except Exception as err:
+        flash(f"Error al recibir la orden: {err}", "error")
+        return redirect(url_for("purchase_detail", purchase_order_id=purchase_order_id))
+
+    flash("Recepción registrada con éxito.", "success")
+    return redirect(url_for("purchase_detail", purchase_order_id=purchase_order_id))
+
+
 if __name__ == "__main__":
-    # Ensure MySQL tables are created before starting Flask
-    if not crear_tablas():
-        raise SystemExit(1)
+    # Tables were already ensured at module load; just start Flask here.
     app.run(debug=True)

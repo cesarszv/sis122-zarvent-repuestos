@@ -1,0 +1,411 @@
+{% extends "layout.html" %}
+
+{% block title %}Purchase Orders{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto space-y-6">
+    <!-- Header Section -->
+    <div class="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 mb-2">
+        <div>
+            <h2 class="text-4xl font-extrabold text-workshop-black tracking-tight mb-1">Órdenes de Compra</h2>
+            <p class="text-base text-industrial-gray">Registra y da seguimiento a los pedidos realizados a proveedores.</p>
+        </div>
+        <button onclick="toggleModal('new-purchase-modal', true)" class="bg-workshop-black text-pure-white font-semibold py-2.5 px-6 rounded hover:opacity-90 transition-opacity flex items-center gap-2 shadow-sm">
+            <span class="material-symbols-outlined text-[18px]">add</span>
+            Nueva Compra
+        </button>
+    </div>
+
+    <div class="flex flex-col xl:flex-row gap-6 items-start">
+        <!-- Sidebar Filters -->
+        <aside class="w-full xl:w-1/4 shrink-0 flex flex-col gap-6">
+            <form method="get" action="/purchases" class="border border-steel-gray p-6 bg-pure-white rounded shadow-sm space-y-6">
+                <!-- Status Filter -->
+                <div>
+                    <h3 class="text-xs font-bold uppercase tracking-wider text-workshop-black mb-3 border-b border-steel-gray pb-2">Estado de Compra</h3>
+                    <div class="flex flex-col gap-2">
+                        <label class="flex items-center gap-2 cursor-pointer group">
+                            <input name="status" value="" type="radio" onchange="this.form.submit()" class="form-radio h-4 w-4 text-workshop-black border-steel-gray focus:ring-workshop-black" {% if not status_val %}checked{% endif %}/>
+                            <span class="text-sm text-workshop-black group-hover:text-zarvent-red transition-colors">Todas</span>
+                        </label>
+                        <label class="flex items-center gap-2 cursor-pointer group">
+                            <input name="status" value="Pending" type="radio" onchange="this.form.submit()" class="form-radio h-4 w-4 text-workshop-black border-steel-gray focus:ring-workshop-black" {% if status_val == 'Pending' %}checked{% endif %}/>
+                            <span class="text-sm text-workshop-black group-hover:text-zarvent-red transition-colors">Pendientes</span>
+                        </label>
+                        <label class="flex items-center gap-2 cursor-pointer group">
+                            <input name="status" value="Partially Received" type="radio" onchange="this.form.submit()" class="form-radio h-4 w-4 text-workshop-black border-steel-gray focus:ring-workshop-black" {% if status_val == 'Partially Received' %}checked{% endif %}/>
+                            <span class="text-sm text-workshop-black group-hover:text-zarvent-red transition-colors">Recibidas Parcialmente</span>
+                        </label>
+                        <label class="flex items-center gap-2 cursor-pointer group">
+                            <input name="status" value="Received" type="radio" onchange="this.form.submit()" class="form-radio h-4 w-4 text-workshop-black border-steel-gray focus:ring-workshop-black" {% if status_val == 'Received' %}checked{% endif %}/>
+                            <span class="text-sm text-workshop-black group-hover:text-zarvent-red transition-colors">Recibidas</span>
+                        </label>
+                    </div>
+                </div>
+
+                {% if status_val %}
+                <a href="/purchases" class="w-full border border-steel-gray hover:bg-cold-white text-center py-2 rounded text-xs block font-semibold transition-colors">
+                    Limpiar Filtros
+                </a>
+                {% endif %}
+            </form>
+        </aside>
+
+        <!-- Data Table Area -->
+        <div class="w-full xl:w-3/4 overflow-x-auto bg-pure-white border border-steel-gray rounded shadow-sm">
+            <table class="w-full text-left border-collapse">
+                <thead>
+                    <tr class="border-b border-steel-gray bg-cold-white text-xs font-bold text-industrial-gray uppercase">
+                        <th class="py-3 px-4">Código</th>
+                        <th class="py-3 px-4">Proveedor</th>
+                        <th class="py-3 px-4">NIT</th>
+                        <th class="py-3 px-4">Fecha</th>
+                        <th class="py-3 px-4">Esperada</th>
+                        <th class="py-3 px-4 text-center">Estado</th>
+                        <th class="py-3 px-4 text-right">Total</th>
+                        <th class="py-3 px-4"></th>
+                    </tr>
+                </thead>
+                <tbody class="text-sm text-workshop-black">
+                    {% if orders %}
+                        {% for order in orders %}
+                        <tr class="border-b border-steel-gray hover:bg-cold-white/50 transition-colors group">
+                            <td class="py-3.5 px-4 font-mono text-xs text-industrial-gray">#PO-{{ order.purchase_order_id }}</td>
+                            <td class="py-3.5 px-4 font-semibold">{{ order.business_name }}</td>
+                            <td class="py-3.5 px-4 font-mono text-xs text-industrial-gray">{{ order.tax_id }}</td>
+                            <td class="py-3.5 px-4 text-industrial-gray">{{ order.order_date.strftime('%d/%m/%Y') }}</td>
+                            <td class="py-3.5 px-4 text-industrial-gray">
+                                {% if order.expected_date %}
+                                    {{ order.expected_date.strftime('%d/%m/%Y') }}
+                                {% else %}
+                                    <span class="text-industrial-gray">—</span>
+                                {% endif %}
+                            </td>
+                            <td class="py-3.5 px-4 text-center">
+                                {% if order.status == 'Received' %}
+                                    <span class="inline-block px-2 py-0.5 border border-green-200 text-green-700 rounded-sm text-xs bg-green-50">
+                                        Recibida
+                                    </span>
+                                {% elif order.status == 'Partially Received' %}
+                                    <span class="inline-block px-2 py-0.5 border border-amber-200 text-amber-700 rounded-sm text-xs bg-amber-50">
+                                        Recibida Parcialmente
+                                    </span>
+                                {% else %}
+                                    <span class="inline-block px-2 py-0.5 border border-amber-200 text-amber-700 rounded-sm text-xs bg-amber-50">
+                                        Pendiente
+                                    </span>
+                                {% endif %}
+                            </td>
+                            <td class="py-3.5 px-4 text-right font-bold text-base">${{ "{:,.2f}".format(order.total_amount) }}</td>
+                            <td class="py-3.5 px-4 text-right">
+                                <a href="/purchases/{{ order.purchase_order_id }}" class="text-industrial-gray hover:text-zarvent-red p-1 inline-block" title="Ver Detalle">
+                                    <span class="material-symbols-outlined text-xl">visibility</span>
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    {% else %}
+                        <tr>
+                            <td colspan="8" class="py-8 text-center text-industrial-gray">No se encontraron órdenes de compra con el filtro aplicado.</td>
+                        </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- New Purchase Order Modal Overlay -->
+    <div id="new-purchase-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center hidden">
+        <div class="bg-pure-white border border-steel-gray rounded shadow-lg max-w-4xl w-full mx-4 overflow-hidden flex flex-col max-h-[90vh]">
+            <header class="bg-workshop-black text-pure-white px-6 py-4 flex justify-between items-center shrink-0">
+                <h3 class="text-lg font-bold tracking-tight uppercase">Registrar Nueva Orden de Compra</h3>
+                <button type="button" onclick="toggleModal('new-purchase-modal', false)" class="text-industrial-gray hover:text-pure-white transition-colors">
+                    <span class="material-symbols-outlined">close</span>
+                </button>
+            </header>
+
+            <form id="new-purchase-form" method="post" action="/purchases" class="flex-1 overflow-y-auto p-6 space-y-6 flex flex-col justify-between">
+                <input type="hidden" name="items_json" id="items_json">
+
+                <div class="space-y-6">
+                    <!-- Supplier section -->
+                    <div class="border-b border-steel-gray pb-4">
+                        <h4 class="text-sm font-bold uppercase tracking-wider text-workshop-black mb-3">Información del Proveedor</h4>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-xs font-bold uppercase tracking-wider text-industrial-gray mb-1" for="supplier_id">Seleccionar Proveedor</label>
+                                <select id="supplier_id" name="supplier_id" required class="w-full bg-cold-white border border-steel-gray p-2.5 rounded text-sm cursor-pointer">
+                                    <option value="">-- Seleccione un proveedor del catálogo --</option>
+                                    {% for supplier in suppliers %}
+                                    <option value="{{ supplier.supplier_id }}">{{ supplier.business_name }} (NIT: {{ supplier.tax_id }})</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+
+                            <div>
+                                <label class="block text-xs font-bold uppercase tracking-wider text-industrial-gray mb-1" for="expected_date">Fecha Esperada de Entrega</label>
+                                <input id="expected_date" name="expected_date" class="w-full bg-cold-white border border-steel-gray p-2.5 rounded text-sm" type="date"/>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Items selection section -->
+                    <div>
+                        <h4 class="text-sm font-bold uppercase tracking-wider text-workshop-black mb-3">Agregar Repuestos</h4>
+                        <div class="grid grid-cols-1 md:grid-cols-12 gap-4 items-end bg-cold-white p-4 rounded border border-steel-gray">
+                            <!-- Product Select -->
+                            <div class="md:col-span-5">
+                                <label class="block text-xs font-bold uppercase tracking-wider text-industrial-gray mb-1" for="part_selector">Seleccionar Repuesto</label>
+                                <select id="part_selector" onchange="updateSelectedPartInfo()" class="w-full bg-pure-white border border-steel-gray p-2.5 rounded text-sm cursor-pointer font-medium">
+                                    <option value="">-- Buscar repuesto en catálogo --</option>
+                                    {% for part in parts %}
+                                    <option value="{{ part.part_id }}"
+                                            data-code="{{ part.internal_code }}"
+                                            data-name="{{ part.name }}"
+                                            data-cost="{{ part.purchase_cost }}">
+                                        [{{ part.internal_code }}] {{ part.name }} (Costo ref.: ${{ part.purchase_cost }})
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+
+                            <!-- Quantity -->
+                            <div class="md:col-span-2">
+                                <label class="block text-xs font-bold uppercase tracking-wider text-industrial-gray mb-1" for="part_quantity">Cantidad</label>
+                                <input id="part_quantity" type="number" min="1" value="1" class="w-full bg-pure-white border border-steel-gray p-2 rounded text-sm font-mono"/>
+                            </div>
+
+                            <!-- Unit Cost -->
+                            <div class="md:col-span-3">
+                                <label class="block text-xs font-bold uppercase tracking-wider text-industrial-gray mb-1" for="part_unit_cost">Costo Unit. ($)</label>
+                                <input id="part_unit_cost" type="number" min="0" step="0.01" value="0.00" class="w-full bg-pure-white border border-steel-gray p-2 rounded text-sm font-mono"/>
+                            </div>
+
+                            <!-- Add Button -->
+                            <div class="md:col-span-2">
+                                <button type="button" onclick="addItemRow()" class="w-full bg-workshop-black text-pure-white py-2 px-4 rounded hover:bg-opacity-95 text-sm font-bold transition-all uppercase tracking-wider">
+                                    Agregar
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Items Table -->
+                    <div class="border border-steel-gray rounded overflow-hidden">
+                        <table class="w-full text-left border-collapse" id="items-table">
+                            <thead>
+                                <tr class="bg-cold-white border-b border-steel-gray text-xs font-bold text-industrial-gray uppercase">
+                                    <th class="py-2 px-4">Código</th>
+                                    <th class="py-2 px-4">Producto</th>
+                                    <th class="py-2 px-4 text-center">Cant.</th>
+                                    <th class="py-2 px-4 text-right">Costo Unit.</th>
+                                    <th class="py-2 px-4 text-right">Subtotal</th>
+                                    <th class="py-2 px-4"></th>
+                                </tr>
+                            </thead>
+                            <tbody class="text-sm" id="items-tbody">
+                                <tr id="empty-row-message">
+                                    <td colspan="6" class="py-6 text-center text-industrial-gray text-xs">No has agregado repuestos a esta orden todavía.</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="mt-6 pt-4 border-t border-steel-gray space-y-4">
+                    <div class="flex justify-end items-center gap-6">
+                        <span class="text-xs text-industrial-gray uppercase tracking-wider font-bold">Total General</span>
+                        <p class="text-3xl font-black text-zarvent-red font-mono" id="grand-total">$0.00</p>
+                    </div>
+
+                    <!-- Actions -->
+                    <div class="flex justify-end gap-4">
+                        <button type="button" onclick="toggleModal('new-purchase-modal', false)" class="px-6 py-2.5 border border-steel-gray rounded hover:bg-cold-white transition-colors text-sm font-semibold">Cancelar</button>
+                        <button type="button" onclick="submitPurchaseOrder()" class="px-6 py-2.5 bg-zarvent-red text-pure-white rounded hover:bg-opacity-95 transition-all text-sm font-bold shadow-sm uppercase tracking-wider">Crear Orden</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    let purchaseItems = [];
+
+    function toggleModal(modalId, show) {
+        const modal = document.getElementById(modalId);
+        if (show) {
+            modal.classList.remove('hidden');
+        } else {
+            modal.classList.add('hidden');
+        }
+    }
+
+    function updateSelectedPartInfo() {
+        const selector = document.getElementById('part_selector');
+        const costInput = document.getElementById('part_unit_cost');
+        if (selector.value) {
+            const option = selector.options[selector.selectedIndex];
+            const refCost = parseFloat(option.getAttribute('data-cost'));
+            if (!isNaN(refCost)) {
+                costInput.value = refCost.toFixed(2);
+            }
+        }
+    }
+
+    function addItemRow() {
+        const selector = document.getElementById('part_selector');
+        const quantityInput = document.getElementById('part_quantity');
+        const costInput = document.getElementById('part_unit_cost');
+
+        if (!selector.value) {
+            alert('Por favor selecciona un repuesto.');
+            return;
+        }
+
+        const partId = parseInt(selector.value);
+        const qty = parseInt(quantityInput.value);
+        const cost = parseFloat(costInput.value);
+
+        if (isNaN(qty) || qty <= 0) {
+            alert('Por favor introduce una cantidad válida (mínimo 1).');
+            return;
+        }
+
+        if (isNaN(cost) || cost < 0) {
+            alert('Por favor introduce un costo unitario válido (mínimo 0).');
+            return;
+        }
+
+        if (purchaseItems.some(i => i.part_id === partId)) {
+            alert('Este producto ya fue agregado. Elimínalo si deseas modificar la cantidad.');
+            return;
+        }
+
+        const option = selector.options[selector.selectedIndex];
+        const code = option.getAttribute('data-code');
+        const name = option.getAttribute('data-name');
+        const subtotal = cost * qty;
+
+        const index = purchaseItems.length;
+        const item = { part_id: partId, quantity_ordered: qty, unit_cost: cost };
+        purchaseItems.push(item);
+
+        // Hide empty message
+        const emptyRow = document.getElementById('empty-row-message');
+        if (emptyRow) emptyRow.style.display = 'none';
+
+        // Add table row
+        const tbody = document.getElementById('items-tbody');
+        const tr = document.createElement('tr');
+        tr.id = `row-item-${index}`;
+        tr.className = 'border-b border-steel-gray hover:bg-cold-white/30 transition-colors font-medium';
+        tr.innerHTML = `
+            <td class="py-3 px-4 font-mono text-xs text-zarvent-red">${code}</td>
+            <td class="py-3 px-4">${name}</td>
+            <td class="py-3 px-4 text-center font-mono">${qty}</td>
+            <td class="py-3 px-4 text-right font-mono">$${cost.toFixed(2)}</td>
+            <td class="py-3 px-4 text-right font-mono">$${subtotal.toFixed(2)}</td>
+            <td class="py-3 px-4 text-right">
+                <button type="button" onclick="removeItemRow(${index})" class="text-industrial-gray hover:text-zarvent-red p-1">
+                    <span class="material-symbols-outlined text-sm">delete</span>
+                </button>
+            </td>
+        `;
+        tbody.appendChild(tr);
+
+        recalculateTotals();
+
+        // Clear inputs
+        selector.value = '';
+        quantityInput.value = 1;
+        costInput.value = '0.00';
+    }
+
+    function removeItemRow(index) {
+        purchaseItems.splice(index, 1);
+
+        // Remove the row from DOM
+        const row = document.getElementById(`row-item-${index}`);
+        if (row) row.remove();
+
+        // Re-index: rebuild the table rows so subsequent rows keep working
+        rebuildRows();
+
+        if (purchaseItems.length === 0) {
+            const emptyRow = document.getElementById('empty-row-message');
+            if (emptyRow) emptyRow.style.display = 'table-row';
+        }
+
+        recalculateTotals();
+    }
+
+    function rebuildRows() {
+        const tbody = document.getElementById('items-tbody');
+        // Remove all data rows (keep the empty-row-message hidden if present)
+        const existingRows = tbody.querySelectorAll('tr[id^="row-item-"]');
+        existingRows.forEach(r => r.remove());
+
+        // Re-render rows based on the current purchaseItems array
+        purchaseItems.forEach((item, idx) => {
+            const selector = document.getElementById('part_selector');
+            // Find the matching option to recover code/name
+            let code = '';
+            let name = '';
+            for (let i = 0; i < selector.options.length; i++) {
+                if (parseInt(selector.options[i].value) === item.part_id) {
+                    code = selector.options[i].getAttribute('data-code');
+                    name = selector.options[i].getAttribute('data-name');
+                    break;
+                }
+            }
+            const subtotal = item.unit_cost * item.quantity_ordered;
+            const tr = document.createElement('tr');
+            tr.id = `row-item-${idx}`;
+            tr.className = 'border-b border-steel-gray hover:bg-cold-white/30 transition-colors font-medium';
+            tr.innerHTML = `
+                <td class="py-3 px-4 font-mono text-xs text-zarvent-red">${code}</td>
+                <td class="py-3 px-4">${name}</td>
+                <td class="py-3 px-4 text-center font-mono">${item.quantity_ordered}</td>
+                <td class="py-3 px-4 text-right font-mono">$${item.unit_cost.toFixed(2)}</td>
+                <td class="py-3 px-4 text-right font-mono">$${subtotal.toFixed(2)}</td>
+                <td class="py-3 px-4 text-right">
+                    <button type="button" onclick="removeItemRow(${idx})" class="text-industrial-gray hover:text-zarvent-red p-1">
+                        <span class="material-symbols-outlined text-sm">delete</span>
+                    </button>
+                </td>
+            `;
+            tbody.appendChild(tr);
+        });
+    }
+
+    function recalculateTotals() {
+        let total = 0.0;
+        purchaseItems.forEach(i => {
+            total += i.unit_cost * i.quantity_ordered;
+        });
+
+        document.getElementById('grand-total').innerText = `$${total.toFixed(2)}`;
+        document.getElementById('items_json').value = JSON.stringify(purchaseItems);
+    }
+
+    function submitPurchaseOrder() {
+        const supplierId = document.getElementById('supplier_id').value;
+
+        if (!supplierId) {
+            alert('Por favor selecciona un proveedor.');
+            return;
+        }
+
+        if (purchaseItems.length === 0) {
+            alert('Por favor agrega al menos un repuesto a la orden de compra.');
+            return;
+        }
+
+        document.getElementById('new-purchase-form').submit();
+    }
+</script>
+{% endblock %}

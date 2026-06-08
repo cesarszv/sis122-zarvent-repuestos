@@ -104,6 +104,40 @@ def extract_tables(statement: str) -> list[str]:
     return tables
 
 
+def build_summary(entries: list[dict]) -> dict:
+    """Aggregates trace entries into totals, errors, operations and table counts.
+
+    Pure function: no side effects, no global state. The caller passes the list
+    of entries it already has (for example, the result of
+    `get_sql_trace_entries`). Useful for the live dashboard and for tests.
+    """
+    operations: dict[str, int] = {"SELECT": 0, "INSERT": 0, "UPDATE": 0, "DELETE": 0}
+    table_counts: dict[str, int] = {}
+    error_count = 0
+
+    for entry in entries:
+        if entry.get("status") == "ERROR":
+            error_count += 1
+
+        op_full = str(entry.get("operation") or "")
+        op_key = op_full.split(" ", 1)[0].upper() if op_full else ""
+        if op_key in operations:
+            operations[op_key] += 1
+
+        for table in entry.get("tables") or []:
+            table_counts[table] = table_counts.get(table, 0) + 1
+
+    sorted_tables = sorted(table_counts.items(), key=lambda item: (-item[1], item[0]))
+    top_tables = dict(sorted_tables[:8])
+
+    return {
+        "total": len(entries),
+        "errors": error_count,
+        "operations": operations,
+        "tables": top_tables,
+    }
+
+
 def build_trace_entry(
     operation: str,
     params: Any,

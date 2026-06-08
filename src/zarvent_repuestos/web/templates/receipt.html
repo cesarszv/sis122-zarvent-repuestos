@@ -22,7 +22,7 @@
             </tr>
         </thead>
         <tbody>
-            {% for item in order.items %}
+            {% for item in order['items'] %}
             <tr>
                 <td class="py-1 max-w-[120px] truncate">[{{ item.internal_code }}] {{ item.name }}</td>
                 <td class="py-1 text-center font-bold">{{ item.quantity }}</td>
