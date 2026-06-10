@@ -119,7 +119,7 @@ Notas por fila:
 | Modulo | Ruta Flask | Spec | Estado v1 | Cambios v1 |
 | --- | --- | --- | --- | --- |
 | Dashboard | `/dashboard` | [dashboard/SPEC.md](dashboard/SPEC.md) | implementado v1 | Mockup `dashboard_mockup.{html,png}`; implementar pagos y compras pendientes para cerrar RF-09 completo. |
-| Inventario | `/inventory` | [inventory/SPEC.md](inventory/SPEC.md) | parcial v1 | Mockup `inventory_mockup.{html,png}`; agregar `update_part`/`delete_part` y rutas `/inventory/<id>/edit` y `/inventory/<id>/delete`; exponer `warranty_days` y `status` en el form. |
+| Inventario | `/inventory` | [inventory/SPEC.md](inventory/SPEC.md) | implementado v1 | Mockup `inventory_mockup.{html,png}`; rutas `/inventory/<id>/edit` y borrado lógico (inactivación) implementados. Exposición de `warranty_days` y `status` integrada. |
 | Clientes | `/customers`, `/customers/<id>/edit`, `/customers/<id>/delete` | [customers/SPEC.md](customers/SPEC.md) | implementado v1 | Sin mockup dedicado; aniadir busqueda por telefono, paginacion y validacion backend de email/telefono. |
 | Ventas | `/sales`, `/sales/receipt/<id>` | [sales/SPEC.md](sales/SPEC.md) | implementado v1 | Mockup `sales_mockup.{html,png}`; permitir pagos multiples/parciales y estados `Pending`/`Cancelled` reales (hoy se inserta siempre `Paid`). |
 | Compras | `/purchases`, `/purchases/<id>`, `/purchases/<id>/receive` | [purchases/SPEC.md](purchases/SPEC.md) | implementado v1 | Sin mockup dedicado; exponer `create_supplier` y `create_category` en la UI; aniadir cancelacion de orden. |

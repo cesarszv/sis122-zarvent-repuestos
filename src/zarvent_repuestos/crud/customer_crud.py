@@ -1,8 +1,7 @@
 """CRUD operations for Customers and Persons (RF-01).
 
-v1 refactor: replaces the hard `DELETE FROM customer` flow with a soft-delete
-based on `customer.is_active`. Search now also matches `person.phone`. The
-list endpoint accepts a `filter` parameter to choose active, inactive or all.
+Uses soft-delete via `customer.is_active`. Search matches first_name,
+last_name, identity_number, tax_id, billing_name, and phone.
 """
 
 import logging
@@ -16,9 +15,8 @@ from zarvent_repuestos.database.connection import get_database_connection
 logger = logging.getLogger(__name__)
 
 
-# Kept for backward compatibility with the v0 hard-delete flow. The v1
-# web routes no longer call this; tests still import it to verify the
-# pre-check refuses the operation when sales are linked.
+# Los tests importan esta excepcion para verificar que el pre-check
+# rechaza la operacion cuando el cliente tiene ventas.
 class CustomerHasSalesError(Exception):
     """Raised when a customer cannot be soft-deleted because sales orders protect them."""
 
@@ -71,11 +69,9 @@ def crear_cliente(first_name: str, last_name: str, identity_number: str,
     """
 
     try:
-        # 1. Insert Person
         cursor.execute(sql_person, (first_name, last_name, identity_number, phone, email, address))
         person_id = cursor.lastrowid
 
-        # 2. Insert Customer
         b_name = billing_name if billing_name else f"{first_name} {last_name}"
         t_id = tax_id if tax_id else identity_number
         cursor.execute(sql_customer, (person_id, b_name, t_id))
@@ -282,24 +278,12 @@ def reactivate_customer(customer_id: int) -> bool:
     return set_customer_active(customer_id, True)
 
 
-# ---------------------------------------------------------------------------
-# Backward-compatibility shim for the v0 hard-delete flow.
-#
-# The v1 web routes no longer call this; we keep it for tests that assert the
-# pre-check refuses deletion when the customer has sales. The implementation
-# delegates to `deactivate_customer` so old tests still see the same behavior
-# (refusal + CustomerHasSalesError when sales are present), but on a real run
-# it will simply mark the customer as inactive.
-# ---------------------------------------------------------------------------
 
 def delete_customer(customer_id: int) -> bool:
-    """Deprecated hard-delete entrypoint. See `deactivate_customer` for v1.
+    """Soft-deletes a customer, refusing if there are linked sales.
 
-    The behavior changed in v1: the customer is now soft-deleted (set to
-    `is_active = FALSE`) instead of removed from the database. The
-    `CustomerHasSalesError` is preserved as a contract for callers that want
-    to refuse the operation when the customer has sales; the v1 web route
-    no longer calls this and uses `deactivate_customer` instead.
+    Preservado para tests que verifican `CustomerHasSalesError`.
+    La app usa `deactivate_customer` directamente.
     """
     sales_count = _count_customer_sales(customer_id)
     if sales_count > 0:

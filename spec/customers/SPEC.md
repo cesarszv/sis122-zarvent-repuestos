@@ -53,10 +53,7 @@ Unico template Jinja2:
 | `get_customer(customer_id) -> dict \| None` | Read (uno) | Recupera un cliente por `customer_id` con sus datos de `person`. |
 | `update_customer(customer_id, first_name, last_name, identity_number, billing_name, tax_id, phone=None, email=None, address=None) -> bool` | Update | `SELECT person_id` + `UPDATE person` + `UPDATE customer` en una transaccion. |
 | `delete_customer(customer_id) -> bool` | Delete | Pre-chequea ventas con `_count_customer_sales`; si hay, lanza `CustomerHasSalesError`. Caso contrario, `DELETE FROM customer` (la fila `person` se borra por `ON DELETE CASCADE`). |
-
-**No existen todavia** `deactivate_customer` ni `reactivate_customer` en
-`customer_crud.py`. **No existe** la columna `customer.is_active` en
-`init_db.py:60-82`.
+Las funciones `deactivate_customer` y `reactivate_customer` en `customer_crud.py` se utilizan para cambiar el estado lógico del cliente. La columna `customer.is_active` está presente en la base de datos para soportar este borrado lógico.
 
 ### Excepcion de dominio
 
@@ -248,12 +245,8 @@ Comando esperado: `uv run pytest tests/test_customer_crud.py` o
 
 ### Brechas de cobertura
 
-- **No hay test para `deactivate_customer` / `reactivate_customer`**:
-  las funciones no existen en codigo todavia. Cuando se agreguen, los
-  tests deben verificar que el `UPDATE` se ejecuta, que retorna `True`
-  cuando la fila existe, y `False` cuando no.
-- **No hay test para el filtro `filter="active|inactive|all"`** en
-  `listar_clientes`. El cambio a la firma y al `WHERE` no tiene red de
+- **Tests para `deactivate_customer` / `reactivate_customer`**:
+  Las funciones de borrado lógico están testeadas en `tests/unit/test_customer_soft_delete.py`, verificando que el `UPDATE` a `is_active` se ejecuta correctamente y gestiona transacciones (commit/rollback) en caso de error.
   seguridad.
 - **No hay test para la busqueda por `phone`**: el cambio en el `LIKE`
   no tiene asserts.
@@ -367,15 +360,15 @@ Comando esperado: `uv run pytest tests/test_customer_crud.py` o
 | RF-01 identidad separada del rol comercial | `processes.md`, `procedures.md` separan datos personales y de facturacion | `erd.md` `PERSON \|\|--o\| CUSTOMER` | `person` + `customer` con `person_id` FK unico | implementado v1 |
 | RF-01 registro de cliente | `requirements.md` RF-01 | `db_explanation.md` | `POST /customers` + `crear_cliente()` con transaccion | implementado v1 |
 | RF-01 edicion de cliente | `procedures.md` paso 4 ("revisa que la informacion este actualizada") | `db_explanation.md` | `GET/POST /customers/<id>/edit` + `update_customer()` | implementado v1 |
-| RF-01 soft-delete / borrado logico | — | nueva columna `customer.is_active` | NO existe columna ni funcion (cambio v1: anadir `is_active`, `deactivate_customer`, `reactivate_customer`) | parcial v1 |
-| RF-01 borrado fisico (decidir si se conserva) | — | `ON DELETE CASCADE` en `customer.person_id` | `delete_customer` existe, ruta `/customers/<id>/delete` se elimina en v1 | corregir UI/spec |
+| RF-01 soft-delete / borrado logico | — | nueva columna `customer.is_active` | Columna `is_active` y funciones `deactivate_customer`/`reactivate_customer` implementadas | implementado v1 |
+| RF-01 borrado fisico (decidir si se conserva) | — | `ON DELETE CASCADE` en `customer.person_id` | `delete_customer` se mantiene en CRUD sin ruta en la UI | implementado v1 |
 | RF-01 busqueda por documento, nombre, NIT, razon social | `procedures.md` paso 2 | `db_explanation.md` | `listar_clientes(search=...)` cubre cinco campos | implementado v1 |
-| RF-01 busqueda por telefono | `procedures.md` paso 2 | — | NO incluida en el `LIKE` (cambio v1: anadir `p.phone LIKE`) | parcial v1 |
+| RF-01 busqueda por telefono | `procedures.md` paso 2 | — | Búsqueda por teléfono incluida en `listar_clientes()` | implementado v1 |
 | RF-01 datos de facturacion (Razon Social y NIT) | `actors.md` Cajero / Responsable de facturacion | `db_explanation.md` `billing_name`, `tax_id` | Columnas presentes; defaults replicados en ruta de edicion | implementado v1 |
 | RF-01 valores por defecto (`billing_name`, `tax_id`) | — | — | Aplicados en `crear_cliente` y `edit_customer` | implementado v1 |
 | Cardinalidad 1..0..1 reforzada en fisico | — | `db_explanation.md` declara 1..0..1 | `customer.person_id` `UNIQUE NOT NULL` | implementado v1 |
 | Bloqueo de borrado si hay ventas (ya no aplica a UI) | `processes.md` "ventas sin detalle confiable" | `ON DELETE RESTRICT` en `sales_order.customer_id` | `delete_customer` + `CustomerHasSalesError` (se mantienen en CRUD sin ruta) | implementado v1 |
-| Filtro por estado (`active`/`inactive`/`all`) | — | nueva columna `customer.is_active` | NO existe filtro (cambio v1: parametro `?filter=...`) | parcial v1 |
+| Filtro por estado (`active`/`inactive`/`all`) | — | nueva columna `customer.is_active` | Filtro `filter` soportado en listado y UI | implementado v1 |
 | Autenticacion previa | `actors.md` | `users` (`init_db.py:206`) | `@login_required` en `app.py:316` | implementado v1 |
 | Trazabilidad: SQL trace + `cursor.rowcount` | — | — | `sql_trace.py` opt-in + `customer_crud.delete_customer` usa `cursor.rowcount` | implementado v1 |
 | Historial de cambios (auditoria) | `processes.md` "auditoria futura" | `db_explanation.md` lo lista como limitacion | NO existe | fuera de alcance v1 |

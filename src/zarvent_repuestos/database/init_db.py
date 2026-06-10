@@ -1,16 +1,8 @@
-"""Database and tables initialization script following the project's ERD schema.
+"""Database and tables initialization following the project's ERD.
 
-This module is the source of truth for the physical schema at runtime. It runs
-on every Flask startup (`web/app.py`) and is idempotent (CREATE TABLE IF NOT
-EXISTS). For the academic reference of the schema, see `database/schema.sql`,
-which mirrors the statements below and adds the analytical views.
-
-v1 changes (v1 refactor):
-
-- `customer.is_active` column added (soft-delete for RF-01).
-- Idempotent migration block that adds `is_active` to pre-existing schemas.
-- Creation of two academic views (`vw_low_stock_parts`,
-  `vw_daily_sales_summary`) used by the dashboard and inventory views.
+Fuente de verdad del schema fisico en runtime. Idempotente via
+CREATE TABLE IF NOT EXISTS. Para la referencia academica, ver
+`database/schema.sql`.
 """
 
 import logging
@@ -153,7 +145,6 @@ def crear_tablas():
 
     cursor = conexion.cursor()
 
-    # 1. Person Table
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS person (
         person_id INT AUTO_INCREMENT PRIMARY KEY,
@@ -166,7 +157,6 @@ def crear_tablas():
     ) ENGINE=InnoDB;
     """)
 
-    # 2. Customer Table (RF-01) - v1 adds is_active for soft-delete
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS customer (
         customer_id INT AUTO_INCREMENT PRIMARY KEY,
@@ -178,7 +168,6 @@ def crear_tablas():
     ) ENGINE=InnoDB;
     """)
 
-    # 3. Supplier Table
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS supplier (
         supplier_id INT AUTO_INCREMENT PRIMARY KEY,
@@ -191,7 +180,6 @@ def crear_tablas():
     ) ENGINE=InnoDB;
     """)
 
-    # 4. Part Category Table
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS part_category (
         part_category_id INT AUTO_INCREMENT PRIMARY KEY,
@@ -200,7 +188,6 @@ def crear_tablas():
     ) ENGINE=InnoDB;
     """)
 
-    # 5. Part Table
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS part (
         part_id INT AUTO_INCREMENT PRIMARY KEY,
@@ -218,7 +205,6 @@ def crear_tablas():
     ) ENGINE=InnoDB;
     """)
 
-    # 6. Inventory Stock Table
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS inventory_stock (
         inventory_stock_id INT AUTO_INCREMENT PRIMARY KEY,
@@ -230,7 +216,6 @@ def crear_tablas():
     ) ENGINE=InnoDB;
     """)
 
-    # 7. Sales Order Table
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS sales_order (
         sales_order_id INT AUTO_INCREMENT PRIMARY KEY,
@@ -244,7 +229,6 @@ def crear_tablas():
     ) ENGINE=InnoDB;
     """)
 
-    # 8. Sales Order Item Table
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS sales_order_item (
         sales_order_item_id INT AUTO_INCREMENT PRIMARY KEY,
@@ -258,7 +242,6 @@ def crear_tablas():
     ) ENGINE=InnoDB;
     """)
 
-    # 9. Payment Table
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS payment (
         payment_id INT AUTO_INCREMENT PRIMARY KEY,
@@ -272,7 +255,6 @@ def crear_tablas():
     ) ENGINE=InnoDB;
     """)
 
-    # 10. Purchase Order Table
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS purchase_order (
         purchase_order_id INT AUTO_INCREMENT PRIMARY KEY,
@@ -285,7 +267,6 @@ def crear_tablas():
     ) ENGINE=InnoDB;
     """)
 
-    # 11. Purchase Order Item Table
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS purchase_order_item (
         purchase_order_item_id INT AUTO_INCREMENT PRIMARY KEY,
@@ -299,7 +280,6 @@ def crear_tablas():
     ) ENGINE=InnoDB;
     """)
 
-    # 12. System Users Table for Login
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS users (
         id INT AUTO_INCREMENT PRIMARY KEY,
@@ -308,10 +288,10 @@ def crear_tablas():
     ) ENGINE=InnoDB;
     """)
 
-    # Idempotent migrations (v1) - safe to run on existing schemas.
+    # Migraciones idempotentes.
     _ensure_customer_is_active_column(cursor)
 
-    # Academic analytical views (v1) - CREATE OR REPLACE makes them idempotent.
+    # Vistas analiticas academicas.
     _create_views(cursor)
 
     conexion.commit()

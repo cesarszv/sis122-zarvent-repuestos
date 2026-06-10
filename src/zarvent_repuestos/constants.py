@@ -1,25 +1,10 @@
 """Centralized status and enum constants for the application.
 
-All status values used across the model, CRUDs, templates, and views must be
-imported from this module. The previous codebase used scattered string
-literals (`'Paid'`, `'pending'`, `'Completed'`, etc.) which made it easy to
-miss mismatches in SQL filters. The constants here match the exact strings
-persisted in MySQL.
-
-Conventions:
-
-- Module-level enums are defined as plain classes (no need for `enum.Enum`
-  because the values are string literals persisted in the database, and we
-  want the strings to be directly comparable in SQL placeholders).
-- Every constant is the **exact string** used in the database column. Do not
-  rename values here without a migration; the column defaults in
-  `init_db.py` and `database/schema.sql` must stay in sync.
-- All names are uppercase. Comparisons with column values must be
-  case-insensitive only at the SQL collation level (utf8mb4_unicode_ci),
-  not at the Python level.
+Every constante es el string exacto que se persiste en MySQL.
+No renombrar valores sin actualizar `init_db.py` y `database/schema.sql`.
 """
 
-# --- Sales order status ---------------------------------------------------
+
 
 class SalesOrderStatus:
     """Status values for `sales_order.status` (RF-05, RF-06)."""
@@ -29,11 +14,10 @@ class SalesOrderStatus:
     CANCELLED = "Cancelled"
 
     ALL = [PAID, PENDING, CANCELLED]
-    # `Paid` is the only status actually inserted by the v1 transaction in
-    # `sales_crud.crear_orden_venta`. The other values are reserved for v2.
+    # `Paid` es el unico estado que inserta la transaccion de venta actual.
 
 
-# --- Purchase order status ------------------------------------------------
+
 
 class PurchaseOrderStatus:
     """Status values for `purchase_order.status` (RF-07)."""
@@ -46,7 +30,7 @@ class PurchaseOrderStatus:
     ALL = [PENDING, PARTIALLY_RECEIVED, RECEIVED, CANCELLED]
 
 
-# --- Payment status -------------------------------------------------------
+
 
 class PaymentStatus:
     """Status values for `payment.status` (RF-06)."""
@@ -55,9 +39,7 @@ class PaymentStatus:
     PENDING = "Pending"
 
 
-# --- Payment methods ------------------------------------------------------
-# These literals are stored verbatim in `payment.method`. The Sales POS
-# form offers exactly these four options in Latam Spanish.
+# Metodos de pago (valores exactos en `payment.method`).
 
 PAYMENT_METHOD_CASH = "Efectivo"
 PAYMENT_METHOD_DEBIT_CARD = "Tarjeta de Débito"
@@ -72,7 +54,7 @@ PAYMENT_METHODS = [
 ]
 
 
-# --- Part (inventory) status ---------------------------------------------
+
 
 class PartStatus:
     """Status values for `part.status` (soft-delete)."""
@@ -84,9 +66,8 @@ class PartStatus:
     DEFAULT = ACTIVE
 
 
-# --- Customer status (soft-delete via `is_active`) -----------------------
-# Note: customer.is_active is a BOOLEAN column, not a VARCHAR with
-# enumerated values. Use the class below for clarity in queries.
+# customer.is_active es BOOLEAN, no VARCHAR. La clase agrupa los
+# valores permitidos en el parametro ?filter= de /customers.
 
 class CustomerActiveFilter:
     """Allowed values for the `?filter=` query parameter on /customers."""
@@ -99,7 +80,7 @@ class CustomerActiveFilter:
     DEFAULT = ACTIVE
 
 
-# --- Supplier status (soft-delete via `is_active`) ----------------------
+
 
 class SupplierActiveFilter:
     """Allowed values for the `?active=` query parameter on /purchases."""
@@ -110,7 +91,7 @@ class SupplierActiveFilter:
     DEFAULT_ACTIVE_ONLY = True
 
 
-# --- Sales list filter (status query string) ----------------------------
+
 
 class SalesListFilter:
     """Allowed values for the `?status=` query parameter on /sales."""

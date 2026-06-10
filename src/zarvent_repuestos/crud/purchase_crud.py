@@ -1,10 +1,4 @@
-"""CRUD and transactional operations for suppliers, purchase orders, and stock reception (RF-07).
-
-v1 refactor: adds `cancel_purchase_order` which only operates on `Pending`
-orders and never touches `inventory_stock` (the cancellation does not
-increase stock). The list endpoint already accepted any status string, so
-the v1 status filter `Cancelled` works out of the box.
-"""
+"""CRUD and transactional operations for suppliers, purchase orders, and stock reception (RF-07)."""
 
 import datetime
 import logging
@@ -30,7 +24,6 @@ def _parse_iso_date(value: Optional[str]) -> Optional[datetime.date]:
     return datetime.date.fromisoformat(value)
 
 
-# --- SUPPLIER CRUD ---
 
 
 def create_supplier(business_name: str, tax_id: str, phone: Optional[str] = None,
@@ -104,7 +97,6 @@ def get_supplier(supplier_id: int) -> Optional[Dict[str, Any]]:
     return row
 
 
-# --- PURCHASE ORDER CRUD ---
 
 
 def create_purchase_order(supplier_id: int, expected_date: Optional[str],

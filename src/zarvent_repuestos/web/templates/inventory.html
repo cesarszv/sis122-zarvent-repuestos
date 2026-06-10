@@ -4,7 +4,6 @@
 
 {% block content %}
 <div class="max-w-7xl mx-auto space-y-6">
-    <!-- Header Section -->
     <div class="flex flex-col lg:flex-row justify-between items-start lg:items-end gap-6 mb-2">
         <div class="flex-1">
             <h2 class="text-4xl font-extrabold text-workshop-black tracking-tight mb-1">Catálogo de Repuestos</h2>
@@ -22,14 +21,12 @@
         </div>
     </div>
 
-    <!-- Filters & Search Bar -->
     <form method="get" action="/inventory" class="flex flex-col md:flex-row gap-4 mb-4 bg-pure-white p-4 border border-steel-gray rounded shadow-sm">
         <div class="flex-1 relative">
             <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-industrial-gray">search</span>
             <input name="search" value="{{ search_val or '' }}" class="w-full bg-cold-white border border-steel-gray focus:border-zarvent-red focus:ring-1 focus:ring-zarvent-red pl-10 py-2 rounded text-sm placeholder:text-industrial-gray transition-colors" placeholder="Buscar por código interno, OEM o nombre..." type="text"/>
         </div>
         <div class="flex gap-2 flex-wrap">
-            <!-- Status Filter (v1) -->
             <div class="relative w-40">
                 <select name="status" onchange="this.form.submit()" class="w-full bg-cold-white border border-steel-gray focus:border-zarvent-red focus:ring-1 focus:ring-zarvent-red py-2 px-3 pr-8 rounded text-sm text-workshop-black cursor-pointer appearance-none">
                     <option value="active" {% if status_val == 'active' %}selected{% endif %}>Activos</option>
@@ -38,7 +35,6 @@
                 </select>
                 <span class="material-symbols-outlined absolute right-2 top-1/2 -translate-y-1/2 text-industrial-gray pointer-events-none">arrow_drop_down</span>
             </div>
-            <!-- Category Filter -->
             <div class="relative w-48">
                 <select name="category_id" onchange="this.form.submit()" class="w-full bg-cold-white border border-steel-gray focus:border-zarvent-red focus:ring-1 focus:ring-zarvent-red py-2 px-3 pr-8 rounded text-sm text-workshop-black cursor-pointer appearance-none">
                     <option value="">Todas las Categorías</option>
@@ -48,7 +44,6 @@
                 </select>
                 <span class="material-symbols-outlined absolute right-2 top-1/2 -translate-y-1/2 text-industrial-gray pointer-events-none">arrow_drop_down</span>
             </div>
-            <!-- Brand Filter -->
             <div class="relative w-48">
                 <select name="brand" onchange="this.form.submit()" class="w-full bg-cold-white border border-steel-gray focus:border-zarvent-red focus:ring-1 focus:ring-zarvent-red py-2 px-3 pr-8 rounded text-sm text-workshop-black cursor-pointer appearance-none">
                     <option value="">Todas las Marcas</option>
@@ -67,7 +62,6 @@
         </div>
     </form>
 
-    <!-- Data Table -->
     <div class="overflow-x-auto w-full bg-pure-white border border-steel-gray rounded shadow-sm">
         <table class="w-full text-left border-collapse">
             <thead>
@@ -134,7 +128,7 @@
         </table>
     </div>
 
-    <!-- Add Product Modal Overlay -->
+    <!-- Modal: Agregar Producto -->
     <div id="add-product-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center hidden">
         <div class="bg-pure-white border border-steel-gray rounded shadow-lg max-w-2xl w-full mx-4 overflow-hidden max-h-[90vh] flex flex-col">
             <header class="bg-workshop-black text-pure-white px-6 py-4 flex justify-between items-center shrink-0">
@@ -228,7 +222,7 @@
         </div>
     </div>
 
-    <!-- Add Category Modal Overlay (v1) -->
+    <!-- Modal: Agregar Categoria -->
     <div id="add-category-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center hidden">
         <div class="bg-pure-white border border-steel-gray rounded shadow-lg max-w-md w-full mx-4 overflow-hidden">
             <header class="bg-workshop-black text-pure-white px-6 py-4 flex justify-between items-center">

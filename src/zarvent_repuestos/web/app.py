@@ -1,19 +1,4 @@
-"""Flask web interface for the Zarvent Repuestos prototype (v1 refactor).
-
-New in v1:
-
-- Form parsing helpers (`parse_int`, `parse_decimal`, `parse_str`) reduce the
-  duplication in route handlers.
-- Soft-delete for customers (`/customers/<id>/deactivate`,
-  `/customers/<id>/reactivate`) replacing the v0 hard-delete.
-- Inventory CRUD additions: `/inventory/<id>/edit`,
-  `/inventory/<id>/deactivate`, `/inventory/<id>/reactivate`, and
-  `/inventory/categories` for category creation.
-- Purchases additions: `/purchases/suppliers` (create) and
-  `/purchases/<id>/cancel` (Pending orders only).
-- Dashboard now exposes `pending_purchase_count` and `payments_by_method`.
-- Centralized status literals via `zarvent_repuestos.constants`.
-"""
+"""Flask web interface for the Zarvent Repuestos prototype."""
 
 import json
 import logging
@@ -99,9 +84,7 @@ def _release_sql_trace_request_context(_error=None):
         clear_request_context()
 
 
-# ---------------------------------------------------------------------------
-# Form parsing helpers
-# ---------------------------------------------------------------------------
+
 
 def parse_str(value: Optional[str], *, default: Optional[str] = None,
               strip: bool = True) -> Optional[str]:
@@ -141,9 +124,7 @@ def parse_decimal(value: Optional[str], *, default: Optional[float] = None,
     return default if parsed < 0 and minimum is None else parsed
 
 
-# ---------------------------------------------------------------------------
-# Auth decorator
-# ---------------------------------------------------------------------------
+
 
 def login_required(f: Callable) -> Callable:
     """Decorator to require login on private routes."""
@@ -156,9 +137,7 @@ def login_required(f: Callable) -> Callable:
     return decorated_function
 
 
-# ---------------------------------------------------------------------------
-# Auth routes
-# ---------------------------------------------------------------------------
+
 
 @app.route("/", methods=["GET", "POST"])
 def home():
@@ -193,9 +172,7 @@ def logout():
     return redirect(url_for("home"))
 
 
-# ---------------------------------------------------------------------------
-# Dashboard
-# ---------------------------------------------------------------------------
+
 
 @app.route("/dashboard")
 @login_required
@@ -205,9 +182,7 @@ def dashboard():
     return render_template("dashboard.html", active_page="dashboard", metrics=metrics)
 
 
-# ---------------------------------------------------------------------------
-# Inventory
-# ---------------------------------------------------------------------------
+
 
 @app.route("/inventory", methods=["GET", "POST"])
 @login_required
@@ -261,7 +236,7 @@ def inventory():
 
         return redirect(url_for("inventory"))
 
-    # GET - filters
+    # GET
     search = parse_str(request.args.get("search"))
     cat_id = parse_str(request.args.get("category_id"))
     brand = parse_str(request.args.get("brand"))
@@ -298,7 +273,7 @@ def inventory():
 @app.route("/inventory/<int:part_id>/edit", methods=["GET", "POST"])
 @login_required
 def edit_part(part_id: int):
-    """Edits a part's editable fields (RF-02 v1)."""
+    """Edits a part's editable fields."""
     if request.method == "POST":
         name = parse_str(request.form.get("name"))
         brand = parse_str(request.form.get("brand"))
@@ -380,9 +355,7 @@ def create_category():
     return redirect(url_for("inventory"))
 
 
-# ---------------------------------------------------------------------------
-# Sales
-# ---------------------------------------------------------------------------
+
 
 @app.route("/sales", methods=["GET", "POST"])
 @login_required
@@ -446,7 +419,7 @@ def sales():
 
         return redirect(url_for("sales"))
 
-    # GET - filters. v1 only allows `All Orders` and `Paid` (the only real status).
+    # GET
     status = parse_str(
         request.args.get("status"), default=SalesListFilter.DEFAULT
     )
@@ -488,9 +461,7 @@ def receipt(sales_order_id: int):
     return render_template("receipt.html", order=order)
 
 
-# ---------------------------------------------------------------------------
-# SQL Trace
-# ---------------------------------------------------------------------------
+
 
 @app.route("/sql-trace")
 @login_required
@@ -519,9 +490,7 @@ def api_clear_sql_trace():
     return jsonify({"status": "ok"})
 
 
-# ---------------------------------------------------------------------------
-# Customers (RF-01)
-# ---------------------------------------------------------------------------
+
 
 def _resolve_customer_filter() -> str:
     """Returns the validated status filter for /customers."""
@@ -661,9 +630,7 @@ def reactivate_customer(customer_id: int):
     return redirect(url_for("customers"))
 
 
-# ---------------------------------------------------------------------------
-# Purchases (RF-07)
-# ---------------------------------------------------------------------------
+
 
 @app.route("/purchases", methods=["GET", "POST"])
 @login_required
@@ -726,7 +693,7 @@ def purchases():
 @app.route("/purchases/suppliers", methods=["POST"])
 @login_required
 def create_supplier():
-    """Creates a new supplier from the purchases form (RF-07 v1)."""
+    """Creates a new supplier from the purchases form."""
     business_name = parse_str(request.form.get("business_name"))
     tax_id = parse_str(request.form.get("tax_id"))
     phone = parse_str(request.form.get("phone"))
@@ -818,9 +785,7 @@ def receive_purchase(purchase_order_id: int):
     return redirect(url_for("purchase_detail", purchase_order_id=purchase_order_id))
 
 
-# ---------------------------------------------------------------------------
-# Entrypoint
-# ---------------------------------------------------------------------------
+
 
 if __name__ == "__main__":
     app.run(debug=os.getenv("FLASK_DEBUG", "0") == "1")

@@ -163,17 +163,10 @@ ruta actual antes de cada peticion y la limpian al terminar.
 | `tests/test_sql_trace.py` | modulo SQL trace (no dashboard) | Cubre el mecanismo de captura de queries; el dashboard se beneficia del mismo cuando `SQL_TRACE_ENABLED=1`. |
 | `tests/test_setup_database.py` | creacion de tablas | Pre-requisito: si las tablas no existen, el dashboard falla. |
 
-### Brechas de cobertura
+### Cobertura de Tests
 
-- **No existe `tests/test_dashboard.py`.** Las 6 metricas del diccionario, el
-  filtro `order_date = CURDATE()`, el uso de la vista `vw_low_stock_parts`,
-  las dos nuevas metricas `pending_purchase_count` y `payments_by_method`, y
-  el renderizado de las 4 tarjetas KPI no tienen asserts dedicados.
-- **No existe test para la creacion de `vw_low_stock_parts`.** El test deberia
-  verificar que la vista existe y devuelve al menos una fila cuando hay
-  stock bajo.
-- El fallo controlado de MySQL (pagina con ceros, no 500) tampoco esta
-  cubierto por un test automatico.
+- **Tests de métricas del Dashboard**:
+  Las métricas están cubiertas por `tests/unit/test_dashboard_metrics.py`, que verifica individualmente los cálculos de compras pendientes, los pagos por método del día (incluso cuando algunos métodos no tienen ventas) y el contrato agregador `obtener_metricas_dashboard` con todas sus claves correspondientes.
 
 ## 5. Aceptacion manual en navegador / DataGrip
 
@@ -254,18 +247,18 @@ ruta actual antes de cada peticion y la limpian al terminar.
 
 | Tema | `docs/analysis` | `docs/database` | Codigo actual | Estado v1 |
 | --- | --- | --- | --- | --- |
-| Reportes de supervision para gerencia | [`processes.md`](../../docs/analysis/processes.md) item 11 | [`db_explanation.md`](../../docs/database/db_explanation.md) (consulta libre) | `GET /dashboard` + `obtener_metricas_dashboard()` | parcial v1 |
+| Reportes de supervision para gerencia | [`processes.md`](../../docs/analysis/processes.md) item 11 | [`db_explanation.md`](../../docs/database/db_explanation.md) (consulta libre) | `GET /dashboard` + `obtener_metricas_dashboard()` | implementado v1 |
 | RF-09 ventas del dia | `processes.md` item 11 | `sales_order.total_amount`, `order_date` | `SUM(total_amount) WHERE order_date = CURDATE()` (cambio v1: quitar `status != 'Cancelled'`) | implementado v1 |
-| RF-09 total de ordenes | `processes.md` item 11 | `sales_order` | calculado en `sales_crud.py:242-244`, no renderizado (cambio v1: anadir tarjeta KPI) | parcial v1 |
-| RF-09 stock bajo | `processes.md` control de inventario | `inventory_stock.quantity_on_hand`, `reorder_level` | SELECT ad-hoc (cambio v1: usar `vw_low_stock_parts`) | parcial v1 |
-| RF-09 compras pendientes | `processes.md` item 8 | `purchase_order.status='Pending'` | NO consultado (cambio v1: anadir `pending_purchase_count`) | parcial v1 |
-| RF-09 pagos del dia | `processes.md` item 7 | `payment.method`, `payment.amount`, `payment_date` | NO consultado (cambio v1: anadir `payments_by_method`) | parcial v1 |
+| RF-09 total de ordenes | `processes.md` item 11 | `sales_order` | calculado en `sales_crud.py` y renderizado en tarjeta KPI | implementado v1 |
+| RF-09 stock bajo | `processes.md` control de inventario | `inventory_stock.quantity_on_hand`, `reorder_level` | Consulta usando la vista `vw_low_stock_parts` | implementado v1 |
+| RF-09 compras pendientes | `processes.md` item 8 | `purchase_order.status='Pending'` | Consultado e implementado con `pending_purchase_count` | implementado v1 |
+| RF-09 pagos del dia | `processes.md` item 7 | `payment.method`, `payment.amount`, `payment_date` | Consultado e implementado con `payments_by_method` | implementado v1 |
 | RF-09 devoluciones | `processes.md` item 10 | `return_order`, `return_order_item` | Tablas no creadas en `init_db.py` | fuera de alcance v1 |
 | RF-02 conteo de categorias | `processes.md` gestion catalogo | `part_category` | `COUNT(*) FROM part_category` | implementado v1 |
-| RF-04 stock bajo por repuesto | `requirements.md` RF-04 | `INVENTORY_STOCK` | mismo cambio v1: `vw_low_stock_parts` | parcial v1 |
+| RF-04 stock bajo por repuesto | `requirements.md` RF-04 | `INVENTORY_STOCK` | Implementado usando la vista `vw_low_stock_parts` | implementado v1 |
 | RF-05 ultimas N ordenes | derivado del proceso 11 | `sales_order` + `customer` | `ORDER BY sales_order_id DESC LIMIT 5` | implementado v1 |
-| RF-06 pagos por metodo | `processes.md` item 7 | `payment` | NO consultado en v1 (cambio v1: `payments_by_method`) | parcial v1 |
+| RF-06 pagos por metodo | `processes.md` item 7 | `payment` | Consultado e implementado con `payments_by_method` | implementado v1 |
 | RF-03 compatibilidad vehicular | `requirements.md` RF-03 | `VEHICLE_MODEL`, `PART_COMPATIBILITY` | No aplica al dashboard; tablas no creadas | fuera de alcance v1 |
 | Autenticacion previa | actores `actors.md` | `users` (`init_db.py:206`) | `@login_required` en `app.py:114` | implementado v1 |
 | Trazabilidad SQL | — | — | `sql_trace.py` + hooks en `app.py:55-66` (opt-in `SQL_TRACE_ENABLED=1`) | implementado v1 |
-| Vistas (`vw_low_stock_parts`) | derivado de RF-04 y RF-09 | nueva vista en `database/schema.sql` o `init_db.py` | NO existe en codigo (cambio v1: crearla) | parcial v1 |
+| Vistas (`vw_low_stock_parts`) | derivado de RF-04 y RF-09 | nueva vista en `database/schema.sql` y `init_db.py` | Vista creada e integrada en el código | implementado v1 |

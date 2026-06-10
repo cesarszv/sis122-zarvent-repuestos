@@ -1,10 +1,4 @@
-"""Domain models for the Part and PartCategory entities.
-
-These classes exist because the inventory route in app.py and the
-seed script instantiate ``Part`` directly. ``PartCategory`` is
-returned as a typed object by ``part_crud.listar_categorias`` so
-templates can use attribute access.
-"""
+"""Domain models for Part and PartCategory."""
 
 class PartCategory:
     def __init__(self, name, description=None, part_category_id=None):
@@ -31,7 +25,6 @@ class Part:
         self.purchase_cost = purchase_cost
         self.warranty_days = warranty_days
         self.status = status
-        # Relation
         self.category = category
 
     def __str__(self):

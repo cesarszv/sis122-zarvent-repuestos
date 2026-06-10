@@ -4,7 +4,6 @@
 
 {% block content %}
 <div class="max-w-7xl mx-auto space-y-6">
-    <!-- Header Section -->
     <div class="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 mb-2">
         <div>
             <h2 class="text-4xl font-extrabold text-workshop-black tracking-tight mb-1">Órdenes de Venta</h2>
@@ -17,10 +16,9 @@
     </div>
 
     <div class="flex flex-col xl:flex-row gap-6 items-start">
-        <!-- Sidebar Filters -->
         <aside class="w-full xl:w-1/4 shrink-0 flex flex-col gap-6">
             <form method="get" action="/sales" class="border border-steel-gray p-6 bg-pure-white rounded shadow-sm space-y-6">
-                <!-- Status Filter (v1): only `Todas` and `Pagadas` are real. -->
+                <!-- Solo 'Todas' y 'Pagadas' son estados reales. -->
                 <div>
                     <h3 class="text-xs font-bold uppercase tracking-wider text-workshop-black mb-3 border-b border-steel-gray pb-2">Estado de Venta</h3>
                     <div class="flex flex-col gap-2">
@@ -36,7 +34,6 @@
                     </div>
                 </div>
 
-                <!-- Date Filter -->
                 <div>
                     <h3 class="text-xs font-bold uppercase tracking-wider text-workshop-black mb-3 border-b border-steel-gray pb-2">Rango de Fechas</h3>
                     <div class="flex flex-col gap-3">
@@ -59,7 +56,6 @@
             </form>
         </aside>
 
-        <!-- Data Table Area -->
         <div class="w-full xl:w-3/4 overflow-x-auto bg-pure-white border border-steel-gray rounded shadow-sm">
             <table class="w-full text-left border-collapse">
                 <thead>
@@ -102,7 +98,7 @@
         </div>
     </div>
 
-    <!-- New Order Modal Overlay -->
+    <!-- Modal: Nueva Venta -->
     <div id="new-order-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center hidden">
         <div class="bg-pure-white border border-steel-gray rounded shadow-lg max-w-4xl w-full mx-4 overflow-hidden flex flex-col max-h-[90vh]">
             <header class="bg-workshop-black text-pure-white px-6 py-4 flex justify-between items-center shrink-0">
@@ -116,7 +112,6 @@
                 <input type="hidden" name="items_json" id="items_json">
 
                 <div class="space-y-6">
-                    <!-- Cliente section -->
                     <div class="border-b border-steel-gray pb-4">
                         <h4 class="text-sm font-bold uppercase tracking-wider text-workshop-black mb-3">Información del Cliente</h4>
 
@@ -129,7 +124,6 @@
                                 </select>
                             </div>
 
-                            <!-- Existing customer selection -->
                             <div id="existing-client-field" class="md:col-span-2">
                                 <label class="block text-xs font-bold uppercase tracking-wider text-industrial-gray mb-1" for="customer_id">Seleccionar Cliente</label>
                                 <select id="customer_id" name="customer_id" class="w-full bg-cold-white border border-steel-gray p-2.5 rounded text-sm cursor-pointer">
@@ -141,7 +135,6 @@
                             </div>
                         </div>
 
-                        <!-- Fields for quick registering new customer -->
                         <div id="new-client-fields" class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4 hidden">
                             <div>
                                 <label class="block text-xs font-bold uppercase tracking-wider text-industrial-gray mb-1" for="new_first_name">Nombres</label>
@@ -158,11 +151,9 @@
                         </div>
                     </div>
 
-                    <!-- Items selection section -->
                     <div>
                         <h4 class="text-sm font-bold uppercase tracking-wider text-workshop-black mb-3">Agregar Repuestos</h4>
                         <div class="grid grid-cols-1 md:grid-cols-4 gap-4 items-end bg-cold-white p-4 rounded border border-steel-gray">
-                            <!-- Product Select -->
                             <div class="md:col-span-2">
                                 <label class="block text-xs font-bold uppercase tracking-wider text-industrial-gray mb-1" for="part_selector">Seleccionar Repuesto</label>
                                 <select id="part_selector" onchange="updateSelectedPartInfo()" class="w-full bg-pure-white border border-steel-gray p-2.5 rounded text-sm cursor-pointer font-medium">
@@ -179,20 +170,17 @@
                                 </select>
                             </div>
 
-                            <!-- Quantity -->
                             <div>
                                 <label class="block text-xs font-bold uppercase tracking-wider text-industrial-gray mb-1" for="part_quantity">Cantidad</label>
                                 <input id="part_quantity" type="number" min="1" value="1" class="w-full bg-pure-white border border-steel-gray p-2 rounded text-sm font-mono"/>
                             </div>
 
-                            <!-- Add Button -->
                             <button type="button" onclick="addProductRow()" class="w-full bg-workshop-black text-pure-white py-2 px-4 rounded hover:bg-opacity-95 text-sm font-bold transition-all uppercase tracking-wider">
                                 Agregar
                             </button>
                         </div>
                     </div>
 
-                    <!-- Order Details Table -->
                     <div class="border border-steel-gray rounded overflow-hidden">
                         <table class="w-full text-left border-collapse" id="details-table">
                             <thead>
@@ -215,7 +203,6 @@
                 </div>
 
                 <div class="mt-6 pt-4 border-t border-steel-gray space-y-4">
-                    <!-- Summary & Payment -->
                     <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                         <div>
                             <label class="block text-xs font-bold uppercase tracking-wider text-industrial-gray mb-1" for="payment_method">Método de Pago</label>
@@ -233,7 +220,6 @@
                         </div>
                     </div>
 
-                    <!-- Actions -->
                     <div class="flex justify-end gap-4">
                         <button type="button" onclick="toggleModal('new-order-modal', false)" class="px-6 py-2.5 border border-steel-gray rounded hover:bg-cold-white transition-colors text-sm font-semibold">Cancelar</button>
                         <button type="button" onclick="submitSalesOrder()" class="px-6 py-2.5 bg-zarvent-red text-pure-white rounded hover:bg-opacity-95 transition-all text-sm font-bold shadow-sm uppercase tracking-wider">Confirmar Venta</button>
@@ -243,7 +229,7 @@
         </div>
     </div>
 
-    <!-- View Receipt Modal Overlay -->
+    <!-- Modal: Comprobante de Pago -->
     <div id="receipt-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center hidden">
         <div class="bg-pure-white border border-steel-gray rounded shadow-lg max-w-lg w-full mx-4 overflow-hidden">
             <header class="bg-workshop-black text-pure-white px-6 py-4 flex justify-between items-center">
@@ -254,7 +240,7 @@
             </header>
 
             <div id="receipt-content" class="p-6 space-y-4 font-mono text-xs">
-                <!-- Injected via AJAX -->
+                
             </div>
 
             <div class="p-6 border-t border-steel-gray bg-cold-white text-right">

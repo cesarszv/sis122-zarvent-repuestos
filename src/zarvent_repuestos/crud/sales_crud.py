@@ -1,10 +1,4 @@
-"""CRUD and transactional operations for sales orders, items, payments, and dashboard metrics.
-
-v1 refactor: centralized status values via `zarvent_repuestos.constants`,
-`obtener_metricas_dashboard` exposes `pending_purchase_count` and
-`payments_by_method`, and the low-stock query uses the academic view with a
-fallback to the inline query when the view is missing.
-"""
+"""CRUD and transactional operations for sales orders, items, payments, and dashboard metrics."""
 
 import datetime
 import logging
@@ -79,7 +73,6 @@ def crear_orden_venta(customer_id: int, items: List[Dict[str, Any]],
     cursor = conexion.cursor()
 
     try:
-        # 1. Verify and lock stock for all items
         for item in items:
             part_id = int(item["part_id"])
             qty_needed = int(item["quantity"])
@@ -99,7 +92,6 @@ def crear_orden_venta(customer_id: int, items: List[Dict[str, Any]],
                     f"Disponible: {qty_available}, Solicitado: {qty_needed}."
                 )
 
-        # 2. Insert Sales Order
         sql_order = """
         INSERT INTO sales_order (customer_id, order_date, status, subtotal, discount_amount, total_amount)
         VALUES (%s, %s, %s, %s, %s, %s)
@@ -110,7 +102,6 @@ def crear_orden_venta(customer_id: int, items: List[Dict[str, Any]],
         ))
         sales_order_id = cursor.lastrowid
 
-        # 3. Insert Items and Deduct Stock
         sql_item = """
         INSERT INTO sales_order_item (sales_order_id, part_id, quantity, unit_price, discount_amount)
         VALUES (%s, %s, %s, %s, %s)
@@ -127,12 +118,9 @@ def crear_orden_venta(customer_id: int, items: List[Dict[str, Any]],
             price = float(item["unit_price"])
             disc = float(item.get("discount_amount", 0.0))
 
-            # Insert item line
             cursor.execute(sql_item, (sales_order_id, part_id, qty, price, disc))
-            # Deduct inventory stock
             cursor.execute(sql_deduct, (qty, part_id))
 
-        # 4. Insert Payment
         sql_payment = """
         INSERT INTO payment (sales_order_id, payment_date, method, amount, reference_number, status)
         VALUES (%s, %s, %s, %s, %s, %s)
@@ -227,13 +215,11 @@ def obtener_detalles_orden(sales_order_id: int) -> Optional[Dict[str, Any]]:
     """
 
     try:
-        # Fetch order header
         cursor.execute(sql_order, (sales_order_id,))
         order = cursor.fetchone()
         if not order:
             return None
 
-        # Fetch items
         cursor.execute(sql_items, (sales_order_id,))
         order["items"] = cursor.fetchall()
 
@@ -305,19 +291,7 @@ def _count_pending_purchase_orders() -> int:
 
 
 def obtener_metricas_dashboard() -> Dict[str, Any]:
-    """Calculates all key metrics for the operational overview dashboard.
-
-    v1 metrics:
-
-    - `today_sales_amount`: SUM of today's `Paid` sales.
-    - `categories_count`: total part categories.
-    - `low_stock_count`: number of parts at or below their reorder level.
-    - `low_stock_items`: top-5 lowest-stock parts (academic view with fallback).
-    - `total_orders_count`: total number of sales orders (rendered in v1).
-    - `recent_orders`: last 5 sales orders with billing name.
-    - `pending_purchase_count`: purchase orders in `Pending` status (v1).
-    - `payments_by_method`: today's payments aggregated by method (v1).
-    """
+    """Calculates all key metrics for the operational overview dashboard."""
     conexion = get_database_connection()
     cursor = conexion.cursor(dictionary=True)
 
@@ -333,7 +307,7 @@ def obtener_metricas_dashboard() -> Dict[str, Any]:
     }
 
     try:
-        # 1. Today's sales amount (only Paid orders; v1 status is always Paid).
+        # Ventas del dia (solo ordenes Paid).
         cursor.execute(
             "SELECT COALESCE(SUM(total_amount), 0.0) AS total FROM sales_order "
             "WHERE order_date = CURDATE() AND status = %s",
@@ -342,19 +316,19 @@ def obtener_metricas_dashboard() -> Dict[str, Any]:
         row = cursor.fetchone()
         metrics["today_sales_amount"] = float(row["total"]) if row else 0.0
 
-        # 2. Categories count
+        # Categories count
         cursor.execute("SELECT COUNT(*) AS n FROM part_category")
         row = cursor.fetchone()
         metrics["categories_count"] = int(row["n"]) if row else 0
 
-        # 3. Low stock count
+        # Low stock count
         cursor.execute(
             "SELECT COUNT(*) AS n FROM inventory_stock WHERE quantity_on_hand <= reorder_level"
         )
         row = cursor.fetchone()
         metrics["low_stock_count"] = int(row["n"]) if row else 0
 
-        # 4. Low stock items (top 5) - prefer view, fall back to inline query.
+        # Stock bajo (top 5): prefiere la vista, cae al query inline.
         try:
             cursor.execute(
                 "SELECT internal_code, name, brand, quantity_on_hand, reorder_level "
@@ -374,12 +348,12 @@ def obtener_metricas_dashboard() -> Dict[str, Any]:
             )
         metrics["low_stock_items"] = cursor.fetchall()
 
-        # 5. Total orders count
+        # Total orders count
         cursor.execute("SELECT COUNT(*) AS n FROM sales_order")
         row = cursor.fetchone()
         metrics["total_orders_count"] = int(row["n"]) if row else 0
 
-        # 6. Recent orders (last 5)
+        # Recent orders (last 5)
         cursor.execute(
             """
             SELECT o.sales_order_id, o.order_date, o.status, o.total_amount, c.billing_name

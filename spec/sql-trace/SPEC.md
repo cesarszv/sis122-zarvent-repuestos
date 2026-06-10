@@ -555,6 +555,6 @@ definidos en [`spec/README.md`](../README.md):
 | Redaction de passwords en `summarize_params` | (no documentado) | (no aplica: es capa de aplicacion) | `summarize_params` en `sql_trace.py:58-69` | `implementado v1` |
 | `print` a stdout con prefijo `[SQL TRACE]` | (no documentado) | (no aplica) | `TracedCursor.execute` y `executemany` en `sql_trace.py:186-191` y `sql_trace.py:209-214` | `implementado v1` |
 | Anillo de 80 (`MAX_TRACE_ENTRIES`) | (no documentado) | (no aplica) | `deque(maxlen=80)` en `sql_trace.py:21` | `implementado v1` |
-| `SQL_TRACE_ENABLED=0` documentado en `.env.example` | (no documentado) | (no aplica) | `.env.example` no lo incluye; pendiente de aniadir | `parcial v1` (ver [Seccion 3, cambio 1](#3-cambios-requeridos-v1)) |
+| `SQL_TRACE_ENABLED=0` documentado en `.env.example` | (no documentado) | (no aplica) | `.env.example` incluye la variable y documentación de uso | `implementado v1` |
 | Persistencia / export del trace | (no requerida) | (no requerida: no toca el modelo) | No implementado (intencional) | `fuera de alcance v1` |
 | Mockup academico para la UI del trace | (no aplica) | (no aplica) | No existe mockup en `.cszv/mockups/` para este modulo | `fuera de alcance v1` |

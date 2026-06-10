@@ -5,7 +5,6 @@
 {% block content %}
 <div class="max-w-7xl mx-auto space-y-8">
 
-    <!-- Page Header -->
     <div class="flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
             <h2 class="text-4xl md:text-5xl text-workshop-black leading-none font-extrabold tracking-tighter">Resumen General</h2>
@@ -13,9 +12,7 @@
         </div>
     </div>
 
-    <!-- Metrics Bento Grid: 4 cards in v1 (Total Órdenes is now rendered). -->
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <!-- Metric 1: Today's Sales -->
         <div class="bg-pure-white border border-steel-gray rounded-md p-6 flex flex-col justify-between relative overflow-hidden group shadow-sm">
             <div class="absolute top-0 right-0 p-6 opacity-5 group-hover:opacity-10 transition-opacity">
                 <span class="material-symbols-outlined text-8xl">payments</span>
@@ -31,7 +28,6 @@
             </p>
         </div>
 
-        <!-- Metric 2: Low Stock Alerts -->
         <div class="bg-pure-white border border-steel-gray rounded-md p-6 flex flex-col justify-between relative overflow-hidden group shadow-sm">
             <div class="absolute top-0 right-0 p-6 opacity-5 group-hover:opacity-10 transition-opacity">
                 <span class="material-symbols-outlined text-8xl">warning</span>
@@ -47,7 +43,6 @@
             </p>
         </div>
 
-        <!-- Metric 3: Total Orders (v1) -->
         <div class="bg-pure-white border border-steel-gray rounded-md p-6 flex flex-col justify-between relative overflow-hidden group shadow-sm">
             <div class="absolute top-0 right-0 p-6 opacity-5 group-hover:opacity-10 transition-opacity">
                 <span class="material-symbols-outlined text-8xl">receipt_long</span>
@@ -63,7 +58,6 @@
             </p>
         </div>
 
-        <!-- Metric 4: Pending Purchases (v1) -->
         <div class="bg-pure-white border border-steel-gray rounded-md p-6 flex flex-col justify-between relative overflow-hidden group shadow-sm">
             <div class="absolute top-0 right-0 p-6 opacity-5 group-hover:opacity-10 transition-opacity">
                 <span class="material-symbols-outlined text-8xl">local_shipping</span>
@@ -80,7 +74,6 @@
         </div>
     </div>
 
-    <!-- Payments by Method (v1) -->
     <div class="bg-pure-white border border-steel-gray rounded-md p-6 shadow-sm">
         <h3 class="text-lg font-bold text-workshop-black border-b border-steel-gray pb-3 mb-4">
             Pagos de Hoy por Método
@@ -100,9 +93,7 @@
         {% endif %}
     </div>
 
-    <!-- Bento Grid Section 2: Recent Orders & Alerts -->
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <!-- Recent Orders (2/3 width) -->
         <div class="lg:col-span-2 bg-pure-white border border-steel-gray rounded-md p-6 shadow-sm">
             <h3 class="text-lg font-bold text-workshop-black border-b border-steel-gray pb-3 mb-4">
                 Últimas Órdenes de Venta
@@ -148,7 +139,6 @@
             </div>
         </div>
 
-        <!-- Inventory Alerts Sidebar (1/3 width) -->
         <div class="bg-pure-white border border-steel-gray rounded-md p-6 shadow-sm flex flex-col justify-between">
             <div>
                 <h3 class="text-lg font-bold text-workshop-black border-b border-steel-gray pb-3 mb-4">

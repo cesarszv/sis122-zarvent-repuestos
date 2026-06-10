@@ -20,8 +20,7 @@ requerimientos `RF-02` y `RF-04` de
   `/inventory`, con `methods=["GET", "POST"]` y decorada con
   `@login_required`. GET lista y filtra; POST registra un repuesto nuevo.
 
-**No existen** rutas separadas para editar, ver detalle, activar o
-desactivar un repuesto, ni para crear categorias desde la UI.
+Las rutas para editar un repuesto (`/inventory/<id>/edit`) y para crear categorías (`/inventory/categories`) están implementadas e integradas en la UI.
 
 ### Templates
 
@@ -49,12 +48,7 @@ Llamadas desde `app.py:inventory()`:
 - `part_crud.listar_categorias()` en GET (`part_crud.py:33`).
 - `part_crud.obtener_marcas()` en GET (`part_crud.py:147`).
 
-Funciones definidas pero **no conectadas** a ninguna ruta Flask:
-
-- `part_crud.crear_categoria(name, description)` (`part_crud.py:16`).
-- `part_crud.get_part`, `part_crud.update_part`,
-  `part_crud.deactivate_part`, `part_crud.reactivate_part` — **no existen
-  todavia**.
+Las funciones `part_crud.crear_categoria`, `part_crud.get_part`, `part_crud.update_part`, `part_crud.deactivate_part` y `part_crud.reactivate_part` están completamente implementadas y conectadas a sus respectivas rutas en Flask.
 
 ### Modelos
 
@@ -249,21 +243,11 @@ la ruta apropiada), asi que los mensajes se ven en el siguiente GET.
 
 | Test | Cubre | Detalle |
 | --- | --- | --- |
-| (no existe) | — | **Brecha:** no hay `tests/test_inventory.py` ni `tests/test_part_crud.py`. Las funciones nuevas (`get_part`, `update_part`, `deactivate_part`, `reactivate_part`) y las rutas POST no tienen cobertura. La transaccion `crear_producto` (rollback al fallar el segundo `INSERT`) tampoco esta testeada. |
+| `tests/unit/test_part_crud.py` | Métricas y CRUD | Cobertura unitaria para las funciones de edición y borrado lógico (`update_part`, `deactivate_part`, `reactivate_part`), así como la lógica de consulta de stock bajo con fallback. |
 
-### Brechas de cobertura
+### Cobertura de Tests
 
-- `crear_producto`: no hay test que verifique la transaccion
-  (`part` + `inventory_stock`) ni el rollback cuando el segundo `INSERT`
-  falla.
-- `listar_productos`: no hay test que verifique la combinacion de
-  filtros `search + category_id + brand + status`.
-- `crear_categoria`: no hay test que verifique la unicidad de `name`.
-- `update_part`, `deactivate_part`, `reactivate_part`: no existen todavia
-  en codigo, no hay test.
-- Rutas Flask nuevas: no hay test de integracion.
-- Vista `vw_low_stock_parts`: no hay test que verifique su existencia y
-  contenido.
+Las adiciones v1 están testeadas en `tests/unit/test_part_crud.py` y los flujos de integración en `tests/integration/test_integration_flows.py`.
 
 ## 5. Aceptacion manual en navegador / DataGrip
 
@@ -367,16 +351,16 @@ la ruta apropiada), asi que los mensajes se ven en el siguiente GET.
 | Tema | `docs/analysis` | `docs/database` | Codigo actual | Estado v1 |
 | --- | --- | --- | --- | --- |
 | RF-02 catalogo de repuestos (alta y listado) | [`requirements.md`](../../docs/analysis/requirements.md) RF-02; `processes.md` gestion catalogo | `erd.md` `PART`, `PART_CATEGORY` | `app.py:inventory` GET+POST, `part_crud.crear_producto`, `listar_productos` | implementado v1 |
-| RF-02 administracion del catalogo (editar, activar, desactivar) | `processes.md` "Revisa que la informacion este actualizada" | `erd.md` `PART` actualizable | NO existe ruta ni CRUD (cambio v1: anadir `update_part`, `deactivate_part`, `reactivate_part`) | parcial v1 |
-| RF-02 creacion de categorias desde la UI | `processes.md` gestion catalogo | `erd.md` `PART_CATEGORY` | `part_crud.crear_categoria` existe, no conectado a Flask (cambio v1: ruta `/inventory/categories`) | parcial v1 |
-| RF-02 campos `warranty_days`, `unit`, `status` | `requirements.md` RF-02 los pide explicitamente | `erd.md` `PART.warranty_days`, `PART.unit`, `PART.status` | Existen en BD, no se exponen en el form (cambio v1: anadirlos al form) | parcial v1 |
+| RF-02 administracion del catalogo (editar, activar, desactivar) | `processes.md` "Revisa que la informacion este actualizada" | `erd.md` `PART` actualizable | Rutas GET/POST y funciones CRUD implementadas | implementado v1 |
+| RF-02 creacion de categorias desde la UI | `processes.md` gestion catalogo | `erd.md` `PART_CATEGORY` | Ruta `/inventory/categories` y modal implementados | implementado v1 |
+| RF-02 campos `warranty_days`, `unit`, `status` | `requirements.md` RF-02 los pide explicitamente | `erd.md` `PART.warranty_days`, `PART.unit`, `PART.status` | Campos expuestos en formularios y tablas de la UI | implementado v1 |
 | RF-04 stock inicial al crear repuesto | `requirements.md` RF-04; `processes.md` control inventario | `erd.md` `INVENTORY_STOCK` | `crear_producto` inserta en `inventory_stock` | implementado v1 |
-| RF-04 umbral de reorden configurable | `processes.md` "Reporta productos con stock bajo a compras" | `db_explanation.md` `reorder_level` | Hardcoded en `10` (`part_crud.py:88`) (cambio v1: leer del form) | parcial v1 |
-| RF-04 stock bajo via vista | derivado de RF-04 y RF-09 | nueva vista `vw_low_stock_parts` | NO existe (cambio v1: crearla y consumirla) | parcial v1 |
-| RF-04 alertas visuales de stock bajo | `processes.md` paso 5 control inventario | `inventory_stock.quantity_on_hand` <= `reorder_level` | `inventory.html` pinta en rojo (cambio v1: leer de `vw_low_stock_parts`) | implementado v1 |
-| RF-02 estado del repuesto (`active`/`inactive`) | `requirements.md` RF-02 lo pide | `erd.md` `PART.status` | Existe en BD, UI no lo expone (cambio v1: badge en tabla, select en form, filtro por estado) | parcial v1 |
+| RF-04 umbral de reorden configurable | `processes.md` "Reporta productos con stock bajo a compras" | `db_explanation.md` `reorder_level` | Leído desde el formulario e insertado en la base de datos | implementado v1 |
+| RF-04 stock bajo via vista | derivado de RF-04 y RF-09 | nueva vista `vw_low_stock_parts` | Vista `vw_low_stock_parts` creada y consumida | implementado v1 |
+| RF-04 alertas visuales de stock bajo | `processes.md` paso 5 control inventario | `inventory_stock.quantity_on_hand` <= `reorder_level` | `inventory.html` pinta en rojo | implementado v1 |
+| RF-02 estado del repuesto (`active`/`inactive`) | `requirements.md` RF-02 lo pide | `erd.md` `PART.status` | Estado expuesto y filtrable en la UI | implementado v1 |
 | RF-03 compatibilidad vehicular | `requirements.md` RF-03; `processes.md` fila compatibilidad | `erd.md` `VEHICLE_MODEL`, `PART_COMPATIBILITY` | Tablas no creadas; no hay CRUD, ni ruta, ni form | fuera de alcance v1 |
 | Busqueda por texto, categoria, marca | `procedures.md` busqueda de repuesto | `db_explanation.md` `internal_code`, `oem_code`, `brand`, `name` | `listar_productos` con `LIKE` y filtros | implementado v1 |
-| Edicion de repuestos | `processes.md` revisa informacion | `erd.md` `PART` actualizable | NO existe ruta ni CRUD (cambio v1) | parcial v1 |
+| Edicion de repuestos | `processes.md` revisa informacion | `erd.md` `PART` actualizable | Ruta `/inventory/<id>/edit` y función `update_part` implementadas | implementado v1 |
 | Eliminacion fisica de repuestos | derivado de `ON DELETE RESTRICT` | `erd.md` `ON DELETE RESTRICT` desde `sales_order_item`, `purchase_order_item` | NO se permite desde la UI (cambio v1: solo desactivar) | fuera de alcance v1 |
 | Paginacion del listado | — | — | NO implementado | fuera de alcance v1 |

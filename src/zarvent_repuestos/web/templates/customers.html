@@ -4,7 +4,6 @@
 
 {% block content %}
 <div class="max-w-7xl mx-auto space-y-6">
-    <!-- Header Section -->
     <div class="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 mb-2">
         <div class="flex-1">
             <h2 class="text-4xl font-extrabold text-workshop-black tracking-tight mb-1">Clientes</h2>
@@ -19,7 +18,6 @@
     </div>
 
     {% if editing %}
-    <!-- Edit Customer Section -->
     <div class="bg-pure-white border border-steel-gray rounded shadow-sm">
         <div class="px-6 py-4 border-b border-steel-gray flex flex-col md:flex-row md:justify-between md:items-center gap-3">
             <h3 class="text-lg font-bold text-workshop-black tracking-tight uppercase">Editar Cliente</h3>
@@ -73,7 +71,6 @@
     </div>
     {% endif %}
 
-    <!-- Filters & Search Bar (v1) -->
     <form method="get" action="/customers" class="flex flex-col md:flex-row gap-4 mb-4 bg-pure-white p-4 border border-steel-gray rounded shadow-sm">
         <div class="flex-1 relative">
             <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-industrial-gray">search</span>
@@ -92,7 +89,6 @@
         </div>
     </form>
 
-    <!-- Data Table -->
     <div class="overflow-x-auto w-full bg-pure-white border border-steel-gray rounded shadow-sm">
         <table class="w-full text-left border-collapse">
             <thead>
@@ -154,7 +150,7 @@
     </div>
 </div>
 
-<!-- Add Customer Modal Overlay -->
+<!-- Modal: Agregar Cliente -->
 <div id="add-customer-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center hidden">
     <div class="bg-pure-white border border-steel-gray rounded shadow-lg max-w-2xl w-full mx-4 overflow-hidden">
         <header class="bg-workshop-black text-pure-white px-6 py-4 flex justify-between items-center">

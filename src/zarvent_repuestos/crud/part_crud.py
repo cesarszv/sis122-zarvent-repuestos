@@ -1,11 +1,7 @@
 """CRUD operations for parts, categories, and inventory stock (RF-02, RF-04).
 
-v1 refactor: completes the CRUD with `get_part`, `update_part`,
-`deactivate_part`, `reactivate_part` (soft-delete via `part.status`) and
-exposes `create_category` so the UI can manage categories too. The `list`
-endpoints now accept a `status_filter` and the low-stock listing prefers the
-`vw_low_stock_parts` view, falling back to an inline query when the view is
-missing (e.g. permission-restricted MySQL user).
+Soft-delete via `part.status`. Low-stock queries prefer the
+`vw_low_stock_parts` view, falling back to an inline query.
 """
 
 import logging
@@ -20,7 +16,7 @@ from zarvent_repuestos.models.part import Part, PartCategory
 logger = logging.getLogger(__name__)
 
 
-# --- CATEGORY CRUD ---
+
 
 def crear_categoria(name: str, description: Optional[str] = None) -> bool:
     conexion = get_database_connection()
@@ -60,14 +56,11 @@ def listar_categorias() -> List[PartCategory]:
     return categories
 
 
-# --- PART CRUD ---
+
 
 def crear_producto(part: Part, initial_stock: int = 0, location: str = "Aisle 1",
                    reorder_level: int = 10) -> bool:
-    """Creates a part and its initial stock in a single transaction.
-
-    v1: caller now controls `reorder_level` (the v0 hardcoded 10 is gone).
-    """
+    """Creates a part and its initial stock in a single transaction."""
     conexion = get_database_connection()
     cursor = conexion.cursor()
 
@@ -82,7 +75,6 @@ def crear_producto(part: Part, initial_stock: int = 0, location: str = "Aisle 1"
     """
 
     try:
-        # 1. Insert Part
         cursor.execute(sql_part, (
             part.part_category_id,
             part.internal_code,
@@ -97,7 +89,6 @@ def crear_producto(part: Part, initial_stock: int = 0, location: str = "Aisle 1"
         ))
         part_id = cursor.lastrowid
 
-        # 2. Insert Stock
         cursor.execute(sql_stock, (part_id, location, initial_stock, reorder_level))
 
         conexion.commit()
@@ -140,11 +131,7 @@ def get_part(part_id: int) -> Optional[Dict[str, Any]]:
 def listar_productos(search: Optional[str] = None, category_id: Optional[int] = None,
                      brand: Optional[str] = None,
                      status_filter: Optional[str] = None) -> List[Dict[str, Any]]:
-    """Lists parts with their category name and stock details, applying filters.
-
-    v1: defaults to active parts. Use `status_filter=PartStatus.INACTIVE` or
-    `PartStatus.ALL` to override.
-    """
+    """Lists parts with their category name and stock details, applying filters."""
     if status_filter is None:
         status_filter = PartStatus.DEFAULT
     if status_filter not in PartStatus.ALL:

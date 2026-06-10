@@ -5,12 +5,10 @@
     <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
     <title>Zarvent Repuestos - {% block title %}{% endblock %}</title>
 
-    <!-- Tailwind CSS with form plugins -->
     <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
 
-    <!-- Custom theme configuration matching mockup -->
     <script id="tailwind-config">
         tailwind.config = {
             darkMode: "class",
@@ -80,7 +78,6 @@
 </head>
 <body class="flex h-screen overflow-hidden font-sans">
 
-    <!-- Sidebar (Desktop) -->
     <aside class="hidden md:flex flex-col h-full w-64 bg-workshop-black py-8 flex-shrink-0 z-20 shadow-[2px_0_10px_rgba(0,0,0,0.1)]">
         <div class="px-6 mb-8">
             <h1 class="text-2xl font-extrabold text-pure-white tracking-tight">ZARVENT</h1>
@@ -95,7 +92,6 @@
         </div>
 
         <nav class="flex-1 overflow-y-auto px-2 space-y-1">
-            <!-- Active Tab: Dashboard -->
             <a class="flex items-center gap-3 px-4 py-3 text-pure-white border-l-4 transition-all duration-200 rounded-r {% if active_page == 'dashboard' %}border-zarvent-red bg-white/5{% else %}border-transparent text-industrial-gray hover:text-pure-white hover:bg-white/5{% endif %}" href="/dashboard">
                 <span class="material-symbols-outlined {% if active_page == 'dashboard' %}icon-fill text-zarvent-red{% endif %}">dashboard</span>
                 <span class="text-xs font-bold uppercase tracking-wider">Dashboard</span>
@@ -138,10 +134,8 @@
         </div>
     </aside>
 
-    <!-- Main Content Area -->
     <div class="flex-1 flex flex-col h-full overflow-hidden bg-cold-white relative">
 
-        <!-- TopAppBar -->
         <header class="flex justify-between items-center w-full px-6 md:px-12 h-16 bg-pure-white border-b border-steel-gray z-10 flex-shrink-0 shadow-sm">
             <div class="flex items-center gap-4">
                 <h1 class="font-extrabold text-workshop-black text-xl md:block tracking-tight">
@@ -156,9 +150,7 @@
             </div>
         </header>
 
-        <!-- Dynamic Page Content -->
         <main class="flex-1 overflow-y-auto px-6 md:px-12 py-8">
-            <!-- Flash Message Banner -->
             {% with messages = get_flashed_messages(with_categories=true) %}
                 {% if messages %}
                     {% for category, msg in messages %}
