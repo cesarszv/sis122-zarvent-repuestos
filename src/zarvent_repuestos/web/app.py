@@ -1,13 +1,48 @@
-"""Flask web interface for the Zarvent Repuestos prototype."""
+"""Flask web interface for the Zarvent Repuestos prototype (v1 refactor).
+
+New in v1:
+
+- Form parsing helpers (`parse_int`, `parse_decimal`, `parse_str`) reduce the
+  duplication in route handlers.
+- Soft-delete for customers (`/customers/<id>/deactivate`,
+  `/customers/<id>/reactivate`) replacing the v0 hard-delete.
+- Inventory CRUD additions: `/inventory/<id>/edit`,
+  `/inventory/<id>/deactivate`, `/inventory/<id>/reactivate`, and
+  `/inventory/categories` for category creation.
+- Purchases additions: `/purchases/suppliers` (create) and
+  `/purchases/<id>/cancel` (Pending orders only).
+- Dashboard now exposes `pending_purchase_count` and `payments_by_method`.
+- Centralized status literals via `zarvent_repuestos.constants`.
+"""
 
 import json
 import logging
 import os
+from decimal import Decimal, InvalidOperation
 from functools import wraps
+from typing import Callable, Optional
 
-from flask import Flask, render_template, request, redirect, url_for, session, flash, abort, jsonify
+from flask import (
+    Flask,
+    abort,
+    flash,
+    jsonify,
+    redirect,
+    render_template,
+    request,
+    session,
+    url_for,
+)
 
 from zarvent_repuestos.access.user_service import authenticate_user
+from zarvent_repuestos.constants import (
+    CustomerActiveFilter,
+    PartStatus,
+    PurchaseOrderStatus,
+    SalesListFilter,
+)
+from zarvent_repuestos.crud import customer_crud, part_crud, purchase_crud, sales_crud
+from zarvent_repuestos.crud.customer_crud import CustomerHasSalesError
 from zarvent_repuestos.database.init_db import crear_tablas
 from zarvent_repuestos.database.sql_trace import (
     build_summary,
@@ -17,8 +52,6 @@ from zarvent_repuestos.database.sql_trace import (
     is_sql_trace_enabled,
     set_request_context,
 )
-from zarvent_repuestos.crud import part_crud, customer_crud, sales_crud, purchase_crud
-from zarvent_repuestos.crud.customer_crud import CustomerHasSalesError
 from zarvent_repuestos.models.part import Part
 
 
@@ -32,10 +65,6 @@ app.config["TEMPLATES_AUTO_RELOAD"] = True
 
 
 logger = logging.getLogger(__name__)
-# Configure root logging once. Defaults to INFO so that flow logs
-# (e.g. "Venta #N guardada con éxito") are visible, and ERROR/WARNING
-# messages from CRUDs propagate. Override with LOG_LEVEL=DEBUG for
-# verbose output during the defense demo.
 logging.basicConfig(
     level=os.getenv("LOG_LEVEL", "INFO"),
     format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
@@ -48,25 +77,75 @@ logging.basicConfig(
 # `if __name__ == "__main__":` block at the bottom of this file).
 try:
     crear_tablas()
-except Exception as _init_error:
+except Exception as _init_error:  # noqa: BLE001 - tolerated on startup
     logger.warning("No se pudieron crear/verificar las tablas al iniciar: %s", _init_error)
 
 
+# ---------------------------------------------------------------------------
+# SQL Trace hooks
+# ---------------------------------------------------------------------------
+
 @app.before_request
-def capture_sql_trace_request_context():
+def _capture_sql_trace_request_context():
     """Labels SQL trace entries with the current Flask request."""
     if is_sql_trace_enabled():
         set_request_context(request.method, request.path)
 
 
 @app.teardown_request
-def release_sql_trace_request_context(_error=None):
+def _release_sql_trace_request_context(_error=None):
     """Clears SQL trace request labels after each Flask request."""
     if is_sql_trace_enabled():
         clear_request_context()
 
 
-def login_required(f):
+# ---------------------------------------------------------------------------
+# Form parsing helpers
+# ---------------------------------------------------------------------------
+
+def parse_str(value: Optional[str], *, default: Optional[str] = None,
+              strip: bool = True) -> Optional[str]:
+    """Returns the form value as a stripped string, or `default` when missing/empty."""
+    if value is None:
+        return default
+    if strip:
+        value = value.strip()
+    return value or default
+
+
+def parse_int(value: Optional[str], *, default: Optional[int] = None,
+              minimum: Optional[int] = None) -> Optional[int]:
+    """Parses a form value into a non-negative int. Returns default on failure."""
+    if value is None or value == "":
+        return default
+    try:
+        parsed = int(value)
+    except (TypeError, ValueError):
+        return default
+    if minimum is not None and parsed < minimum:
+        return default
+    return parsed
+
+
+def parse_decimal(value: Optional[str], *, default: Optional[float] = None,
+                  minimum: Optional[float] = None) -> Optional[float]:
+    """Parses a form value into a non-negative float. Returns default on failure."""
+    if value is None or value == "":
+        return default
+    try:
+        parsed = float(Decimal(str(value)))
+    except (TypeError, ValueError, InvalidOperation):
+        return default
+    if minimum is not None and parsed < minimum:
+        return default
+    return default if parsed < 0 and minimum is None else parsed
+
+
+# ---------------------------------------------------------------------------
+# Auth decorator
+# ---------------------------------------------------------------------------
+
+def login_required(f: Callable) -> Callable:
     """Decorator to require login on private routes."""
     @wraps(f)
     def decorated_function(*args, **kwargs):
@@ -77,6 +156,10 @@ def login_required(f):
     return decorated_function
 
 
+# ---------------------------------------------------------------------------
+# Auth routes
+# ---------------------------------------------------------------------------
+
 @app.route("/", methods=["GET", "POST"])
 def home():
     """Renders the login page and processes credentials."""
@@ -85,7 +168,7 @@ def home():
 
     message = None
     if request.method == "POST":
-        username = request.form.get("username", "").strip()
+        username = parse_str(request.form.get("username"), default="")
         password = request.form.get("password", "")
 
         try:
@@ -96,7 +179,7 @@ def home():
                 return redirect(url_for("dashboard"))
             else:
                 message = "Usuario o contraseña incorrectos."
-        except Exception as error:
+        except Exception as error:  # noqa: BLE001 - surfaced to the user
             message = f"Error de conexión con MySQL: {error}"
 
     return render_template("login.html", message=message)
@@ -110,6 +193,10 @@ def logout():
     return redirect(url_for("home"))
 
 
+# ---------------------------------------------------------------------------
+# Dashboard
+# ---------------------------------------------------------------------------
+
 @app.route("/dashboard")
 @login_required
 def dashboard():
@@ -118,55 +205,79 @@ def dashboard():
     return render_template("dashboard.html", active_page="dashboard", metrics=metrics)
 
 
+# ---------------------------------------------------------------------------
+# Inventory
+# ---------------------------------------------------------------------------
+
 @app.route("/inventory", methods=["GET", "POST"])
 @login_required
 def inventory():
     """Lists inventory parts and processes registration of new ones."""
     if request.method == "POST":
-        # Process new part registration
-        name = request.form.get("name", "").strip()
-        internal_code = request.form.get("internal_code", "").strip()
-        oem_code = request.form.get("oem_code", "").strip()
-        brand = request.form.get("brand", "").strip()
-        category_id = int(request.form.get("part_category_id"))
-        sale_price = float(request.form.get("sale_price"))
-        purchase_cost = float(request.form.get("purchase_cost"))
-        initial_stock = int(request.form.get("initial_stock", 0))
-        location = request.form.get("location_name", "Aisle 1").strip()
+        name = parse_str(request.form.get("name"))
+        internal_code = parse_str(request.form.get("internal_code"))
+        oem_code = parse_str(request.form.get("oem_code"))
+        brand = parse_str(request.form.get("brand"))
+        category_id = parse_int(request.form.get("part_category_id"), minimum=1)
+        sale_price = parse_decimal(request.form.get("sale_price"), minimum=0.01)
+        purchase_cost = parse_decimal(request.form.get("purchase_cost"), minimum=0.01)
+        initial_stock = parse_int(request.form.get("initial_stock"), default=0, minimum=0)
+        location = parse_str(request.form.get("location_name"), default="Aisle 1")
+        unit = parse_str(request.form.get("unit"), default="pcs")
+        warranty_days = parse_int(request.form.get("warranty_days"), default=0, minimum=0)
+        reorder_level = parse_int(request.form.get("reorder_level"), default=10, minimum=0)
+        status = parse_str(request.form.get("status"), default=PartStatus.DEFAULT)
+        if status not in PartStatus.ALL:
+            status = PartStatus.DEFAULT
+
+        if not name or not internal_code or category_id is None \
+                or sale_price is None or purchase_cost is None:
+            flash("Completa los campos obligatorios del repuesto.", "error")
+            return redirect(url_for("inventory"))
 
         part = Part(
             part_category_id=category_id,
             internal_code=internal_code,
-            oem_code=oem_code if oem_code else None,
+            oem_code=oem_code,
             name=name,
-            brand=brand if brand else None,
+            brand=brand,
+            unit=unit,
             sale_price=sale_price,
             purchase_cost=purchase_cost,
-            status="active"
+            warranty_days=warranty_days,
+            status=status,
         )
 
         try:
-            success = part_crud.crear_producto(part, initial_stock, location)
+            success = part_crud.crear_producto(
+                part, initial_stock, location, reorder_level=reorder_level
+            )
             if success:
                 flash(f"Producto '{name}' creado con éxito.", "success")
             else:
                 flash("Error al registrar el producto en la base de datos.", "error")
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 - displayed to the user
             flash(f"Error técnico: {e}", "error")
 
         return redirect(url_for("inventory"))
 
-    # GET requests - Listing filters
-    search = request.args.get("search", "").strip()
-    cat_id = request.args.get("category_id", "")
-    brand = request.args.get("brand", "")
+    # GET - filters
+    search = parse_str(request.args.get("search"))
+    cat_id = parse_str(request.args.get("category_id"))
+    brand = parse_str(request.args.get("brand"))
+    status_filter = parse_str(
+        request.args.get("status"), default=PartStatus.DEFAULT
+    )
+    if status_filter not in PartStatus.ALL:
+        status_filter = PartStatus.DEFAULT
 
-    category_filter = int(cat_id) if cat_id else None
+    category_filter = int(cat_id) if cat_id and cat_id.isdigit() else None
 
     parts = part_crud.listar_productos(
-        search=search if search else None,
+        search=search,
         category_id=category_filter,
-        brand=brand if brand else None
+        brand=brand,
+        status_filter=status_filter,
     )
     categories = part_crud.listar_categorias()
     brands = part_crud.obtener_marcas()
@@ -177,31 +288,125 @@ def inventory():
         parts=parts,
         categories=categories,
         brands=brands,
-        search_val=search,
-        cat_val=cat_id,
-        brand_val=brand
+        search_val=search or "",
+        cat_val=cat_id or "",
+        brand_val=brand or "",
+        status_val=status_filter,
     )
 
+
+@app.route("/inventory/<int:part_id>/edit", methods=["GET", "POST"])
+@login_required
+def edit_part(part_id: int):
+    """Edits a part's editable fields (RF-02 v1)."""
+    if request.method == "POST":
+        name = parse_str(request.form.get("name"))
+        brand = parse_str(request.form.get("brand"))
+        unit = parse_str(request.form.get("unit"), default="pcs")
+        sale_price = parse_decimal(request.form.get("sale_price"), minimum=0.01)
+        purchase_cost = parse_decimal(request.form.get("purchase_cost"), minimum=0.01)
+        warranty_days = parse_int(request.form.get("warranty_days"), default=0, minimum=0)
+        status = parse_str(request.form.get("status"), default=PartStatus.DEFAULT)
+        if status not in PartStatus.ALL:
+            status = PartStatus.DEFAULT
+
+        if not name or sale_price is None or purchase_cost is None:
+            flash("Nombre, precio de venta y costo de compra son obligatorios.", "error")
+            return redirect(url_for("edit_part", part_id=part_id))
+
+        ok = part_crud.update_part(
+            part_id=part_id,
+            name=name,
+            brand=brand,
+            unit=unit,
+            sale_price=sale_price,
+            purchase_cost=purchase_cost,
+            warranty_days=warranty_days,
+            status=status,
+        )
+        if ok:
+            flash(f"Repuesto #{part_id} actualizado con éxito.", "success")
+            return redirect(url_for("inventory"))
+        flash("No se pudo actualizar el repuesto.", "error")
+        return redirect(url_for("edit_part", part_id=part_id))
+
+    part = part_crud.get_part(part_id)
+    if not part:
+        return abort(404, "Repuesto no encontrado")
+    categories = part_crud.listar_categorias()
+    return render_template(
+        "part_edit.html",
+        active_page="inventory",
+        part=part,
+        categories=categories,
+    )
+
+
+@app.route("/inventory/<int:part_id>/deactivate", methods=["POST"])
+@login_required
+def deactivate_part(part_id: int):
+    """Soft-deletes a part (status='inactive')."""
+    if part_crud.deactivate_part(part_id):
+        flash(f"Repuesto #{part_id} inactivado.", "success")
+    else:
+        flash("No se pudo inactivar el repuesto.", "error")
+    return redirect(url_for("inventory"))
+
+
+@app.route("/inventory/<int:part_id>/reactivate", methods=["POST"])
+@login_required
+def reactivate_part(part_id: int):
+    """Re-activates a previously soft-deleted part."""
+    if part_crud.reactivate_part(part_id):
+        flash(f"Repuesto #{part_id} reactivado.", "success")
+    else:
+        flash("No se pudo reactivar el repuesto.", "error")
+    return redirect(url_for("inventory"))
+
+
+@app.route("/inventory/categories", methods=["POST"])
+@login_required
+def create_category():
+    """Creates a new part category from the inventory form."""
+    name = parse_str(request.form.get("name"))
+    description = parse_str(request.form.get("description"))
+    if not name:
+        flash("El nombre de la categoría es obligatorio.", "error")
+        return redirect(url_for("inventory"))
+    if part_crud.crear_categoria(name, description):
+        flash(f"Categoría '{name}' creada con éxito.", "success")
+    else:
+        flash("No se pudo crear la categoría (revisa si ya existe).", "error")
+    return redirect(url_for("inventory"))
+
+
+# ---------------------------------------------------------------------------
+# Sales
+# ---------------------------------------------------------------------------
 
 @app.route("/sales", methods=["GET", "POST"])
 @login_required
 def sales():
     """Lists sales orders and handles creation of new transactional sales."""
     if request.method == "POST":
-        # Check customer mode
-        client_mode = request.form.get("client_mode", "existing")
-        payment_method = request.form.get("payment_method", "Efectivo")
+        client_mode = parse_str(request.form.get("client_mode"), default="existing")
+        payment_method = parse_str(
+            request.form.get("payment_method"),
+            default="Efectivo",
+        )
 
-        customer_id = None
-
+        customer_id: Optional[int] = None
         try:
-            # 1. Quick Customer Registration
             if client_mode == "new":
-                first_name = request.form.get("new_first_name", "").strip()
-                last_name = request.form.get("new_last_name", "").strip()
-                identity_number = request.form.get("new_identity_number", "").strip()
+                first_name = parse_str(request.form.get("new_first_name"))
+                last_name = parse_str(request.form.get("new_last_name"))
+                identity_number = parse_str(request.form.get("new_identity_number"))
 
-                # Check if customer already exists by identity number
+                if not first_name or not last_name or not identity_number:
+                    raise ValueError(
+                        "Nombres, apellidos y documento son obligatorios para un cliente nuevo."
+                    )
+
                 existing = customer_crud.buscar_cliente_por_doc(identity_number)
                 if existing:
                     customer_id = existing["customer_id"]
@@ -209,56 +414,57 @@ def sales():
                     success = customer_crud.crear_cliente(
                         first_name=first_name,
                         last_name=last_name,
-                        identity_number=identity_number
+                        identity_number=identity_number,
                     )
                     if not success:
                         raise ValueError("No se pudo registrar al nuevo cliente.")
-                    # Fetch newly created customer
                     new_cust = customer_crud.buscar_cliente_por_doc(identity_number)
                     customer_id = new_cust["customer_id"]
             else:
-                cust_val = request.form.get("customer_id")
-                if not cust_val:
+                customer_id = parse_int(request.form.get("customer_id"), minimum=1)
+                if customer_id is None:
                     raise ValueError("No se seleccionó ningún cliente.")
-                customer_id = int(cust_val)
 
-            # 2. Parse Items JSON
-            items_json = request.form.get("items_json", "[]")
-            items = json.loads(items_json)
+            items_json = parse_str(request.form.get("items_json"), default="[]")
+            items = json.loads(items_json or "[]")
 
             if not items:
                 raise ValueError("La orden debe tener al menos un ítem.")
 
-            # 3. Create Sales Order (handles inventory subtraction and payment)
             sales_order_id = sales_crud.crear_orden_venta(
                 customer_id=customer_id,
                 items=items,
-                payment_method=payment_method
+                payment_method=payment_method,
             )
 
             if sales_order_id:
                 flash(f"Venta #{sales_order_id} registrada correctamente.", "success")
             else:
                 flash("Error al registrar la venta.", "error")
-
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001
             flash(f"Error al procesar venta: {e}", "error")
 
         return redirect(url_for("sales"))
 
-    # GET requests - Listing filters
-    status = request.args.get("status", "All Orders")
-    start_date = request.args.get("start_date", "").strip()
-    end_date = request.args.get("end_date", "").strip()
+    # GET - filters. v1 only allows `All Orders` and `Paid` (the only real status).
+    status = parse_str(
+        request.args.get("status"), default=SalesListFilter.DEFAULT
+    )
+    if status not in SalesListFilter.CHOICES:
+        status = SalesListFilter.DEFAULT
+    start_date = parse_str(request.args.get("start_date"))
+    end_date = parse_str(request.args.get("end_date"))
 
     orders = sales_crud.listar_ordenes_venta(
         status=status,
-        start_date=start_date if start_date else None,
-        end_date=end_date if end_date else None
+        start_date=start_date,
+        end_date=end_date,
     )
 
     parts = part_crud.listar_productos()
-    customers = customer_crud.listar_clientes()
+    customers = customer_crud.listar_clientes(
+        status_filter=CustomerActiveFilter.ACTIVE
+    )
 
     return render_template(
         "sales.html",
@@ -267,22 +473,24 @@ def sales():
         parts=parts,
         customers=customers,
         status_val=status,
-        start_val=start_date,
-        end_val=end_date
+        start_val=start_date or "",
+        end_val=end_date or "",
     )
 
 
 @app.route("/sales/receipt/<int:sales_order_id>")
 @login_required
-def receipt(sales_order_id):
+def receipt(sales_order_id: int):
     """Returns a raw text layout representing a POS sales voucher."""
     order = sales_crud.obtener_detalles_orden(sales_order_id)
     if not order:
         return abort(404, "Venta no encontrada")
-
-    # Render receipt template as preformatted raw text
     return render_template("receipt.html", order=order)
 
+
+# ---------------------------------------------------------------------------
+# SQL Trace
+# ---------------------------------------------------------------------------
 
 @app.route("/sql-trace")
 @login_required
@@ -311,21 +519,31 @@ def api_clear_sql_trace():
     return jsonify({"status": "ok"})
 
 
-# --- CUSTOMERS ---
+# ---------------------------------------------------------------------------
+# Customers (RF-01)
+# ---------------------------------------------------------------------------
+
+def _resolve_customer_filter() -> str:
+    """Returns the validated status filter for /customers."""
+    raw = parse_str(request.args.get("filter"), default=CustomerActiveFilter.DEFAULT)
+    if raw not in CustomerActiveFilter.CHOICES:
+        return CustomerActiveFilter.DEFAULT
+    return raw
+
 
 @app.route("/customers", methods=["GET", "POST"])
 @login_required
 def customers():
     """Lists customers with search, and creates new ones via POST."""
     if request.method == "POST":
-        first_name = request.form.get("first_name", "").strip()
-        last_name = request.form.get("last_name", "").strip()
-        identity_number = request.form.get("identity_number", "").strip()
-        phone = request.form.get("phone", "").strip() or None
-        email = request.form.get("email", "").strip() or None
-        address = request.form.get("address", "").strip() or None
-        billing_name = request.form.get("billing_name", "").strip() or None
-        tax_id = request.form.get("tax_id", "").strip() or None
+        first_name = parse_str(request.form.get("first_name"))
+        last_name = parse_str(request.form.get("last_name"))
+        identity_number = parse_str(request.form.get("identity_number"))
+        phone = parse_str(request.form.get("phone"))
+        email = parse_str(request.form.get("email"))
+        address = parse_str(request.form.get("address"))
+        billing_name = parse_str(request.form.get("billing_name"))
+        tax_id = parse_str(request.form.get("tax_id"))
 
         if not first_name or not last_name or not identity_number:
             flash("Nombre, apellido y documento son obligatorios.", "error")
@@ -342,39 +560,46 @@ def customers():
                 email=email,
                 address=address,
             )
-        except Exception as err:
+        except Exception as err:  # noqa: BLE001
             flash(f"Error al crear cliente: {err}", "error")
             return redirect(url_for("customers"))
 
         if ok:
             flash(f"Cliente '{first_name} {last_name}' creado con éxito.", "success")
         else:
-            flash("No se pudo crear el cliente (revisa datos duplicados o el log del servidor).", "error")
+            flash(
+                "No se pudo crear el cliente (revisa datos duplicados o el log del servidor).",
+                "error",
+            )
         return redirect(url_for("customers"))
 
-    search = request.args.get("search", "").strip() or None
-    customers_list = customer_crud.listar_clientes(search=search)
+    search = parse_str(request.args.get("search"))
+    status_filter = _resolve_customer_filter()
+    customers_list = customer_crud.listar_clientes(
+        search=search, status_filter=status_filter
+    )
     return render_template(
         "customers.html",
         active_page="customers",
         customers=customers_list,
         search_val=search or "",
+        status_val=status_filter,
     )
 
 
 @app.route("/customers/<int:customer_id>/edit", methods=["GET", "POST"])
 @login_required
-def edit_customer(customer_id):
+def edit_customer(customer_id: int):
     """Edits an existing customer."""
     if request.method == "POST":
-        first_name = request.form.get("first_name", "").strip()
-        last_name = request.form.get("last_name", "").strip()
-        identity_number = request.form.get("identity_number", "").strip()
-        phone = request.form.get("phone", "").strip() or None
-        email = request.form.get("email", "").strip() or None
-        address = request.form.get("address", "").strip() or None
-        billing_name = request.form.get("billing_name", "").strip() or None
-        tax_id = request.form.get("tax_id", "").strip() or None
+        first_name = parse_str(request.form.get("first_name"))
+        last_name = parse_str(request.form.get("last_name"))
+        identity_number = parse_str(request.form.get("identity_number"))
+        phone = parse_str(request.form.get("phone"))
+        email = parse_str(request.form.get("email"))
+        address = parse_str(request.form.get("address"))
+        billing_name = parse_str(request.form.get("billing_name"))
+        tax_id = parse_str(request.form.get("tax_id"))
 
         if not first_name or not last_name or not identity_number:
             flash("Nombre, apellido y documento son obligatorios.", "error")
@@ -400,53 +625,61 @@ def edit_customer(customer_id):
     customer = customer_crud.get_customer(customer_id)
     if not customer:
         return abort(404, "Cliente no encontrado")
+    status_filter = _resolve_customer_filter()
     return render_template(
         "customers.html",
         active_page="customers",
-        customers=customer_crud.listar_clientes(),
+        customers=customer_crud.listar_clientes(status_filter=status_filter),
         search_val="",
+        status_val=status_filter,
         editing=customer,
     )
 
 
-@app.route("/customers/<int:customer_id>/delete", methods=["POST"])
+@app.route("/customers/<int:customer_id>/deactivate", methods=["POST"])
 @login_required
-def delete_customer(customer_id):
-    """Deletes a customer, refusing the operation if it has linked sales."""
+def deactivate_customer(customer_id: int):
+    """Soft-deletes a customer by setting `is_active = FALSE`."""
     try:
-        deleted = customer_crud.delete_customer(customer_id)
+        if customer_crud.deactivate_customer(customer_id):
+            flash(f"Cliente #{customer_id} inactivado.", "success")
+        else:
+            flash("No se pudo inactivar el cliente.", "error")
     except CustomerHasSalesError as err:
         flash(str(err), "error")
-        return redirect(url_for("customers"))
-
-    if deleted:
-        flash("Cliente eliminado con éxito.", "success")
-    else:
-        flash("No se pudo eliminar el cliente.", "error")
     return redirect(url_for("customers"))
 
 
-# --- PURCHASES ---
+@app.route("/customers/<int:customer_id>/reactivate", methods=["POST"])
+@login_required
+def reactivate_customer(customer_id: int):
+    """Re-activates a previously soft-deleted customer."""
+    if customer_crud.reactivate_customer(customer_id):
+        flash(f"Cliente #{customer_id} reactivado.", "success")
+    else:
+        flash("No se pudo reactivar el cliente.", "error")
+    return redirect(url_for("customers"))
+
+
+# ---------------------------------------------------------------------------
+# Purchases (RF-07)
+# ---------------------------------------------------------------------------
 
 @app.route("/purchases", methods=["GET", "POST"])
 @login_required
 def purchases():
     """Lists purchase orders and creates new ones via POST."""
     if request.method == "POST":
+        supplier_id = parse_int(request.form.get("supplier_id"), minimum=1)
+        expected_date = parse_str(request.form.get("expected_date"))
+        items_json = parse_str(request.form.get("items_json"), default="[]")
         try:
-            supplier_id = int(request.form.get("supplier_id", "0"))
-        except ValueError:
-            flash("Proveedor inválido.", "error")
-            return redirect(url_for("purchases"))
-        expected_date = request.form.get("expected_date", "").strip() or None
-        items_json = request.form.get("items_json", "[]")
-        try:
-            items = json.loads(items_json)
+            items = json.loads(items_json or "[]")
         except json.JSONDecodeError:
             flash("Items de la orden están mal formados.", "error")
             return redirect(url_for("purchases"))
 
-        if supplier_id <= 0:
+        if supplier_id is None:
             flash("Selecciona un proveedor.", "error")
             return redirect(url_for("purchases"))
 
@@ -459,17 +692,24 @@ def purchases():
         except ValueError as err:
             flash(f"Error de validación: {err}", "error")
             return redirect(url_for("purchases"))
-        except Exception as err:
+        except Exception as err:  # noqa: BLE001
             flash(f"Error al crear la orden de compra: {err}", "error")
             return redirect(url_for("purchases"))
 
         if purchase_order_id:
-            flash(f"Orden de compra #{purchase_order_id} creada con éxito.", "success")
-            return redirect(url_for("purchase_detail", purchase_order_id=purchase_order_id))
+            flash(
+                f"Orden de compra #{purchase_order_id} creada con éxito.",
+                "success",
+            )
+            return redirect(
+                url_for("purchase_detail", purchase_order_id=purchase_order_id)
+            )
         flash("No se pudo crear la orden de compra.", "error")
         return redirect(url_for("purchases"))
 
-    status = request.args.get("status", "").strip() or None
+    status = parse_str(request.args.get("status"))
+    if status and status not in PurchaseOrderStatus.ALL:
+        status = None
     orders = purchase_crud.list_purchase_orders(status=status)
     suppliers = purchase_crud.list_suppliers(active_only=True)
     parts = part_crud.listar_productos()
@@ -483,9 +723,37 @@ def purchases():
     )
 
 
+@app.route("/purchases/suppliers", methods=["POST"])
+@login_required
+def create_supplier():
+    """Creates a new supplier from the purchases form (RF-07 v1)."""
+    business_name = parse_str(request.form.get("business_name"))
+    tax_id = parse_str(request.form.get("tax_id"))
+    phone = parse_str(request.form.get("phone"))
+    email = parse_str(request.form.get("email"))
+    address = parse_str(request.form.get("address"))
+
+    if not business_name or not tax_id:
+        flash("Razón social y NIT son obligatorios.", "error")
+        return redirect(url_for("purchases"))
+
+    supplier_id = purchase_crud.create_supplier(
+        business_name=business_name,
+        tax_id=tax_id,
+        phone=phone,
+        email=email,
+        address=address,
+    )
+    if supplier_id:
+        flash(f"Proveedor '{business_name}' creado con éxito.", "success")
+    else:
+        flash("No se pudo crear el proveedor (revisa si el NIT ya existe).", "error")
+    return redirect(url_for("purchases"))
+
+
 @app.route("/purchases/<int:purchase_order_id>")
 @login_required
-def purchase_detail(purchase_order_id):
+def purchase_detail(purchase_order_id: int):
     """Shows a purchase order and its items; provides a form to register reception."""
     order = purchase_crud.get_purchase_order_details(purchase_order_id)
     if not order:
@@ -497,20 +765,38 @@ def purchase_detail(purchase_order_id):
     )
 
 
+@app.route("/purchases/<int:purchase_order_id>/cancel", methods=["POST"])
+@login_required
+def cancel_purchase(purchase_order_id: int):
+    """Cancels a `Pending` order. Does not touch inventory_stock."""
+    try:
+        purchase_crud.cancel_purchase_order(purchase_order_id)
+        flash(f"Orden de compra #{purchase_order_id} cancelada.", "success")
+    except ValueError as err:
+        flash(f"Error de validación: {err}", "error")
+    except Exception as err:  # noqa: BLE001
+        flash(f"Error al cancelar la orden: {err}", "error")
+    return redirect(url_for("purchases"))
+
+
 @app.route("/purchases/<int:purchase_order_id>/receive", methods=["POST"])
 @login_required
-def receive_purchase(purchase_order_id):
+def receive_purchase(purchase_order_id: int):
     """Registers the received quantities for a purchase order."""
-    items_json = request.form.get("items_json", "[]")
+    items_json = parse_str(request.form.get("items_json"), default="[]")
     try:
-        received_items = json.loads(items_json)
+        received_items = json.loads(items_json or "[]")
     except json.JSONDecodeError:
         flash("Cantidades recibidas mal formadas.", "error")
-        return redirect(url_for("purchase_detail", purchase_order_id=purchase_order_id))
+        return redirect(
+            url_for("purchase_detail", purchase_order_id=purchase_order_id)
+        )
 
     if not received_items:
         flash("Indica al menos una cantidad recibida.", "error")
-        return redirect(url_for("purchase_detail", purchase_order_id=purchase_order_id))
+        return redirect(
+            url_for("purchase_detail", purchase_order_id=purchase_order_id)
+        )
 
     try:
         purchase_crud.receive_purchase_order(
@@ -519,16 +805,22 @@ def receive_purchase(purchase_order_id):
         )
     except ValueError as err:
         flash(f"Error de validación: {err}", "error")
-        return redirect(url_for("purchase_detail", purchase_order_id=purchase_order_id))
-    except Exception as err:
+        return redirect(
+            url_for("purchase_detail", purchase_order_id=purchase_order_id)
+        )
+    except Exception as err:  # noqa: BLE001
         flash(f"Error al recibir la orden: {err}", "error")
-        return redirect(url_for("purchase_detail", purchase_order_id=purchase_order_id))
+        return redirect(
+            url_for("purchase_detail", purchase_order_id=purchase_order_id)
+        )
 
     flash("Recepción registrada con éxito.", "success")
     return redirect(url_for("purchase_detail", purchase_order_id=purchase_order_id))
 
 
+# ---------------------------------------------------------------------------
+# Entrypoint
+# ---------------------------------------------------------------------------
+
 if __name__ == "__main__":
-    # Tables were already ensured at module load; just start Flask here.
-    # Debug mode is opt-in via FLASK_DEBUG=1 so the default is safe for demos.
     app.run(debug=os.getenv("FLASK_DEBUG", "0") == "1")

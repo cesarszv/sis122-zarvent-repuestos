@@ -1,152 +1,107 @@
 # SPEC — Compras
 
-Este documento describe el modulo de **Compras a proveedores** de Zarvent
-Repuestos tal como esta implementado hoy en el codigo. La intencion es que un
-estudiante de primer ano pueda leerlo, ejecutarlo y defenderlo frente al
-profesor sin tener que adivinar nada sobre rutas, funciones o tablas.
+Contrato funcional y tecnico del modulo de **Compras a proveedores** de
+Zarvent Repuestos. Cubre el alta de proveedores, la creacion de ordenes
+de compra, la maquina de estados del header y la recepcion parcial o
+completa con actualizacion de stock. Pensado para que un estudiante de
+primer ano de Base de Datos I pueda leerlo y defenderlo.
 
-El modulo cubre el ciclo `SUPPLIER -> PURCHASE_ORDER -> PURCHASE_ORDER_ITEM ->
-PART -> INVENTORY_STOCK` y la maquina de estados del header de la orden
-(`Pending` -> `Partially Received` -> `Received`).
+El modulo materializa la cadena:
 
-## Objetivo del modulo
+`SUPPLIER -> PURCHASE_ORDER -> PURCHASE_ORDER_ITEM -> PART -> INVENTORY_STOCK`
 
-El negocio de Zarvent Repuestos vende repuestos y, cuando el stock baja, tiene
-que reponer mercaderia a proveedores. El modulo de **Compras** resuelve tres
-problemas concretos:
+y la maquina de estados del header documentada en la
+[Seccion 2](#2-contrato-objetivo-v1).
 
-1. **Registrar ordenes de reposicion.** Cuando un repuesto tiene stock bajo o
-   se necesita ampliar el catalogo, el responsable de compras abre una orden
-   contra un proveedor, con uno o varios repuestos, cantidades y costo
-   unitario negociado.
-2. **Hacer seguimiento del estado del pedido.** Una orden puede estar
-   pendiente, recibirse por partes o recibirse por completo. Sin este control
-   la empresa pierde pedidos o cree que ya llego algo que no llego.
-3. **Actualizar el inventario al recibir mercaderia.** Cuando el almacen
-   confirma la recepcion, el modulo debe subir el stock del repuesto en
-   `inventory_stock` y recalcular el estado de la orden automaticamente.
+---
 
-En terminos de Base de Datos I, este modulo demuestra el uso correcto de:
+## 1. Estado actual (reverse-engineered)
 
-- claves foraneas (`purchase_order` -> `supplier`, `purchase_order_item` ->
-  `purchase_order` y a `part`);
-- `UNIQUE` para evitar duplicados (`supplier.tax_id`);
-- `CASCADE` en `purchase_order_item` para borrar lineas al borrar la orden;
-- `FOR UPDATE` para que dos recepcionistas no rompan el stock al mismo
-  tiempo;
-- una transaccion pequena (header + items + stock + status) que se confirma
-  o se deshace como un solo bloque.
+Lo que el codigo hace HOY, leido del repo. No es diseno, es evidencia.
 
-## Estado actual reverse-engineered
+### 1.1 Rutas Flask
 
-### Rutas Flask
+Definidas en [`src/zarvent_repuestos/web/app.py`](../../src/zarvent_repuestos/web/app.py).
 
-Todas las rutas viven en `src/zarvent_repuestos/web/app.py` (lineas 429-528)
-y estan protegidas con `@login_required`.
+| Ruta | Metodo | Linea | Funcion que la implementa | Que hace |
+| --- | --- | --- | --- | --- |
+| `/purchases` | `GET` | `app.py:431` | `purchases()` | Lista ordenes de compra. Acepta `?status=...` para filtrar. Carga proveedores activos (`list_suppliers(active_only=True)`) y repuestos para alimentar el modal. |
+| `/purchases` | `POST` | `app.py:431` | `purchases()` | Recibe `supplier_id`, `expected_date` y `items_json`. Llama a `purchase_crud.create_purchase_order`. |
+| `/purchases/<int:purchase_order_id>` | `GET` | `app.py:486` | `purchase_detail()` | Muestra cabecera, datos del proveedor y formulario de recepcion. Responde `404` si la orden no existe. |
+| `/purchases/<int:purchase_order_id>/receive` | `POST` | `app.py:500` | `receive_purchase()` | Recibe `items_json` con cantidades recibidas acumuladas. Llama a `purchase_crud.receive_purchase_order`. |
 
-| Ruta | Metodo | Funcion | Que hace |
-| --- | --- | --- | --- |
-| `/purchases` | `GET` | `purchases` | Lista ordenes de compra. Acepta `?status=...` para filtrar por estado. Carga proveedores activos y repuestos para alimentar el modal de nueva orden. |
-| `/purchases` | `POST` | `purchases` | Recibe `supplier_id`, `expected_date` y `items_json` (un JSON serializado desde JavaScript). Llama a `purchase_crud.create_purchase_order`. |
-| `/purchases/<int:purchase_order_id>` | `GET` | `purchase_detail` | Muestra la cabecera de la orden, los datos del proveedor y el formulario de recepcion. Devuelve `404` si la orden no existe. |
-| `/purchases/<int:purchase_order_id>/receive` | `POST` | `receive_purchase` | Recibe `items_json` con cantidades recibidas acumuladas. Llama a `purchase_crud.receive_purchase_order`. |
+Las cuatro rutas usan `@login_required` (`app.py:69`).
 
-### Templates Jinja2
+### 1.2 Templates
 
-- `src/zarvent_repuestos/web/templates/purchases.html`
-  - Cabecera con titulo "Ordenes de Compra" y boton **Nueva Compra**.
-  - Sidebar con filtro por estado: **Todas / Pendientes / Recibidas
-    Parcialmente / Recibidas**. Es un `<form method="get">` con radios que
-    se autoenvian al cambiar.
-  - Tabla principal con columnas: Codigo, Proveedor, NIT, Fecha, Esperada,
-    Estado, Total, Accion (icono de ojo para ver detalle).
-  - Modal **Registrar Nueva Orden de Compra** (`#new-purchase-modal`) con:
-    - selector de proveedor (obligatorio, viene de `purchase_crud.list_suppliers(active_only=True)`);
-    - campo de fecha esperada (opcional, `type="date"`);
-    - bloque "Agregar Repuestos" con selector de parte, cantidad, costo
-      unitario y boton Agregar;
-    - tabla de items agregados con subtotal y boton eliminar;
-    - total general actualizado en vivo;
-    - botones **Cancelar** y **Crear Orden**.
-  - Bloque `extra_js` con la logica del modal:
-    - `purchaseItems` (array en memoria con los items agregados);
-    - `addItemRow()` valida cantidad > 0 y costo >= 0, evita duplicados;
-    - `removeItemRow()` y `rebuildRows()` reindexan la tabla;
-    - `recalculateTotals()` actualiza `#grand-total` y vuelca el JSON al
-      `<input id="items_json">`;
-    - `submitPurchaseOrder()` valida proveedor seleccionado y al menos un
-      item antes de hacer `form.submit()`.
+- [`src/zarvent_repuestos/web/templates/purchases.html`](../../src/zarvent_repuestos/web/templates/purchases.html):
+  cabecera con titulo "Ordenes de Compra" y boton "Nueva Compra"; sidebar
+  con filtro por estado (`Todas`, `Pendientes`, `Recibidas Parcialmente`,
+  `Recibidas`); tabla principal con columnas Codigo, Proveedor, NIT,
+  Fecha, Esperada, Estado (badge), Total y Accion (icono de ojo); modal
+  `new-purchase-modal` con selector de proveedor, fecha esperada y bloque
+  "Agregar Repuestos" con tabla de items, total general en vivo y botones
+  "Cancelar" y "Crear Orden".
 
-- `src/zarvent_repuestos/web/templates/purchase_detail.html`
-  - Breadcrumb `Compras > #PO-{id}` y boton **Volver**.
-  - Tarjeta con datos del proveedor (razon social, NIT, telefono, email,
-    direccion).
-  - Tarjeta con datos de la orden (fecha de emision, fecha esperada, total,
-    badge de estado).
-  - Tabla de items con: codigo, producto, marca, cant. pedida, costo unit.,
-    subtotal y un input numerico `quantity_received_{id}` precargado con el
-    valor actual y con `max="{quantity_ordered}"`.
-  - Cada fila muestra un chip segun el estado de la linea: **Completa /
-    Pendiente / Parcial**.
-  - Cuando la orden esta en `Received` los inputs quedan `disabled` y el
-    boton **Registrar Recepcion** se reemplaza por un mensaje de "ya fue
-    recibida por completo".
-  - Bloque `extra_js`:
-    - `collectReceivedItems()` recorre los inputs `name^="quantity_received_"`,
-      valida que sean enteros entre 0 y `max`, y arma el array
-      `[{purchase_order_item_id, quantity_received}]`;
-    - `submitReceiveForm()` valida con `collectReceivedItems()` y envia el
-      formulario por POST a `/purchases/<id>/receive`.
+  Bloque `extra_js`: `purchaseItems` (array en memoria), `addItemRow` con
+  validacion de cantidad y costo, `removeItemRow` con reindexado,
+  `rebuildRows`, `recalculateTotals` y `submitPurchaseOrder` que valida
+  proveedor y al menos un item antes de hacer `form.submit()`.
 
-### Funciones CRUD
+- [`src/zarvent_repuestos/web/templates/purchase_detail.html`](../../src/zarvent_repuestos/web/templates/purchase_detail.html):
+  breadcrumb `Compras > #PO-{id}` y boton "Volver"; tarjetas con datos
+  del proveedor y de la orden; tabla de items con `internal_code`,
+  `name`, `brand`, cantidad pedida, costo unitario, subtotal e input
+  `quantity_received_{id}` precargado con el valor actual y con
+  `max="{{ quantity_ordered }}"`; chip de estado por linea (Completa /
+  Pendiente / Parcial); cuando la orden esta en `Received` los inputs
+  quedan `disabled` y el boton "Registrar Recepcion" se reemplaza por el
+  mensaje "Esta orden ya fue recibida por completo".
 
-Todas viven en `src/zarvent_repuestos/crud/purchase_crud.py`.
+  Bloque `extra_js`: `collectReceivedItems` recorre los inputs
+  `name^="quantity_received_"`, valida enteros entre 0 y `max`, arma el
+  array `[{purchase_order_item_id, quantity_received}]` y lo serializa al
+  `<input id="items_json">`; `submitReceiveForm` valida y envia el
+  formulario por POST a `/purchases/<id>/receive`.
 
-**Proveedores**
+### 1.3 Funciones CRUD
 
-- `create_supplier(business_name, tax_id, phone, email, address)` -> `int | None`
-  - Valida `business_name` y `tax_id` no vacios antes de tocar la base.
-  - Inserta con `is_active = TRUE`.
-  - Devuelve `cursor.lastrowid` o `None` si MySQL falla.
-- `list_suppliers(active_only=True)` -> `list[dict]`
-  - Selecciona `supplier_id, business_name, tax_id, phone, email, address,
-    is_active`, ordena por `business_name`.
-- `get_supplier(supplier_id)` -> `dict | None`
-  - Devuelve un proveedor por id o `None`.
+Definidas en
+[`src/zarvent_repuestos/crud/purchase_crud.py`](../../src/zarvent_repuestos/crud/purchase_crud.py).
 
-**Ordenes de compra**
+**Proveedores:**
 
-- `create_purchase_order(supplier_id, expected_date, items)` -> `int | None`
-  - `items` esperado: `[{"part_id", "quantity_ordered", "unit_cost"}]`.
-  - Valida lista no vacia, `quantity_ordered > 0` y `unit_cost >= 0`.
-  - Calcula `total_amount` en Python redondeado a 2 decimales.
-  - Inserta el header con `status = "Pending"` y luego cada item con
-    `quantity_received = 0`, todo en una sola transaccion.
-- `list_purchase_orders(status=None)` -> `list[dict]`
-  - JOIN con `supplier` para mostrar nombre y NIT.
-  - Acepta filtro opcional por `status`.
-  - Ordena por `purchase_order_id DESC`.
-- `get_purchase_order_details(purchase_order_id)` -> `dict | None`
-  - Devuelve el header + `items` (JOIN con `part` para sacar codigo interno,
-    nombre y marca).
-  - Es la fuente de verdad del template `purchase_detail.html`.
-- `receive_purchase_order(purchase_order_id, received_items)` -> `dict | None`
-  - `received_items` esperado: `[{"purchase_order_item_id",
-    "quantity_received"}]`. **El valor es acumulado, no delta.**
-  - Por cada item:
-    1. `SELECT ... FOR UPDATE` para tomar el lock de la fila;
-    2. rechaza si el nuevo valor es menor al ya recibido;
-    3. rechaza si el nuevo valor es mayor a `quantity_ordered`;
-    4. calcula `delta = new - current`, hace `UPDATE purchase_order_item`
-       y, si `delta > 0`, hace `UPDATE inventory_stock SET quantity_on_hand
-       = quantity_on_hand + delta`;
-  - Despues de procesar todos los items, recalcula el status del header
-    contando cuantos items llegaron completos y cuantos recibieron algo.
+- `create_supplier(business_name, tax_id, phone, email, address)` -> `int | None`.
+  Valida `business_name` y `tax_id` no vacios antes de tocar la base,
+  inserta con `is_active = TRUE`, retorna `cursor.lastrowid` o `None`.
+- `list_suppliers(active_only=True)` -> `list[dict]`. Selecciona y ordena
+  por `business_name`. Acepta filtro opcional por `is_active`.
+- `get_supplier(supplier_id)` -> `dict | None`. Por id o `None`.
 
-### Tablas usadas
+**Ordenes de compra:**
 
-Definidas en `src/zarvent_repuestos/database/init_db.py` y explicadas en
-`docs/database/erd.md` y `docs/database/db_explanation.md`.
+- `create_purchase_order(supplier_id, expected_date, items)` -> `int | None`.
+  `items` esperado: `[{"part_id", "quantity_ordered", "unit_cost"}]`. Valida
+  lista no vacia, `quantity_ordered > 0` y `unit_cost >= 0`. Inserta la
+  cabecera con `status = "Pending"` y luego cada item con
+  `quantity_received = 0` en una sola transaccion.
+- `list_purchase_orders(status=None)` -> `list[dict]`. JOIN con `supplier`.
+  Acepta filtro opcional por `status`. Ordena por `purchase_order_id DESC`.
+- `get_purchase_order_details(purchase_order_id)` -> `dict | None`. Devuelve
+  header + `items` con JOIN a `part`.
+- `receive_purchase_order(purchase_order_id, received_items)` -> `dict | None`.
+  `received_items` esperado: `[{"purchase_order_item_id",
+  "quantity_received"}]`. **El valor es acumulado, no delta.** Por cada
+  item corre `SELECT ... FOR UPDATE`, rechaza si el nuevo valor es menor
+  al ya recibido o mayor a `quantity_ordered`, calcula `delta = new -
+  current`, hace `UPDATE purchase_order_item` y, si `delta > 0`, hace
+  `UPDATE inventory_stock SET quantity_on_hand = quantity_on_hand +
+  delta`. Al final recalcula el status del header.
+
+### 1.4 Tablas relacionadas
+
+Definidas en
+[`src/zarvent_repuestos/database/init_db.py`](../../src/zarvent_repuestos/database/init_db.py).
 
 - `supplier` (`supplier_id`, `business_name`, `tax_id` UNIQUE, `phone`,
   `email`, `address`, `is_active`).
@@ -159,143 +114,81 @@ Definidas en `src/zarvent_repuestos/database/init_db.py` y explicadas en
   `location_name`, `quantity_on_hand` default 0, `reorder_level` default
   10).
 
-### Mockup de diseno
+### 1.5 Comportamiento visible HOY
 
-**Mockup de diseno:** No existe un mockup dedicado en `.cszv/mockups` para
-este modulo. La pantalla real es la unica referencia visual. Si en el futuro
-se quiere alinear la UI con un diseno academico/mockup, se debera crear
-primero el mockup como tarea separada y recien despues actualizar este
-SPEC.
+- `create_supplier` existe y funciona, pero **no** hay ruta Flask ni
+  template que la invoquen. Los proveedores del seed se cargan por
+  `scripts/database/seed_project_data.py`.
+- La maquina de estados en v1 cubre tres valores: `Pending`,
+  `Partially Received`, `Received`. El valor `Cancelled` **no** se
+  inserta desde ningun `create_purchase_order` ni `receive_purchase_order`.
+- No hay endpoint para cancelar una orden.
+- La recepcion acepta el **valor acumulado** (`quantity_received` total
+  de la linea, no el delta). El `delta` se calcula internamente solo para
+  `inventory_stock`.
+- `purchase_order_item` registra `unit_cost` con el valor que envia la
+  UI, no se recalcula desde `part.purchase_cost` (precio historico del
+  costo de compra).
 
-Verificacion realizada: `ls .cszv/mockups/` muestra unicamente
-`dashboard_mockup.*`, `inventory_mockup.*` y `sales_mockup.*`. No existe
-`purchases_mockup.*`.
+### 1.6 Mockup de diseno
 
-## Contrato funcional
+No existe mockup dedicado en `.cszv/mockups/` para este modulo. La
+pantalla real (`purchases.html` y `purchase_detail.html`) es la unica
+referencia visual. Si en el futuro se quiere alinear la UI con un
+diseno academico/mockup, primero se crea el mockup como tarea separada
+y despues se actualiza este SPEC.
 
-### Crear orden de compra
+---
 
-1. El usuario hace clic en **Nueva Compra** en `purchases.html`.
-2. Se abre el modal `#new-purchase-modal`.
-3. El usuario selecciona un proveedor del `<select id="supplier_id">`. El
-   campo es obligatorio.
-4. Opcionalmente completa `expected_date` (input `type="date"`).
-5. Para cada repuesto:
-   - selecciona un item del catalogo (`#part_selector`),
-   - indica `quantity` (entero, minimo 1),
-   - indica `unit_cost` (decimal, minimo 0; se pre-rellena con
-     `part.purchase_cost` al elegir el repuesto),
-   - pulsa **Agregar** (`addItemRow()`).
-6. `recalculateTotals()` actualiza el gran total y serializa el array
-   `purchaseItems` al `<input id="items_json">`.
-7. Al pulsar **Crear Orden** (`submitPurchaseOrder()`), el form hace POST a
-   `/purchases`.
-8. La ruta `purchases` (POST) llama a `purchase_crud.create_purchase_order`
-   y, si todo sale bien, redirige a `/purchases/<id>` mostrando la orden
-   recien creada con un flash de exito.
+## 2. Contrato objetivo v1
 
-### Listar ordenes de compra
+Lo que el spec PROMETE en v1. Cualquier entrega que no cumpla esto queda
+rechazada como contrato.
 
-- La tabla principal muestra todas las ordenes en orden descendente por id.
-- El sidebar permite filtrar por estado:
-  - vacio = todas,
-  - `Pending` = pendientes,
-  - `Partially Received` = recibidas parcialmente,
-  - `Received` = recibidas.
-- El filtro se envia por GET (`?status=...`) y recarga la pagina.
+### 2.1 Alcance funcional
 
-### Ver detalle de una orden
+- Exponer UI para crear proveedores (ruta POST `/purchases/suppliers` que
+  llama a `purchase_crud.create_supplier`).
+- Crear ordenes de compra contra un proveedor existente, con N lineas de
+  repuestos, cantidades y costos unitarios, fecha esperada opcional.
+- Registrar la recepcion parcial o completa de una orden en una sola
+  transaccion, con lock pesimista por linea y actualizacion del status
+  del header.
+- Cancelar SOLO ordenes en estado `Pending`, sin tocar stock y sin
+  reversar recepciones.
+- Mantener las constantes de estado (`Pending`, `Partially Received`,
+  `Received`, `Cancelled`) en un modulo centralizado
+  `src/zarvent_repuestos/constants.py` (compartido con el spec de
+  [sales](../sales/SPEC.md)).
 
-- La ruta GET `/purchases/<id>` carga la orden con sus items y la pinta con
-  `purchase_detail.html`.
-- Si la orden no existe devuelve `404`.
+### 2.2 Estados y maquina del header
 
-### Registrar recepcion (parcial o completa)
-
-1. En `purchase_detail.html` cada item tiene un input
-   `quantity_received_{id}` precargado con el valor actual
-   (`{{ item.quantity_received }}`) y con `max="{{ item.quantity_ordered }}"`.
-2. El usuario modifica los inputs que necesite y pulsa **Registrar
-   Recepcion**.
-3. `collectReceivedItems()` valida en el cliente que cada valor sea entero
-   entre 0 y el maximo, y arma el array de items.
-4. El form hace POST a `/purchases/<id>/receive`.
-5. La ruta llama a `receive_purchase_order`, que:
-   - actualiza `purchase_order_item.quantity_received` por linea,
-   - incrementa `inventory_stock.quantity_on_hand` con el delta real
-     (`nuevo - actual`),
-   - recalcula el `status` del header,
-   - hace `commit` o `rollback` segun corresponda.
-6. La vista redirige al mismo detalle con un flash de exito o de error.
-
-### Validaciones explicitas
-
-| Validacion | Donde | Mensaje al usuario |
-| --- | --- | --- |
-| `supplier_id` numerico positivo | ruta `/purchases` POST | flash `Selecciona un proveedor.` |
-| `items_json` parseable | ruta `/purchases` POST | flash `Items de la orden estan mal formados.` |
-| `expected_date` presente o vacio (opcional) | cliente | sin mensaje; se guarda `NULL` si viene vacio |
-| Al menos un item al crear | `create_purchase_order` | `ValueError`: "La orden de compra debe tener al menos un item." |
-| Cantidad pedida > 0 | `create_purchase_order` | `ValueError`: "La cantidad pedida del producto {id} debe ser mayor que cero." |
-| Costo unitario >= 0 | `create_purchase_order` | `ValueError`: "El costo unitario del producto {id} no puede ser negativo." |
-| Cantidad recibida no se reduce | `receive_purchase_order` | `ValueError`: "No puedes reducir la cantidad recibida de la linea {id}." |
-| Cantidad recibida no excede lo pedido | `receive_purchase_order` | `ValueError`: "La linea {id} no puede recibir {n} unidades; solo se pidieron {m}." |
-| Items recibidos en JSON | ruta `/purchases/<id>/receive` POST | flash `Indica al menos una cantidad recibida.` |
-| Entero entre 0 y `max` en cliente | `collectReceivedItems()` | `alert("Cantidad recibida invalida. Debe ser un numero entero entre 0 y {max}.")` |
-
-### Mensajes flash
-
-- `success`: `Orden de compra #{id} creada con exito.`,
-  `Recepcion registrada con exito.`
-- `error`: mensajes de las validaciones listadas arriba, mas
-  `Error al crear la orden de compra: ...` y `Error al recibir la orden:
-  ...` como fallback.
-
-## Contrato de datos
-
-### Tablas y relaciones
-
-| Tabla | Columnas relevantes | Reglas |
-| --- | --- | --- |
-| `supplier` | `supplier_id` PK, `business_name` NOT NULL, `tax_id` UNIQUE NOT NULL, `phone`, `email`, `address`, `is_active` DEFAULT TRUE | `tax_id` debe ser unico. |
-| `purchase_order` | `purchase_order_id` PK, `supplier_id` FK -> `supplier` ON DELETE RESTRICT, `order_date` NOT NULL, `expected_date` (opcional), `status` DEFAULT 'Pending', `total_amount` NOT NULL | Cabecera. |
-| `purchase_order_item` | `purchase_order_item_id` PK, `purchase_order_id` FK -> `purchase_order` ON DELETE CASCADE, `part_id` FK -> `part` ON DELETE RESTRICT, `quantity_ordered` NOT NULL, `quantity_received` DEFAULT 0, `unit_cost` NOT NULL | Linea. Al borrar la cabecera, se borran sus lineas. |
-| `inventory_stock` | `inventory_stock_id` PK, `part_id` UNIQUE FK -> `part` ON DELETE CASCADE, `location_name`, `quantity_on_hand` DEFAULT 0, `reorder_level` DEFAULT 10 | Stock actual por repuesto. Se incrementa con cada recepcion. |
-
-Relaciones en terminos del ERD:
-
-- `SUPPLIER 1 -- N PURCHASE_ORDER`: un proveedor puede recibir muchas
-  ordenes.
-- `PURCHASE_ORDER 1 -- N PURCHASE_ORDER_ITEM`: una orden debe tener al
-  menos una linea.
-- `PART 1 -- N PURCHASE_ORDER_ITEM`: un repuesto puede comprarse en muchas
-  ordenes.
-- `PART 1 -- 1 INVENTORY_STOCK`: cada repuesto tiene una fila de stock
-  (relacion uno-a-uno por el `UNIQUE` sobre `part_id`).
-
-### Maquina de estados del header
-
-`purchase_order.status` solo toma tres valores en este modulo:
+`purchase_order.status` toma exactamente uno de los cuatro valores
+siguientes en v1:
 
 ```
-                create_purchase_order
-                       |
-                       v
-                   +---------+
-                   | Pending |
-                   +----+----+
-                        |
-       +----------------+----------------+
-       |                                 |
- receive (>0, < ordered)        receive (todas = ordered)
-       |                                 |
-       v                                 v
-+---------------------+             +-----------+
-| Partially Received  |             | Received |
-+---------------------+             +-----------+
-       ^                                 |
-       |                                 |
-       +------ receive (alguna < ordered) +
+                 create_purchase_order
+                          |
+                          v
+                      +---------+
+                      | Pending |
+                      +----+----+
+                           |
+            +--------------+--------------+
+            |                             |
+    receive (>0, < ordered)        receive (todas = ordered)
+            |                             |
+            v                             v
+   +---------------------+          +-----------+
+   | Partially Received  |          | Received  |
+   +---------------------+          +-----------+
+
+   Solo desde Pending (sin recepciones):
+            |
+            v
+      +-----------+
+      | Cancelled |
+      +-----------+
 ```
 
 Reglas concretas en `receive_purchase_order`:
@@ -304,101 +197,149 @@ Reglas concretas en `receive_purchase_order`:
 - Si `any_count > 0` y `full_count < total_count` -> `Partially Received`.
 - Si nadie recibio nada -> `Pending`.
 
-Importante: una vez que el status es `Received`, el template muestra los
-inputs como `disabled` y no permite registrar mas recepciones.
+Reglas concretas en `cancel_purchase_order` (nuevo en v1):
 
-### Lock pesimista con `FOR UPDATE`
+- Solo se puede cancelar una orden en `Pending` (sin recepciones).
+- Si la orden ya tiene `quantity_received > 0` en alguna linea, se
+  rechaza con `ValueError("Solo se pueden cancelar ordenes pendientes
+  sin recepciones.")`.
+- El nuevo status es `Cancelled` y queda persistido en la columna
+  `purchase_order.status`.
+- Cancelar una orden **no** decrementa `inventory_stock`: cuando se
+  cancela una orden `Pending`, todavia no hubo movimiento de stock
+  (el stock solo sube al recibir).
 
-`receive_purchase_order` hace, por cada item del payload:
+Una vez que el status es `Received` o `Cancelled`, el template no expone
+controles de mutacion: los inputs de cantidad recibida quedan
+`disabled` y la cancelacion no se ofrece desde la UI.
 
-```sql
-SELECT purchase_order_item_id, part_id, quantity_ordered, quantity_received
-FROM purchase_order_item
-WHERE purchase_order_id = %s AND purchase_order_item_id = %s
-FOR UPDATE
-```
+### 2.3 Rutas Flask v1
 
-Esto toma un lock de fila en `purchase_order_item` para esa linea, de modo
-que dos recepciones concurrentes contra el mismo `purchase_order_id` se
-serializan y no se pisan al:
+| Ruta | Metodo | Decorador | Que hace |
+| --- | --- | --- | --- |
+| `/purchases` | `GET` | `@login_required` | Lista ordenes con filtros. Carga proveedores activos y repuestos. |
+| `/purchases` | `POST` | `@login_required` | Crea orden (`create_purchase_order`). |
+| `/purchases/suppliers` | `POST` | `@login_required` | Crea proveedor (`create_supplier`). **Nueva en v1.** |
+| `/purchases/<int:purchase_order_id>` | `GET` | `@login_required` | Muestra detalle y formulario de recepcion. |
+| `/purchases/<int:purchase_order_id>/receive` | `POST` | `@login_required` | Registra recepcion (`receive_purchase_order`). |
+| `/purchases/<int:purchase_order_id>/cancel` | `POST` | `@login_required` | Cancela una orden `Pending` (`cancel_purchase_order`). **Nueva en v1.** |
 
-- calcular el delta sobre `quantity_received`,
-- incrementar `inventory_stock.quantity_on_hand`,
-- reescribir el status del header.
+### 2.4 Validaciones
 
-Sin este lock, dos llamadas simultaneas podrian leer la misma
-`quantity_received` previa, calcular el mismo delta, y duplicar el aumento
-de stock.
-
-### Side effects de `receive_purchase_order`
-
-| Tabla afectada | Columna | Operacion |
+| Validacion | Donde | Mensaje al usuario |
 | --- | --- | --- |
-| `purchase_order_item` | `quantity_received` | `UPDATE` al valor acumulado nuevo. |
-| `inventory_stock` | `quantity_on_hand` | `UPDATE quantity_on_hand = quantity_on_hand + delta WHERE part_id = ?`. Solo cuando `delta > 0`. |
-| `purchase_order` | `status` | `UPDATE` al estado recalculado (Pending / Partially Received / Received). |
+| `supplier_id` numerico positivo | ruta `/purchases` POST | `flash "Selecciona un proveedor."` |
+| `items_json` parseable | ruta `/purchases` POST | `flash "Items de la orden estan mal formados."` |
+| `expected_date` presente o vacio (opcional) | cliente | sin mensaje; se guarda `NULL` si viene vacio |
+| Al menos un item al crear | `create_purchase_order` | `ValueError`: "La orden de compra debe tener al menos un item." |
+| `quantity_ordered > 0` | `create_purchase_order` | `ValueError`: "La cantidad pedida del producto {id} debe ser mayor que cero." |
+| `unit_cost >= 0` | `create_purchase_order` | `ValueError`: "El costo unitario del producto {id} no puede ser negativo." |
+| Cantidad recibida no se reduce | `receive_purchase_order` | `ValueError`: "No puedes reducir la cantidad recibida de la linea {id}." |
+| Cantidad recibida no excede lo pedido | `receive_purchase_order` | `ValueError`: "La linea {id} no puede recibir {n} unidades; solo se pidieron {m}." |
+| Items recibidos en JSON | ruta `/purchases/<id>/receive` POST | `flash "Indica al menos una cantidad recibida."` |
+| Entero entre 0 y `max` en cliente | `collectReceivedItems()` | `alert("Cantidad recibida invalida. Debe ser un numero entero entre 0 y {max}.")` |
+| `business_name` y `tax_id` no vacios al crear proveedor | `create_supplier` | `ValueError`: "El nombre comercial del proveedor es obligatorio." / "El NIT del proveedor es obligatorio." |
+| `tax_id` unico en BD al crear proveedor | MySQL UNIQUE constraint | `flash "No se pudo crear el proveedor (revisa datos duplicados o el log del servidor)."` (rutina generica) |
+| Cancelar solo `Pending` | `cancel_purchase_order` | `ValueError`: "Solo se pueden cancelar ordenes pendientes sin recepciones." |
 
-Todo esto ocurre dentro de una sola transaccion (`conexion.commit()` al
-finalizar, `conexion.rollback()` si algo lanza `ValueError` o
-`mysql.connector.Error`).
+### 2.5 Mensajes flash
 
-### Reglas de integridad relevantes
+- `success`: `Orden de compra #{id} creada con exito.`,
+  `Recepcion registrada con exito.`, `Orden de compra #{id} cancelada.`,
+  `Proveedor '{razon_social}' creado con exito.`.
+- `error`: mensajes de las validaciones listadas arriba, mas
+  `Error al crear la orden de compra: ...`,
+  `Error al recibir la orden: ...` y
+  `Error al cancelar la orden: ...` como fallback.
 
-- `supplier.tax_id` es `UNIQUE NOT NULL`: dos proveedores no pueden
-  compartir NIT.
-- `purchase_order.supplier_id` es `ON DELETE RESTRICT`: no se puede borrar
-  un proveedor con ordenes abiertas.
-- `purchase_order_item.purchase_order_id` es `ON DELETE CASCADE`: borrar
-  una orden limpia sus lineas.
-- `purchase_order_item.part_id` es `ON DELETE RESTRICT`: no se puede borrar
-  un repuesto que figure como item de compra.
-- `inventory_stock.part_id` es `UNIQUE` y `ON DELETE CASCADE`: cada
-  repuesto tiene una unica fila de stock; si se borra el repuesto, se
-  borra su stock.
+### 2.6 Transaccion atomica de la recepcion
 
-## Trazabilidad SDD
+`receive_purchase_order` ejecuta todo dentro de una sola conexion MySQL:
 
-Esta matriz cruza lo que dicen los docs, lo que esta en la base de datos y
-lo que esta en el codigo real. **No se inventa nada**: si la columna viene
-vacia, significa que el tema no se nombra en esa fuente.
+1. Validar que `received_items` no este vacio.
+2. Por cada item:
+   1. `SELECT ... FOR UPDATE` sobre `purchase_order_item` para tomar el
+      lock de la fila.
+   2. Rechazar si `new_received < current_received` o
+      `new_received > quantity_ordered`.
+   3. `UPDATE purchase_order_item SET quantity_received = %s`.
+   4. Si `delta > 0`, `UPDATE inventory_stock SET quantity_on_hand =
+      quantity_on_hand + %s WHERE part_id = ?`.
+3. `SELECT SUM(CASE ...)` para contar `full_count`, `any_count`,
+   `total_count`.
+4. Recalcular `status` (`Received` / `Partially Received` / `Pending`).
+5. `UPDATE purchase_order SET status = %s`.
+6. `conexion.commit()`. Ante `mysql.connector.Error` o `ValueError` se
+   ejecuta `conexion.rollback()` y se re-lanza la excepcion.
 
-Estados posibles:
+### 2.7 Cancelacion atomica
 
-- `implementado` = existe en el codigo real y ademas esta documentado.
-- `parcial` = existe en el codigo pero con diferencias respecto al doc, o
-  existe en el doc pero no en el codigo.
-- `faltante` = deberia estar segun el proceso, pero no esta implementado.
-- `fuera de alcance` = no aplica a este modulo o se decidio no hacerlo.
+`cancel_purchase_order` (nuevo en v1) ejecuta dentro de una sola
+conexion:
 
-| Tema | docs/analysis | docs/database | Codigo actual | Estado |
+1. `SELECT purchase_order_id, status FROM purchase_order WHERE
+   purchase_order_id = %s FOR UPDATE`.
+2. Si la orden no existe, `ValueError("La orden {id} no existe.")`.
+3. Si `status != "Pending"`, `ValueError("Solo se pueden cancelar
+   ordenes pendientes sin recepciones.")`.
+4. `SELECT COUNT(*) FROM purchase_order_item WHERE purchase_order_id = %s
+   AND quantity_received > 0`. Si `> 0`,
+   `ValueError("Solo se pueden cancelar ordenes pendientes sin
+   recepciones.")`.
+5. `UPDATE purchase_order SET status = 'Cancelled' WHERE
+   purchase_order_id = %s`.
+6. `conexion.commit()`. No se toca `inventory_stock`.
+
+### 2.8 Modulo de constantes centralizado
+
+`src/zarvent_repuestos/constants.py` (nuevo en v1) expone:
+
+- `SALES_STATUS_PAID = "Paid"` (compartido con
+  [sales/SPEC.md](../sales/SPEC.md)).
+- `PURCHASE_STATUS_PENDING = "Pending"`.
+- `PURCHASE_STATUS_PARTIALLY_RECEIVED = "Partially Received"`.
+- `PURCHASE_STATUS_RECEIVED = "Received"`.
+- `PURCHASE_STATUS_CANCELLED = "Cancelled"` (nuevo en v1).
+
+Las cadenas literales que el CRUD y los templates usan se reemplazan
+por estas constantes. Esto es opcional en v1 para el path de datos
+(los literales funcionan), pero la **existencia** del modulo y la
+constante `PURCHASE_STATUS_CANCELLED` son obligatorias porque el nuevo
+flujo de cancelacion no puede depender de un literal repetido.
+
+---
+
+## 3. Cambios requeridos v1
+
+Lista concreta para pasar del estado actual al contrato de la
+[Seccion 2](#2-contrato-objetivo-v1).
+
+| # | Cambio | Archivo(s) | Tipo | Afecta spec vecino |
 | --- | --- | --- | --- | --- |
-| Entidad `SUPPLIER` con `tax_id` unico | `requirements.md` RF-07, `actors.md` Proveedor, `processes.md` linea 49 | `erd.md` SUPPLIER, `db_explanation.md` linea 21 | Tabla `supplier` en `init_db.py`; CRUD `create_supplier`/`list_suppliers`/`get_supplier` | implementado |
-| Crear proveedores desde la UI | `processes.md` linea 49, `procedures.md` "Registro de compra" paso 2 | n/a | No hay ruta Flask ni template para crear proveedores. `create_supplier` existe pero no se expone. | parcial |
-| Entidad `PURCHASE_ORDER` con `status` y `expected_date` | `requirements.md` RF-07, `procedures.md` "Registro de compra" | `erd.md` PURCHASE_ORDER, `db_explanation.md` linea 30 | Tabla `purchase_order` en `init_db.py`; CRUD `create_purchase_order`, `list_purchase_orders`, `get_purchase_order_details`; rutas `/purchases` GET/POST y `/purchases/<id>` GET | implementado |
-| `expected_date` opcional | n/a | `erd.md` `date expected_date` (sin NOT NULL) | `init_db.py` crea la columna sin `NOT NULL`; ruta `/purchases` POST acepta vacio y guarda `NULL` | implementado |
-| Entidad `PURCHASE_ORDER_ITEM` con cantidad pedida, recibida y costo historico | `processes.md` linea 49, `procedures.md` "Registro de compra" paso 3 | `erd.md` PURCHASE_ORDER_ITEM, `db_explanation.md` linea 31 | Tabla `purchase_order_item` en `init_db.py`; CRUD `create_purchase_order` y `receive_purchase_order` | implementado |
-| Maquina de estados Pending / Partially Received / Received | n/a (no se modela explicitamente) | n/a | Implementada en `receive_purchase_order` (`full_count`, `any_count`, `total_count`) y reflejada en `purchases.html` y `purchase_detail.html` con badges | implementado |
-| Recepcion parcial o completa | `procedures.md` "Registro de compra" pasos 5-6 | n/a | `receive_purchase_order` con `FOR UPDATE`, validacion de no reducir y no exceder; UI en `purchase_detail.html` con `collectReceivedItems` | implementado |
-| Incremento de `inventory_stock.quantity_on_hand` al recibir | `processes.md` linea 50, `procedures.md` "Control de inventario" | `db_explanation.md` linea 26 | `receive_purchase_order` hace `UPDATE inventory_stock SET quantity_on_hand = quantity_on_hand + delta` solo si `delta > 0` | implementado |
-| Tabla separada de recepciones (`PURCHASE_RECEIPT_ITEM`) | n/a (no nombrada) | `db_explanation.md` "Limitaciones aceptadas": `PURCHASE_RECEIPT` y `PURCHASE_RECEIPT_ITEM` quedan como mejora futura | No existe. La recepcion se hace directo sobre `purchase_order_item` | fuera de alcance |
-| Cancelacion de ordenes de compra | n/a | n/a | No implementada. No hay ruta, no hay columna `cancelled` | faltante |
-| Edicion de ordenes de compra | n/a | n/a | No implementada. No hay ruta PUT/PATCH ni template | faltante |
-| Validacion de `quantity > 0` y `unit_cost >= 0` al crear | n/a (regla de negocio implicita) | n/a | `create_purchase_order` valida ambos y lanza `ValueError`; el cliente tambien valida en `addItemRow()` | implementado |
-| Validacion de no reducir y no exceder al recibir | n/a (regla de negocio implicita) | n/a | `receive_purchase_order` valida ambos; el cliente valida el rango en `collectReceivedItems` | implementado |
-| Lock pesimista `FOR UPDATE` sobre items | n/a | n/a | `SELECT ... FOR UPDATE` en `receive_purchase_order` por cada linea | implementado |
-| CASCADE en items al borrar orden | n/a | `init_db.py` define `ON DELETE CASCADE` para `purchase_order_item.purchase_order_id` | Esquema en `init_db.py` | implementado |
-| UNIQUE en `supplier.tax_id` | n/a | `db_explanation.md` "Reglas que deben defenderse" | `init_db.py`: `tax_id VARCHAR(50) UNIQUE NOT NULL` | implementado |
-| Listar ordenes con filtro por estado | n/a | n/a | `purchases.html` sidebar + `list_purchase_orders(status=...)` | implementado |
-| Mockup academico del modulo de compras | n/a | n/a | No existe `purchases_mockup.*` en `.cszv/mockups/` | faltante |
+| 1 | Crear `src/zarvent_repuestos/constants.py` con `PURCHASE_STATUS_PENDING`, `PURCHASE_STATUS_PARTIALLY_RECEIVED`, `PURCHASE_STATUS_RECEIVED`, `PURCHASE_STATUS_CANCELLED` y `SALES_STATUS_PAID`. | `src/zarvent_repuestos/constants.py` (nuevo) | codigo | [sales/SPEC.md](../sales/SPEC.md) |
+| 2 | Implementar `cancel_purchase_order(purchase_order_id)` en `purchase_crud.py`: `SELECT ... FOR UPDATE` sobre el header, valida `status == "Pending"` y que `quantity_received = 0` en todas las lineas, hace `UPDATE purchase_order SET status = 'Cancelled'`, commit, rollback ante error. | `src/zarvent_repuestos/crud/purchase_crud.py` | codigo | este spec |
+| 3 | Agregar ruta `POST /purchases/<int:purchase_order_id>/cancel` que llame a `cancel_purchase_order`, haga `flash` de exito o error y redirija al detalle. | `src/zarvent_repuestos/web/app.py` | codigo | este spec |
+| 4 | Exponer en el template `purchases.html` (o en una seccion dedicada del mismo template) un formulario para crear proveedores que haga `POST` a `/purchases/suppliers` con `business_name`, `tax_id`, `phone`, `email`, `address`. | `src/zarvent_repuestos/web/templates/purchases.html` | UI | este spec |
+| 5 | Agregar ruta `POST /purchases/suppliers` que parsee los campos, llame a `create_supplier` y haga `flash` de exito o error. Redirige a `/purchases`. | `src/zarvent_repuestos/web/app.py` | codigo | este spec |
+| 6 | Mostrar en `purchase_detail.html` un boton "Cancelar Orden" SOLO cuando `order.status == "Pending"` y `order.items[].quantity_received == 0`. El boton hace `POST` a `/purchases/<id>/cancel`. | `src/zarvent_repuestos/web/templates/purchase_detail.html` | UI | este spec |
+| 7 | Pintar en `purchases.html` y `purchase_detail.html` el badge "Cancelada" para `status == "Cancelled"`, en linea con la paleta del diseno actual (gris sobre `cold-white`). | `src/zarvent_repuestos/web/templates/purchases.html`, `src/zarvent_repuestos/web/templates/purchase_detail.html` | UI | este spec |
+| 8 | Reemplazar los literales `"Pending"`, `"Partially Received"`, `"Received"` en `purchase_crud.py` por las constantes del modulo nuevo. | `src/zarvent_repuestos/crud/purchase_crud.py` | codigo | este spec |
+| 9 | Cubrir `cancel_purchase_order` con tests: rechazo cuando `status != "Pending"`, rechazo cuando hay recepciones, transicion exitosa a `Cancelled`, `rollback` ante error. | `tests/test_purchase_crud.py` (extension) | test | este spec |
+| 10 | Cubrir la ruta `POST /purchases/suppliers` con un test que verifique `200/302` y la llamada a `create_supplier`. | `tests/test_purchase_supplier_route.py` (nuevo) | test | este spec |
 
-## Criterios de aceptacion
+Ninguno de estos cambios rompe la transaccion atomica documentada en
+las secciones 2.6 y 2.7.
 
-### Pruebas automatizadas
+---
 
-Las pruebas viven en `tests/`. Los modulos relevantes son:
+## 4. Aceptacion automatizada
 
-- `tests/test_purchase_crud.py` cubre las funciones de `purchase_crud.py`
-  con la base de datos mockeada:
+Tests en `tests/` que demuestran que el contrato se cumple.
+
+### 4.1 Tests existentes
+
+- [`tests/test_purchase_crud.py`](../../tests/test_purchase_crud.py) cubre
+  las funciones de `purchase_crud.py` con la base de datos mockeada:
   - `CreatePurchaseOrderValidationTest`:
     - `test_empty_items_raises_value_error_before_connection`: items
       vacios no abren conexion.
@@ -409,27 +350,26 @@ Las pruebas viven en `tests/`. Los modulos relevantes son:
   - `CreatePurchaseOrderHappyPathTest`:
     - `test_header_and_item_inserts_happen_in_a_single_transaction`:
       confirma un `INSERT` al header, un `INSERT` por cada item, un solo
-      `commit`, ningun `rollback`, `lastrowid = 42`, status `Pending`,
+      `commit`, ningun `rollback`, `lastrowid = 42`, `status = "Pending"`,
       `total_amount = 100.0`.
   - `CreateSupplierValidationTest`:
     - `test_empty_business_name_raises_value_error_before_connection`.
     - `test_empty_tax_id_raises_value_error_before_connection`.
   - `ReceivePurchaseOrderTest`:
     - `test_full_reception_marks_header_received_and_increments_stock_by_delta`:
-      con `ordered=5`, `current=0`, `new=5` -> status `Received`,
+      con `ordered=5`, `current=0`, `new=5` -> `status = "Received"`,
       `UPDATE inventory_stock (5, part_id)`, commit unico.
     - `test_partial_reception_marks_header_partially_received_and_uses_partial_delta`:
-      con `ordered=5`, `current=0`, `new=2` -> status
-      `Partially Received`, `UPDATE inventory_stock (2, part_id)`.
+      con `ordered=5`, `current=0`, `new=2` -> `status = "Partially
+      Received"`, `UPDATE inventory_stock (2, part_id)`.
     - `test_reducing_received_is_rejected_with_value_error`: con
-      `current=3`, `new=1` -> `ValueError`, rollback, sin updates a
-      stock.
-    - `test_over_receiving_is_rejected_with_value_error`: con
-      `ordered=5`, `new=6` -> `ValueError`, rollback, sin updates a
-      stock.
+      `current=3`, `new=1` -> `ValueError`, rollback, sin updates a stock.
+    - `test_over_receiving_is_rejected_with_value_error`: con `ordered=5`,
+      `new=6` -> `ValueError`, rollback, sin updates a stock.
 
-- `tests/test_purchase_detail_route.py` cubre la ruta `/purchases/<id>`
-  con la app Flask real (cliente de test) y la base mockeada:
+- [`tests/test_purchase_detail_route.py`](../../tests/test_purchase_detail_route.py)
+  cubre la ruta `/purchases/<id>` con la app Flask real (cliente de
+  test) y la base mockeada:
   - `test_purchase_detail_renders_200_with_preset_order`: la ruta
     devuelve 200 y muestra el codigo interno, el nombre del producto y el
     nombre del proveedor.
@@ -438,113 +378,201 @@ Las pruebas viven en `tests/`. Los modulos relevantes son:
   - `test_purchase_detail_returns_404_when_order_missing`: si la orden
     no existe, devuelve 404.
 
-Comandos sugeridos (sin asumir nada sobre el framework):
+### 4.2 Brechas a cerrar en v1 (tests a aniadir)
+
+| Brecha | Test a aniadir | Archivo sugerido |
+| --- | --- | --- |
+| `cancel_purchase_order` exitoso transiciona `Pending -> Cancelled` con un solo `commit`, ningun `UPDATE inventory_stock`. | `test_cancel_pending_order_transitions_to_cancelled_without_touching_stock`. | `tests/test_purchase_crud.py` (extension) |
+| `cancel_purchase_order` rechaza cuando la orden tiene `quantity_received > 0` en alguna linea. | `test_cancel_rejected_when_receptions_exist`. | `tests/test_purchase_crud.py` (extension) |
+| `cancel_purchase_order` rechaza cuando la orden esta en `Received` o `Cancelled` o `Partially Received`. | `test_cancel_rejected_when_status_not_pending`. | `tests/test_purchase_crud.py` (extension) |
+| `POST /purchases/<id>/cancel` redirige al detalle con flash de exito. | `test_cancel_route_redirects_with_success_flash`. | `tests/test_purchase_cancel_route.py` (nuevo) |
+| `POST /purchases/suppliers` invoca `create_supplier` y redirige a `/purchases` con flash de exito. | `test_create_supplier_route_invokes_crud_and_redirects`. | `tests/test_purchase_supplier_route.py` (nuevo) |
+| `create_supplier` con `tax_id` duplicado devuelve `None` y permite al caller mostrar el flash generico. | `test_create_supplier_returns_none_on_duplicate_tax_id` (mockear `mysql.connector.Error`). | `tests/test_purchase_crud.py` (extension) |
+
+Comandos sugeridos:
 
 ```bash
-python -m unittest tests.test_purchase_crud
-python -m unittest tests.test_purchase_detail_route
+uv run python -m unittest tests.test_purchase_crud
+uv run python -m unittest tests.test_purchase_detail_route
+uv run python -m unittest tests.test_purchase_cancel_route
+uv run python -m unittest tests.test_purchase_supplier_route
 ```
 
-### Pruebas manuales sugeridas
+---
 
-1. **Crear orden end-to-end.**
-   - Login con `admin` / `admin123`.
-   - Ir a `/purchases`. Pulsar **Nueva Compra**.
-   - Seleccionar proveedor, dejar fecha vacia, agregar dos repuestos con
-     cantidad y costo validos, pulsar **Crear Orden**.
-   - Verificar: redirige a `/purchases/<id>`, flash de exito, total
-     correcto, ambos items con `quantity_received = 0`.
-2. **Recepcion parcial.**
+## 5. Aceptacion manual en navegador / DataGrip
+
+Pasos reproducibles que un estudiante junior puede correr para verificar el
+contrato desde la UI o desde un cliente SQL.
+
+### 5.1 En navegador
+
+Prerequisito: estar logueado como `admin` / `admin123` y tener al menos
+un proveedor y un repuesto cargados.
+
+1. **Crear proveedor desde la UI.**
+   - Ir a `/purchases`. En la seccion "Nuevo Proveedor" completar
+     `business_name`, `tax_id` (unico), telefono, email, direccion.
+   - Pulsar "Crear Proveedor". Verificar: flash de exito y el proveedor
+     aparece en el dropdown del modal de nueva orden.
+2. **Crear orden end-to-end.**
+   - Pulsar "Nueva Compra". Seleccionar proveedor, dejar fecha esperada
+     vacia, agregar dos repuestos con cantidad y costo validos.
+   - Pulsar "Crear Orden". Verificar: redirige a `/purchases/<id>` con
+     flash de exito, total correcto, ambos items con
+     `quantity_received = 0`, badge "Pendiente".
+3. **Recepcion parcial.**
    - En el detalle, modificar el primer input a 2 (sobre un pedido de 5)
-     y pulsar **Registrar Recepcion**.
-   - Verificar: flash de exito, status `Partially Received` (badge
-     azul), chip **Parcial** en la fila, `inventory_stock` para ese
-     repuesto aumento en 2.
-3. **Recepcion completa.**
+     y pulsar "Registrar Recepcion". Verificar: flash de exito, badge
+     "Recibida Parcialmente" (azul), chip "Parcial" en la fila,
+     `inventory_stock` para ese repuesto aumento en 2.
+4. **Recepcion completa.**
    - En el detalle, poner todos los inputs en el maximo y registrar.
-   - Verificar: status `Received` (badge verde), inputs `disabled`,
-     mensaje "Esta orden ya fue recibida por completo.", stock
-     incrementado en lo que faltaba.
-4. **Validaciones de entrada en el cliente.**
+     Verificar: badge "Recibida" (verde), inputs `disabled`, mensaje
+     "Esta orden ya fue recibida por completo", stock incrementado en lo
+     que faltaba.
+5. **Cancelar orden `Pending`.**
+   - En el detalle de una orden `Pending` SIN recepciones, pulsar
+     "Cancelar Orden". Verificar: flash de exito, badge "Cancelada" en
+     el detalle y en el listado, el stock de los repuestos de la orden
+     NO cambio.
+6. **Cancelar orden NO `Pending` debe estar bloqueado.**
+   - En el detalle de una orden `Partially Received` o `Received`, el
+     boton "Cancelar Orden" NO debe estar visible. Si se hace POST
+     directo a `/purchases/<id>/cancel` con `id` de una orden no
+     `Pending`, el flash debe ser de error y la base no debe cambiar.
+7. **Validaciones de entrada en el cliente.**
    - Intentar `quantity = 0` o `unit_cost = -1` en el modal: el JS
      muestra `alert`.
    - Intentar registrar la orden sin proveedor o sin items: `alert`
      antes de enviar.
    - Intentar enviar una cantidad recibida mayor al maximo: `alert`
      desde `collectReceivedItems`.
-5. **Validaciones del servidor.**
+8. **Validaciones del servidor.**
    - Forzar un POST directo a `/purchases` con `supplier_id = 0` o
      `items_json` invalido: flash de error, redirige a `/purchases`.
    - Forzar una recepcion con `quantity_received` menor al actual o
-     mayor al `quantity_ordered`: flash `Error de validacion: ...`,
+     mayor al `quantity_ordered`: flash "Error de validacion: ...",
      redirige al detalle sin cambiar stock ni status.
-6. **Filtros del sidebar.**
+   - Forzar la creacion de dos proveedores con el mismo `tax_id`: el
+     segundo flash debe ser de error.
+9. **Filtros del sidebar.**
    - Pulsar cada radio del sidebar y comprobar que la URL lleva
      `?status=...` y la tabla solo muestra ordenes con ese estado.
-   - Pulsar **Limpiar Filtros** y comprobar que vuelve a la lista
+   - Pulsar "Limpiar Filtros" y comprobar que vuelve a la lista
      completa.
-7. **Integridad de base de datos.**
-   - Con DataGrip o `mysql` CLI, intentar insertar dos `supplier` con
-     el mismo `tax_id`: MySQL debe rechazarlo.
-   - Borrar una `purchase_order` con items: las lineas deben
-     desaparecer por la `CASCADE`.
+   - Confirmar que el sidebar expone un filtro "Canceladas" en v1
+     (nuevo) y que devuelve las ordenes canceladas.
 
-## Brechas y decisiones
+### 5.2 En DataGrip / cliente SQL
 
-Estas son las diferencias entre lo que proponen los documentos de analisis y
-lo que el codigo implementa hoy. Sirven para que la defensa sea honesta.
+Prerequisito: tener `mysql` CLI o DataGrip conectado a la base
+`sis122_zarvent_repuestos`.
 
-1. **No hay UI para crear proveedores.** La funcion `create_supplier`
-   existe en `purchase_crud.py` (con validacion de `business_name` y
-   `tax_id` no vacios, insercion con `is_active = TRUE`), pero ninguna
-   ruta Flask la expone y ningun template la usa. Los proveedores
-   necesarios en demo se cargan por `scripts/database/seed_project_data.py`.
-   Esto es coherente con el alcance academico (no se queria invertir
-   tiempo en CRUD de proveedores), pero es una brecha visible respecto a
-   `procedures.md` "Registro de compra" paso 2.
+1. **Verificar que `supplier.tax_id` es unico.**
+   ```sql
+   INSERT INTO supplier (business_name, tax_id) VALUES ('Repetido SA', '9999999');
+   INSERT INTO supplier (business_name, tax_id) VALUES ('Repetido SA 2', '9999999');
+   ```
+   La segunda insercion debe ser rechazada por MySQL.
+2. **Verificar la maquina de estados del header.**
+   ```sql
+   SELECT status, COUNT(*) FROM purchase_order GROUP BY status;
+   ```
+   En v1 los valores posibles son exactamente cuatro: `Pending`,
+   `Partially Received`, `Received`, `Cancelled`.
+3. **Verificar que una cancelacion NO toca `inventory_stock`.**
+   Antes y despues de cancelar una orden `Pending`, capturar el stock
+   de cada `part_id` de la orden:
+   ```sql
+   SELECT s.part_id, s.quantity_on_hand
+   FROM inventory_stock s
+   WHERE s.part_id IN (1, 2);
+   ```
+   Ambos `SELECT` deben devolver los mismos valores.
+4. **Verificar que `CASCADE` borra las lineas al borrar la cabecera.**
+   ```sql
+   SELECT COUNT(*) FROM purchase_order_item WHERE purchase_order_id = 999;
+   DELETE FROM purchase_order WHERE purchase_order_id = 999;
+   SELECT COUNT(*) FROM purchase_order_item WHERE purchase_order_id = 999;
+   ```
+   El segundo conteo debe ser 0.
+5. **Verificar que `RESTRICT` impide borrar un proveedor con ordenes.**
+   ```sql
+   DELETE FROM supplier WHERE supplier_id = (SELECT supplier_id FROM purchase_order LIMIT 1);
+   ```
+   MySQL debe rechazar la operacion.
+6. **Verificar que `unit_cost` guarda precio historico.**
+   ```sql
+   SELECT i.purchase_order_item_id, i.unit_cost, p.purchase_cost
+   FROM purchase_order_item i
+   JOIN part p ON i.part_id = p.part_id
+   WHERE i.unit_cost <> p.purchase_cost;
+   ```
+   En el seed demo esta consulta puede devolver filas; eso valida que
+   se guarda precio historico.
+7. **Forzar una condicion de carrera sobre `purchase_order_item`.**
+   Abrir dos sesiones MySQL concurrentes, correr en ambas
+   `SELECT ... FROM purchase_order_item WHERE purchase_order_id = X AND
+   purchase_order_item_id = Y FOR UPDATE;`. La segunda sesion debe
+   quedar bloqueada hasta que la primera haga `COMMIT` o `ROLLBACK`.
 
-2. **No existe tabla `PURCHASE_RECEIPT_ITEM`.** El ERD compacto no la
-   incluye y `db_explanation.md` la lista como mejora futura bajo
-   "Limitaciones aceptadas". En el codigo, la recepcion se aplica
-   directamente sobre `purchase_order_item` con `UPDATE
-   quantity_received`. Esto es valido para el alcance, pero significa
-   que no hay un historial separado de recepciones (no se puede saber
-   "quien recibio que dia"); solo queda el valor acumulado.
+---
 
-3. **`expected_date` es opcional.** La columna no tiene `NOT NULL` en
-   `init_db.py`, la ruta acepta vacio y guarda `NULL`, y el template
-   muestra `—` cuando esta vacia. El procedimiento `procedures.md`
-   "Registro de compra" no exige fecha esperada, asi que esto es
-   coherente, pero conviene saber que el sistema no alerta cuando se
-   atrasa una entrega esperada.
+## 6. Decisiones fuera de alcance
 
-4. **No hay cancelacion de ordenes de compra.** No existe una columna
-   `cancelled` ni un endpoint para marcar la orden como cancelada. La
-   unica forma de "sacarla" del flujo es recibirla por completo.
+Lo que el analisis academico pedia y el equipo decidio NO entregar en
+v1, con justificacion. Si quedan como objetivo futuro, se etiquetan
+`backlog v2`.
 
-5. **No hay edicion de ordenes de compra.** Una vez creada la orden con
-   `create_purchase_order`, no se puede modificar ni el proveedor, ni
-   los items, ni el costo unitario. La unica mutacion permitida es la
-   recepcion (que solo sube `quantity_received`).
+| Tema | RF origen | Estado v1 | Justificacion |
+| --- | --- | --- | --- |
+| Devoluciones a proveedor (RF-08). | `docs/analysis/requirements.md` RF-08; `processes.md` (Devoluciones). | `fuera de alcance v1` (`backlog v2`) | RF-08 lo cubre el modulo de Ventas, no Compras. Las tablas `RETURN_ORDER` y `RETURN_ORDER_ITEM` no se crean en `init_db.py`. |
+| Edicion de ordenes existentes. | (no documentado). | `fuera de alcance v1` (`backlog v2`) | No hay ruta `PUT`/`PATCH`. Una vez creada, la unica mutacion permitida es la recepcion o la cancelacion `Pending`. |
+| `PURCHASE_RECEIPT` y `PURCHASE_RECEIPT_ITEM` (tabla separada para recepciones parciales). | `db_explanation.md` (Limitaciones aceptadas). | `fuera de alcance v1` (`backlog v2`) | La recepcion se aplica directamente sobre `purchase_order_item`. Esto significa que no hay un historial separado de recepciones (no se puede saber "quien recibio que dia"); solo queda el valor acumulado. |
+| Alertas automaticas de atraso segun `expected_date`. | `processes.md` (Compras a proveedores). | `fuera de alcance v1` (`backlog v2`) | `expected_date` es opcional y se guarda como `NULL` si no se completa. No hay logica de notificacion asociada. |
+| Autenticacion por actor (`actors.md`: Responsable de compras vs Encargado de almacen). | `actors.md`; `procedures.md` (Roles). | `fuera de alcance v1` (`backlog v2`) | La unica exigencia es `login_required`; no se diferencia que usuario puede crear ordenes, recibir o cancelar. El control de actor queda delegado a la convencion del equipo. |
+| Cancelacion de ordenes con recepciones parciales (reversar el stock). | (no documentado). | `fuera de alcance v1` (`backlog v2`) | En v1 la cancelacion esta limitada a `Pending` con `quantity_received = 0` en todas las lineas. Reversar stock requiere reglas que exceden el alcance academico. |
+| Mockup academico dedicado. | (no documentado). | `fuera de alcance v1` (`backlog v2`) | `.cszv/mockups/` no tiene `purchases_mockup.*`. La pantalla real es la unica referencia visual. |
 
-6. **El endpoint de recepcion recibe el valor acumulado, no el delta.**
-   Esto se verifica en el codigo (`receive_purchase_order` recalcula
-   `delta = new_received - current_received` y hace `UPDATE` con el
-   valor nuevo, no con el delta) y en el template (`value="{{
-   item.quantity_received }}"` precarga el valor actual y
-   `collectReceivedItems` envia ese mismo valor). El CRUD usa `delta`
-   solo para `inventory_stock`. Es importante tenerlo claro en la
-   defensa: si la UI enviara el delta, el backend lo rechazaria porque
-   "reduciria" el valor.
+`backlog v2` se usa **unicamente** en esta seccion y en la columna de
+cambios de la matriz del `spec/README.md`. Nunca aparece como
+`Estado v1` en la [Seccion 7](#7-trazabilidad-rf).
 
-7. **No hay mockup academico del modulo.** `.cszv/mockups/` solo
-   contiene `dashboard_mockup.*`, `inventory_mockup.*` y
-   `sales_mockup.*`. El presente SPEC no se puede alinear con un
-   mockup que no existe; la pantalla real (los templates Jinja2
-   actuales) es la unica referencia visual.
+---
 
-8. **No hay autenticacion por actor en la UI.** `actors.md` distingue
-   entre Responsable de compras y Encargado de almacen, pero el
-   codigo solo exige `login_required` y no diferencia que usuario
-   puede crear ordenes o registrar recepciones. El control de actor
-   queda delegado a la convencion del equipo.
+## 7. Trazabilidad RF
+
+Tabla que cruza cada tema del modulo con su RF origen, su soporte de
+datos y el codigo real que lo implementa, con un `Estado v1` por fila.
+
+Los cuatro valores posibles para `Estado v1` son exactamente los definidos
+en [`spec/README.md`](../README.md):
+
+- `implementado v1`
+- `parcial v1`
+- `corregir UI/spec`
+- `fuera de alcance v1`
+
+| Tema | `docs/analysis` | `docs/database` | Codigo actual | Estado v1 |
+| --- | --- | --- | --- | --- |
+| Entidad `SUPPLIER` con `tax_id` unico | `requirements.md` RF-07; `actors.md` (Proveedor); `processes.md` linea 49 | `erd.md` (SUPPLIER); `db_explanation.md` linea 21 | Tabla `supplier` en `init_db.py`; CRUD `create_supplier`, `list_suppliers`, `get_supplier` en `purchase_crud.py` | `implementado v1` |
+| Crear proveedores desde la UI | `processes.md` linea 49; `procedures.md` (Registro de compra, paso 2) | (no modelado) | `create_supplier` existe; falta la ruta `POST /purchases/suppliers` y la seccion en `purchases.html` | `parcial v1` (ver [Seccion 3, cambios 4 y 5](#3-cambios-requeridos-v1)) |
+| Entidad `PURCHASE_ORDER` con `status` y `expected_date` | `requirements.md` RF-07; `procedures.md` (Registro de compra) | `erd.md` (PURCHASE_ORDER); `db_explanation.md` linea 30 | Tabla `purchase_order` en `init_db.py`; CRUD `create_purchase_order`, `list_purchase_orders`, `get_purchase_order_details`; rutas `/purchases` GET/POST y `/purchases/<id>` GET | `implementado v1` |
+| `expected_date` opcional | (no documentado) | `erd.md` `date expected_date` (sin `NOT NULL`) | `init_db.py` crea la columna sin `NOT NULL`; ruta `/purchases` POST acepta vacio y guarda `NULL` | `implementado v1` |
+| Entidad `PURCHASE_ORDER_ITEM` con cantidad pedida, recibida y costo historico | `processes.md` linea 49; `procedures.md` (Registro de compra, paso 3) | `erd.md` (PURCHASE_ORDER_ITEM); `db_explanation.md` linea 31 | Tabla `purchase_order_item` en `init_db.py`; CRUD `create_purchase_order` y `receive_purchase_order` | `implementado v1` |
+| Maquina de estados `Pending` / `Partially Received` / `Received` | (no modelado explicitamente) | (no modelado) | Implementada en `receive_purchase_order` (`full_count`, `any_count`, `total_count`) y reflejada en `purchases.html` y `purchase_detail.html` con badges | `implementado v1` |
+| Transicion `Pending -> Cancelled` (nueva en v1) | (no documentado) | (no modelado) | `cancel_purchase_order` y ruta `POST /purchases/<id>/cancel` (pendientes: ver [Seccion 3, cambios 2 y 3](#3-cambios-requeridos-v1)) | `parcial v1` (cambios pendientes) |
+| Recepcion parcial o completa | `procedures.md` (Registro de compra, pasos 5-6) | (no modelado) | `receive_purchase_order` con `FOR UPDATE`, validacion de no reducir y no exceder; UI en `purchase_detail.html` con `collectReceivedItems` | `implementado v1` |
+| Incremento de `inventory_stock.quantity_on_hand` al recibir | `processes.md` linea 50; `procedures.md` (Control de inventario) | `db_explanation.md` linea 26 | `receive_purchase_order` hace `UPDATE inventory_stock SET quantity_on_hand = quantity_on_hand + delta` solo si `delta > 0` | `implementado v1` |
+| Tabla separada de recepciones (`PURCHASE_RECEIPT_ITEM`) | (no nombrada) | `db_explanation.md` (Limitaciones aceptadas: `PURCHASE_RECEIPT` y `PURCHASE_RECEIPT_ITEM`) | No existe; la recepcion se hace directo sobre `purchase_order_item` | `fuera de alcance v1` |
+| Edicion de ordenes de compra | (no documentado) | (no modelado) | No hay ruta `PUT`/`PATCH` ni template | `fuera de alcance v1` |
+| Validacion de `quantity_ordered > 0` y `unit_cost >= 0` al crear | (regla implicita) | (no modelado) | `create_purchase_order` valida ambos y lanza `ValueError`; el cliente tambien valida en `addItemRow()` | `implementado v1` |
+| Validacion de no reducir y no exceder al recibir | (regla implicita) | (no modelado) | `receive_purchase_order` valida ambos; el cliente valida el rango en `collectReceivedItems` | `implementado v1` |
+| Lock pesimista `FOR UPDATE` sobre items | (no documentado) | (no modelado) | `SELECT ... FOR UPDATE` en `receive_purchase_order` por cada linea | `implementado v1` |
+| `CASCADE` en items al borrar orden | (no documentado) | `init_db.py` define `ON DELETE CASCADE` para `purchase_order_item.purchase_order_id` | Esquema en `init_db.py` | `implementado v1` |
+| `UNIQUE` en `supplier.tax_id` | (no documentado) | `db_explanation.md` (Reglas que deben defenderse) | `init_db.py`: `tax_id VARCHAR(50) UNIQUE NOT NULL` | `implementado v1` |
+| Listar ordenes con filtro por estado | (no documentado) | (no modelado) | `purchases.html` sidebar + `list_purchase_orders(status=...)` | `implementado v1` |
+| Filtro "Canceladas" en el sidebar | (no documentado) | (no modelado) | Sidebar hoy expone `Todas / Pendientes / Recibidas Parcialmente / Recibidas`; falta agregar `Canceladas` | `parcial v1` (ver [Seccion 3, cambio 7](#3-cambios-requeridos-v1)) |
+| Constantes de estado centralizadas | (no documentado) | (no modelado) | Literales dispersos en `purchase_crud.py` y en templates | `parcial v1` (modulo `constants.py` a crear: ver [Seccion 3, cambio 1](#3-cambios-requeridos-v1)) |
+| Mockup academico del modulo de compras | (no documentado) | (no modelado) | No existe `purchases_mockup.*` en `.cszv/mockups/` | `fuera de alcance v1` |

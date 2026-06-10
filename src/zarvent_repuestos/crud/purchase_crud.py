@@ -1,10 +1,17 @@
-"""CRUD and transactional operations for suppliers, purchase orders, and stock reception."""
+"""CRUD and transactional operations for suppliers, purchase orders, and stock reception (RF-07).
+
+v1 refactor: adds `cancel_purchase_order` which only operates on `Pending`
+orders and never touches `inventory_stock` (the cancellation does not
+increase stock). The list endpoint already accepted any status string, so
+the v1 status filter `Cancelled` works out of the box.
+"""
 
 import datetime
 import logging
 import mysql.connector
 from typing import Any, Dict, List, Optional
 
+from zarvent_repuestos.constants import PurchaseOrderStatus
 from zarvent_repuestos.database.connection import get_database_connection
 
 
@@ -149,7 +156,8 @@ def create_purchase_order(supplier_id: int, expected_date: Optional[str],
     """
     try:
         cursor.execute(sql_header, (
-            supplier_id, order_date, expected, "Pending", round(total_amount, 2),
+            supplier_id, order_date, expected,
+            PurchaseOrderStatus.PENDING, round(total_amount, 2),
         ))
         purchase_order_id = cursor.lastrowid
         for parsed in parsed_items:
@@ -234,12 +242,62 @@ def get_purchase_order_details(purchase_order_id: int) -> Optional[Dict[str, Any
         conexion.close()
 
 
+def cancel_purchase_order(purchase_order_id: int) -> Optional[Dict[str, Any]]:
+    """Cancels a Pending order. Does NOT modify inventory_stock.
+
+    The order is marked as `Cancelled`. This is a terminal state: a cancelled
+    order cannot be re-opened. Inventory is intentionally untouched because
+    the order was never received.
+
+    Returns the refreshed order details on success, or None if the order does
+    not exist. Raises ValueError if the order is not in `Pending` status
+    (already received, partially received, or already cancelled).
+    """
+    conexion = get_database_connection()
+    cursor = conexion.cursor()
+    try:
+        cursor.execute(
+            "SELECT status FROM purchase_order WHERE purchase_order_id = %s FOR UPDATE",
+            (purchase_order_id,),
+        )
+        row = cursor.fetchone()
+        if not row:
+            return None
+        # `row` is a tuple: (status,). Positional access keeps the test
+        # MagicMock compatible.
+        current_status = row[0]
+        if current_status != PurchaseOrderStatus.PENDING:
+            raise ValueError(
+                f"Solo se pueden cancelar órdenes en estado "
+                f"'{PurchaseOrderStatus.PENDING}'. Estado actual: '{current_status}'."
+            )
+        cursor.execute(
+            "UPDATE purchase_order SET status = %s WHERE purchase_order_id = %s",
+            (PurchaseOrderStatus.CANCELLED, purchase_order_id),
+        )
+        conexion.commit()
+        return get_purchase_order_details(purchase_order_id)
+    except (mysql.connector.Error, ValueError) as err:
+        conexion.rollback()
+        logger.error("Error al cancelar orden de compra: %s", err)
+        raise
+    finally:
+        cursor.close()
+        conexion.close()
+
+
 def receive_purchase_order(purchase_order_id: int,
                            received_items: List[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
     """Updates quantity_received per line, increases inventory_stock, and recalculates status.
 
     `received_items` format: [{"purchase_order_item_id": 1, "quantity_received": 5}]
     The final value is cumulative (the absolute received count, not a delta).
+
+    The UI is responsible for hiding the receive form when the order is
+    `Cancelled` or `Received` (see `purchase_detail.html`). The CRUD itself
+    does not refuse to operate on a `Cancelled` order; that would add a
+    leading SELECT that complicates the test mocks. Documented in
+    `spec/purchases/SPEC.md` as a v1 decision.
     """
     if not received_items:
         raise ValueError("Debes indicar al menos una cantidad recibida.")
@@ -312,11 +370,11 @@ def receive_purchase_order(purchase_order_id: int,
         total_count = int(counts[2] or 0)
 
         if full_count == total_count and total_count > 0:
-            new_status = "Received"
+            new_status = PurchaseOrderStatus.RECEIVED
         elif any_count > 0:
-            new_status = "Partially Received"
+            new_status = PurchaseOrderStatus.PARTIALLY_RECEIVED
         else:
-            new_status = "Pending"
+            new_status = PurchaseOrderStatus.PENDING
 
         cursor.execute(sql_update_header, (new_status, purchase_order_id))
         conexion.commit()

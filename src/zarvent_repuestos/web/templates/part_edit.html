@@ -1,0 +1,77 @@
+{% extends "layout.html" %}
+
+{% block title %}Editar Repuesto #{{ part.part_id }}{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto space-y-6">
+    <!-- Breadcrumb + Back link -->
+    <div class="flex items-center justify-between">
+        <nav class="flex items-center gap-2 text-xs uppercase tracking-wider font-bold text-industrial-gray">
+            <a href="/inventory" class="hover:text-zarvent-red transition-colors">Inventario</a>
+            <span class="material-symbols-outlined text-[14px]">chevron_right</span>
+            <span class="text-workshop-black">Editar #{{ part.part_id }}</span>
+        </nav>
+        <a href="/inventory" class="flex items-center gap-1 text-xs uppercase tracking-wider font-bold text-industrial-gray hover:text-zarvent-red transition-colors">
+            <span class="material-symbols-outlined text-[18px]">arrow_back</span>
+            Volver
+        </a>
+    </div>
+
+    <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div>
+            <h2 class="text-4xl font-extrabold text-workshop-black tracking-tight mb-1">Editar Repuesto #{{ part.part_id }}</h2>
+            <p class="text-base text-industrial-gray">Modifica los datos editables del repuesto. El código interno y la categoría no se pueden cambiar.</p>
+        </div>
+        <span class="inline-block px-3 py-1 border border-steel-gray text-industrial-gray rounded-sm text-xs bg-cold-white font-bold uppercase tracking-wider">
+            {{ part.internal_code }}
+        </span>
+    </div>
+
+    <form method="post" action="/inventory/{{ part.part_id }}/edit" class="bg-pure-white border border-steel-gray rounded shadow-sm p-6 space-y-4">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="col-span-2">
+                <label class="block text-xs font-bold uppercase tracking-wider text-industrial-gray mb-1" for="name">Nombre del Repuesto</label>
+                <input id="name" name="name" required value="{{ part.name or '' }}" class="w-full bg-cold-white border border-steel-gray focus:border-zarvent-red focus:ring-1 focus:ring-zarvent-red p-2.5 rounded text-sm text-workshop-black" type="text"/>
+            </div>
+
+            <div>
+                <label class="block text-xs font-bold uppercase tracking-wider text-industrial-gray mb-1" for="brand">Marca</label>
+                <input id="brand" name="brand" value="{{ part.brand or '' }}" class="w-full bg-cold-white border border-steel-gray focus:border-zarvent-red focus:ring-1 focus:ring-zarvent-red p-2.5 rounded text-sm text-workshop-black" type="text"/>
+            </div>
+
+            <div>
+                <label class="block text-xs font-bold uppercase tracking-wider text-industrial-gray mb-1" for="unit">Unidad</label>
+                <input id="unit" name="unit" value="{{ part.unit or 'pcs' }}" class="w-full bg-cold-white border border-steel-gray focus:border-zarvent-red focus:ring-1 focus:ring-zarvent-red p-2.5 rounded text-sm text-workshop-black" type="text"/>
+            </div>
+
+            <div>
+                <label class="block text-xs font-bold uppercase tracking-wider text-industrial-gray mb-1" for="warranty_days">Garantía (días)</label>
+                <input id="warranty_days" name="warranty_days" value="{{ part.warranty_days or 0 }}" min="0" class="w-full bg-cold-white border border-steel-gray focus:border-zarvent-red focus:ring-1 focus:ring-zarvent-red p-2.5 rounded text-sm text-workshop-black font-mono" type="number"/>
+            </div>
+
+            <div>
+                <label class="block text-xs font-bold uppercase tracking-wider text-industrial-gray mb-1" for="status">Estado</label>
+                <select id="status" name="status" class="w-full bg-cold-white border border-steel-gray focus:border-zarvent-red focus:ring-1 focus:ring-zarvent-red p-2.5 rounded text-sm text-workshop-black cursor-pointer">
+                    <option value="active" {% if part.status == 'active' %}selected{% endif %}>Activo</option>
+                    <option value="inactive" {% if part.status == 'inactive' %}selected{% endif %}>Inactivo</option>
+                </select>
+            </div>
+
+            <div>
+                <label class="block text-xs font-bold uppercase tracking-wider text-industrial-gray mb-1" for="sale_price">Precio de Venta ($)</label>
+                <input id="sale_price" name="sale_price" required value="{{ '%.2f' % part.sale_price }}" step="0.01" min="0.01" class="w-full bg-cold-white border border-steel-gray focus:border-zarvent-red focus:ring-1 focus:ring-zarvent-red p-2.5 rounded text-sm text-workshop-black font-mono" type="number"/>
+            </div>
+
+            <div>
+                <label class="block text-xs font-bold uppercase tracking-wider text-industrial-gray mb-1" for="purchase_cost">Costo de Compra ($)</label>
+                <input id="purchase_cost" name="purchase_cost" required value="{{ '%.2f' % part.purchase_cost }}" step="0.01" min="0.01" class="w-full bg-cold-white border border-steel-gray focus:border-zarvent-red focus:ring-1 focus:ring-zarvent-red p-2.5 rounded text-sm text-workshop-black font-mono" type="number"/>
+            </div>
+        </div>
+
+        <div class="pt-4 border-t border-steel-gray flex justify-end gap-4">
+            <a href="/inventory" class="px-6 py-2.5 border border-steel-gray rounded hover:bg-cold-white transition-colors text-sm font-semibold">Cancelar</a>
+            <button type="submit" class="px-6 py-2.5 bg-zarvent-red text-pure-white rounded hover:bg-opacity-95 transition-all text-sm font-semibold shadow-sm">Guardar Cambios</button>
+        </div>
+    </form>
+</div>
+{% endblock %}

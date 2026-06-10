@@ -19,7 +19,7 @@
     </div>
 
     {% if editing %}
-    <!-- Edit Customer Section (Full Width, no modal) -->
+    <!-- Edit Customer Section -->
     <div class="bg-pure-white border border-steel-gray rounded shadow-sm">
         <div class="px-6 py-4 border-b border-steel-gray flex flex-col md:flex-row md:justify-between md:items-center gap-3">
             <h3 class="text-lg font-bold text-workshop-black tracking-tight uppercase">Editar Cliente</h3>
@@ -31,52 +31,37 @@
 
         <form method="post" action="/customers/{{ editing.customer_id }}/edit" class="p-6 space-y-4">
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <!-- First Name -->
                 <div>
                     <label class="block text-xs font-bold uppercase tracking-wider text-industrial-gray mb-1" for="edit_first_name">Nombres</label>
-                    <input id="edit_first_name" name="first_name" required value="{{ editing.first_name or '' }}" class="w-full bg-cold-white border border-steel-gray focus:border-zarvent-red focus:ring-1 focus:ring-zarvent-red p-2.5 rounded text-sm text-workshop-black" type="text" placeholder="Ej. Carlos"/>
+                    <input id="edit_first_name" name="first_name" required value="{{ editing.first_name or '' }}" class="w-full bg-cold-white border border-steel-gray focus:border-zarvent-red focus:ring-1 focus:ring-zarvent-red p-2.5 rounded text-sm text-workshop-black" type="text"/>
                 </div>
-
-                <!-- Last Name -->
                 <div>
                     <label class="block text-xs font-bold uppercase tracking-wider text-industrial-gray mb-1" for="edit_last_name">Apellidos</label>
-                    <input id="edit_last_name" name="last_name" required value="{{ editing.last_name or '' }}" class="w-full bg-cold-white border border-steel-gray focus:border-zarvent-red focus:ring-1 focus:ring-zarvent-red p-2.5 rounded text-sm text-workshop-black" type="text" placeholder="Ej. Pérez Mamani"/>
+                    <input id="edit_last_name" name="last_name" required value="{{ editing.last_name or '' }}" class="w-full bg-cold-white border border-steel-gray focus:border-zarvent-red focus:ring-1 focus:ring-zarvent-red p-2.5 rounded text-sm text-workshop-black" type="text"/>
                 </div>
-
-                <!-- Identity Number -->
                 <div>
-                    <label class="block text-xs font-bold uppercase tracking-wider text-industrial-gray mb-1" for="edit_identity_number">Documento de Identidad (CI/NIT)</label>
-                    <input id="edit_identity_number" name="identity_number" required value="{{ editing.identity_number or '' }}" class="w-full bg-cold-white border border-steel-gray focus:border-zarvent-red focus:ring-1 focus:ring-zarvent-red p-2.5 rounded text-sm text-workshop-black font-mono" type="text" placeholder="Ej. 1029381"/>
+                    <label class="block text-xs font-bold uppercase tracking-wider text-industrial-gray mb-1" for="edit_identity_number">Documento de Identidad</label>
+                    <input id="edit_identity_number" name="identity_number" required value="{{ editing.identity_number or '' }}" class="w-full bg-cold-white border border-steel-gray focus:border-zarvent-red focus:ring-1 focus:ring-zarvent-red p-2.5 rounded text-sm text-workshop-black font-mono" type="text"/>
                 </div>
-
-                <!-- Phone -->
                 <div>
                     <label class="block text-xs font-bold uppercase tracking-wider text-industrial-gray mb-1" for="edit_phone">Teléfono</label>
-                    <input id="edit_phone" name="phone" value="{{ editing.phone or '' }}" class="w-full bg-cold-white border border-steel-gray focus:border-zarvent-red focus:ring-1 focus:ring-zarvent-red p-2.5 rounded text-sm text-workshop-black" type="text" placeholder="Ej. 70123456"/>
+                    <input id="edit_phone" name="phone" value="{{ editing.phone or '' }}" class="w-full bg-cold-white border border-steel-gray focus:border-zarvent-red focus:ring-1 focus:ring-zarvent-red p-2.5 rounded text-sm text-workshop-black" type="text"/>
                 </div>
-
-                <!-- Email -->
                 <div>
                     <label class="block text-xs font-bold uppercase tracking-wider text-industrial-gray mb-1" for="edit_email">Correo Electrónico</label>
-                    <input id="edit_email" name="email" value="{{ editing.email or '' }}" class="w-full bg-cold-white border border-steel-gray focus:border-zarvent-red focus:ring-1 focus:ring-zarvent-red p-2.5 rounded text-sm text-workshop-black" type="email" placeholder="Ej. cliente@correo.com"/>
+                    <input id="edit_email" name="email" value="{{ editing.email or '' }}" class="w-full bg-cold-white border border-steel-gray focus:border-zarvent-red focus:ring-1 focus:ring-zarvent-red p-2.5 rounded text-sm text-workshop-black" type="email"/>
                 </div>
-
-                <!-- Address -->
                 <div>
                     <label class="block text-xs font-bold uppercase tracking-wider text-industrial-gray mb-1" for="edit_address">Dirección</label>
-                    <input id="edit_address" name="address" value="{{ editing.address or '' }}" class="w-full bg-cold-white border border-steel-gray focus:border-zarvent-red focus:ring-1 focus:ring-zarvent-red p-2.5 rounded text-sm text-workshop-black" type="text" placeholder="Ej. Av. Siempre Viva 742"/>
+                    <input id="edit_address" name="address" value="{{ editing.address or '' }}" class="w-full bg-cold-white border border-steel-gray focus:border-zarvent-red focus:ring-1 focus:ring-zarvent-red p-2.5 rounded text-sm text-workshop-black" type="text"/>
                 </div>
-
-                <!-- Billing Name -->
                 <div>
-                    <label class="block text-xs font-bold uppercase tracking-wider text-industrial-gray mb-1" for="edit_billing_name">Razón Social (Facturación)</label>
-                    <input id="edit_billing_name" name="billing_name" value="{{ editing.billing_name or '' }}" class="w-full bg-cold-white border border-steel-gray focus:border-zarvent-red focus:ring-1 focus:ring-zarvent-red p-2.5 rounded text-sm text-workshop-black" type="text" placeholder="Ej. Carlos Pérez Mamani"/>
+                    <label class="block text-xs font-bold uppercase tracking-wider text-industrial-gray mb-1" for="edit_billing_name">Razón Social</label>
+                    <input id="edit_billing_name" name="billing_name" value="{{ editing.billing_name or '' }}" class="w-full bg-cold-white border border-steel-gray focus:border-zarvent-red focus:ring-1 focus:ring-zarvent-red p-2.5 rounded text-sm text-workshop-black" type="text"/>
                 </div>
-
-                <!-- Tax ID -->
                 <div>
                     <label class="block text-xs font-bold uppercase tracking-wider text-industrial-gray mb-1" for="edit_tax_id">NIT</label>
-                    <input id="edit_tax_id" name="tax_id" value="{{ editing.tax_id or '' }}" class="w-full bg-cold-white border border-steel-gray focus:border-zarvent-red focus:ring-1 focus:ring-zarvent-red p-2.5 rounded text-sm text-workshop-black font-mono" type="text" placeholder="Ej. 1029381013"/>
+                    <input id="edit_tax_id" name="tax_id" value="{{ editing.tax_id or '' }}" class="w-full bg-cold-white border border-steel-gray focus:border-zarvent-red focus:ring-1 focus:ring-zarvent-red p-2.5 rounded text-sm text-workshop-black font-mono" type="text"/>
                 </div>
             </div>
 
@@ -88,15 +73,19 @@
     </div>
     {% endif %}
 
-    <!-- Filters & Search Bar -->
+    <!-- Filters & Search Bar (v1) -->
     <form method="get" action="/customers" class="flex flex-col md:flex-row gap-4 mb-4 bg-pure-white p-4 border border-steel-gray rounded shadow-sm">
         <div class="flex-1 relative">
             <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-industrial-gray">search</span>
-            <input name="search" value="{{ search_val or '' }}" class="w-full bg-cold-white border border-steel-gray focus:border-zarvent-red focus:ring-1 focus:ring-zarvent-red pl-10 py-2 rounded text-sm placeholder:text-industrial-gray transition-colors" placeholder="Buscar por nombre, documento o NIT..." type="text"/>
+            <input name="search" value="{{ search_val or '' }}" class="w-full bg-cold-white border border-steel-gray focus:border-zarvent-red focus:ring-1 focus:ring-zarvent-red pl-10 py-2 rounded text-sm placeholder:text-industrial-gray transition-colors" placeholder="Buscar por nombre, documento, NIT o teléfono..." type="text"/>
+            <input type="hidden" name="filter" value="{{ status_val or 'active' }}"/>
         </div>
-        <div class="flex gap-4 shrink-0">
+        <div class="flex gap-2 shrink-0">
+            <a href="/customers?filter=active{% if search_val %}&search={{ search_val }}{% endif %}" class="py-2 px-3 border {% if status_val == 'active' or not status_val %}bg-zarvent-red text-pure-white border-zarvent-red{% else %}border-steel-gray text-workshop-black hover:bg-cold-white{% endif %} rounded text-sm font-semibold">Activos</a>
+            <a href="/customers?filter=inactive{% if search_val %}&search={{ search_val }}{% endif %}" class="py-2 px-3 border {% if status_val == 'inactive' %}bg-zarvent-red text-pure-white border-zarvent-red{% else %}border-steel-gray text-workshop-black hover:bg-cold-white{% endif %} rounded text-sm font-semibold">Inactivos</a>
+            <a href="/customers?filter=all{% if search_val %}&search={{ search_val }}{% endif %}" class="py-2 px-3 border {% if status_val == 'all' %}bg-zarvent-red text-pure-white border-zarvent-red{% else %}border-steel-gray text-workshop-black hover:bg-cold-white{% endif %} rounded text-sm font-semibold">Todos</a>
             {% if search_val %}
-            <a href="/customers" class="py-2 px-4 border border-steel-gray hover:bg-cold-white transition-colors rounded text-sm flex items-center justify-center">
+            <a href="/customers?filter={{ status_val or 'active' }}" class="py-2 px-4 border border-steel-gray hover:bg-cold-white transition-colors rounded text-sm flex items-center justify-center">
                 Limpiar
             </a>
             {% endif %}
@@ -113,8 +102,7 @@
                     <th class="py-3 px-4 text-xs font-bold text-industrial-gray whitespace-nowrap uppercase">Documento</th>
                     <th class="py-3 px-4 text-xs font-bold text-industrial-gray whitespace-nowrap uppercase">Teléfono</th>
                     <th class="py-3 px-4 text-xs font-bold text-industrial-gray whitespace-nowrap uppercase">Correo</th>
-                    <th class="py-3 px-4 text-xs font-bold text-industrial-gray whitespace-nowrap uppercase">Facturación</th>
-                    <th class="py-3 px-4 text-xs font-bold text-industrial-gray whitespace-nowrap uppercase">NIT</th>
+                    <th class="py-3 px-4 text-xs font-bold text-industrial-gray whitespace-nowrap uppercase">Estado</th>
                     <th class="py-3 px-4 text-xs font-bold text-industrial-gray text-right whitespace-nowrap uppercase">Acciones</th>
                 </tr>
             </thead>
@@ -127,25 +115,38 @@
                         <td class="py-3 px-4 whitespace-nowrap text-industrial-gray font-mono">{{ customer.identity_number }}</td>
                         <td class="py-3 px-4 whitespace-nowrap">{{ customer.phone or '—' }}</td>
                         <td class="py-3 px-4 whitespace-nowrap">{{ customer.email or '—' }}</td>
-                        <td class="py-3 px-4">{{ customer.billing_name or '—' }}</td>
-                        <td class="py-3 px-4 whitespace-nowrap text-industrial-gray font-mono">{{ customer.tax_id or '—' }}</td>
+                        <td class="py-3 px-4 whitespace-nowrap">
+                            {% if customer.is_active %}
+                                <span class="inline-block px-2 py-0.5 border border-green-200 text-green-700 rounded-sm text-xs bg-green-50 font-bold uppercase">Activo</span>
+                            {% else %}
+                                <span class="inline-block px-2 py-0.5 border border-steel-gray text-industrial-gray rounded-sm text-xs bg-cold-white font-bold uppercase">Inactivo</span>
+                            {% endif %}
+                        </td>
                         <td class="py-3 px-4 text-right whitespace-nowrap">
                             <div class="flex items-center justify-end gap-1">
-                                <a href="/customers/{{ customer.customer_id }}/edit" class="text-industrial-gray hover:text-zarvent-red p-1 transition-colors" title="Editar cliente">
+                                <a href="/customers/{{ customer.customer_id }}/edit" class="text-industrial-gray hover:text-zarvent-red p-1" title="Editar cliente">
                                     <span class="material-symbols-outlined text-xl">edit</span>
                                 </a>
-                                <form method="post" action="/customers/{{ customer.customer_id }}/delete" class="inline" onsubmit="return confirm('¿Eliminar cliente? Si tiene ventas, la operación será rechazada.')">
-                                    <button type="submit" class="text-industrial-gray hover:text-zarvent-red p-1 transition-colors" title="Eliminar cliente">
-                                        <span class="material-symbols-outlined text-xl">delete</span>
+                                {% if customer.is_active %}
+                                <form method="post" action="/customers/{{ customer.customer_id }}/deactivate" class="inline" onsubmit="return confirm('¿Inactivar este cliente? Sus ventas históricas se conservan.')">
+                                    <button type="submit" class="text-industrial-gray hover:text-zarvent-red p-1" title="Inactivar cliente">
+                                        <span class="material-symbols-outlined text-xl">block</span>
                                     </button>
                                 </form>
+                                {% else %}
+                                <form method="post" action="/customers/{{ customer.customer_id }}/reactivate" class="inline" onsubmit="return confirm('¿Reactivar este cliente?')">
+                                    <button type="submit" class="text-industrial-gray hover:text-green-700 p-1" title="Reactivar cliente">
+                                        <span class="material-symbols-outlined text-xl">restore</span>
+                                    </button>
+                                </form>
+                                {% endif %}
                             </div>
                         </td>
                     </tr>
                     {% endfor %}
                 {% else %}
                     <tr>
-                        <td colspan="8" class="py-8 text-center text-industrial-gray">No se encontraron clientes registrados.</td>
+                        <td colspan="7" class="py-8 text-center text-industrial-gray">No se encontraron clientes con los filtros aplicados.</td>
                     </tr>
                 {% endif %}
             </tbody>
@@ -165,52 +166,37 @@
 
         <form method="post" action="/customers" class="p-6 space-y-4">
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <!-- First Name -->
                 <div>
                     <label class="block text-xs font-bold uppercase tracking-wider text-industrial-gray mb-1" for="modal_first_name">Nombres</label>
-                    <input id="modal_first_name" name="first_name" required class="w-full bg-cold-white border border-steel-gray focus:border-zarvent-red focus:ring-1 focus:ring-zarvent-red p-2.5 rounded text-sm text-workshop-black" type="text" placeholder="Ej. Carlos"/>
+                    <input id="modal_first_name" name="first_name" required class="w-full bg-cold-white border border-steel-gray focus:border-zarvent-red focus:ring-1 focus:ring-zarvent-red p-2.5 rounded text-sm text-workshop-black" type="text"/>
                 </div>
-
-                <!-- Last Name -->
                 <div>
                     <label class="block text-xs font-bold uppercase tracking-wider text-industrial-gray mb-1" for="modal_last_name">Apellidos</label>
-                    <input id="modal_last_name" name="last_name" required class="w-full bg-cold-white border border-steel-gray focus:border-zarvent-red focus:ring-1 focus:ring-zarvent-red p-2.5 rounded text-sm text-workshop-black" type="text" placeholder="Ej. Pérez Mamani"/>
+                    <input id="modal_last_name" name="last_name" required class="w-full bg-cold-white border border-steel-gray focus:border-zarvent-red focus:ring-1 focus:ring-zarvent-red p-2.5 rounded text-sm text-workshop-black" type="text"/>
                 </div>
-
-                <!-- Identity Number -->
                 <div>
-                    <label class="block text-xs font-bold uppercase tracking-wider text-industrial-gray mb-1" for="modal_identity_number">Documento de Identidad (CI/NIT)</label>
-                    <input id="modal_identity_number" name="identity_number" required class="w-full bg-cold-white border border-steel-gray focus:border-zarvent-red focus:ring-1 focus:ring-zarvent-red p-2.5 rounded text-sm text-workshop-black font-mono" type="text" placeholder="Ej. 1029381"/>
+                    <label class="block text-xs font-bold uppercase tracking-wider text-industrial-gray mb-1" for="modal_identity_number">Documento de Identidad</label>
+                    <input id="modal_identity_number" name="identity_number" required class="w-full bg-cold-white border border-steel-gray focus:border-zarvent-red focus:ring-1 focus:ring-zarvent-red p-2.5 rounded text-sm text-workshop-black font-mono" type="text"/>
                 </div>
-
-                <!-- Phone -->
                 <div>
                     <label class="block text-xs font-bold uppercase tracking-wider text-industrial-gray mb-1" for="modal_phone">Teléfono</label>
-                    <input id="modal_phone" name="phone" class="w-full bg-cold-white border border-steel-gray focus:border-zarvent-red focus:ring-1 focus:ring-zarvent-red p-2.5 rounded text-sm text-workshop-black" type="text" placeholder="Ej. 70123456"/>
+                    <input id="modal_phone" name="phone" class="w-full bg-cold-white border border-steel-gray focus:border-zarvent-red focus:ring-1 focus:ring-zarvent-red p-2.5 rounded text-sm text-workshop-black" type="text"/>
                 </div>
-
-                <!-- Email -->
                 <div>
                     <label class="block text-xs font-bold uppercase tracking-wider text-industrial-gray mb-1" for="modal_email">Correo Electrónico</label>
-                    <input id="modal_email" name="email" class="w-full bg-cold-white border border-steel-gray focus:border-zarvent-red focus:ring-1 focus:ring-zarvent-red p-2.5 rounded text-sm text-workshop-black" type="email" placeholder="Ej. cliente@correo.com"/>
+                    <input id="modal_email" name="email" class="w-full bg-cold-white border border-steel-gray focus:border-zarvent-red focus:ring-1 focus:ring-zarvent-red p-2.5 rounded text-sm text-workshop-black" type="email"/>
                 </div>
-
-                <!-- Address -->
                 <div>
                     <label class="block text-xs font-bold uppercase tracking-wider text-industrial-gray mb-1" for="modal_address">Dirección</label>
-                    <input id="modal_address" name="address" class="w-full bg-cold-white border border-steel-gray focus:border-zarvent-red focus:ring-1 focus:ring-zarvent-red p-2.5 rounded text-sm text-workshop-black" type="text" placeholder="Ej. Av. Siempre Viva 742"/>
+                    <input id="modal_address" name="address" class="w-full bg-cold-white border border-steel-gray focus:border-zarvent-red focus:ring-1 focus:ring-zarvent-red p-2.5 rounded text-sm text-workshop-black" type="text"/>
                 </div>
-
-                <!-- Billing Name -->
                 <div>
-                    <label class="block text-xs font-bold uppercase tracking-wider text-industrial-gray mb-1" for="modal_billing_name">Razón Social (Facturación)</label>
-                    <input id="modal_billing_name" name="billing_name" class="w-full bg-cold-white border border-steel-gray focus:border-zarvent-red focus:ring-1 focus:ring-zarvent-red p-2.5 rounded text-sm text-workshop-black" type="text" placeholder="Ej. Carlos Pérez Mamani"/>
+                    <label class="block text-xs font-bold uppercase tracking-wider text-industrial-gray mb-1" for="modal_billing_name">Razón Social</label>
+                    <input id="modal_billing_name" name="billing_name" class="w-full bg-cold-white border border-steel-gray focus:border-zarvent-red focus:ring-1 focus:ring-zarvent-red p-2.5 rounded text-sm text-workshop-black" type="text"/>
                 </div>
-
-                <!-- Tax ID -->
                 <div>
                     <label class="block text-xs font-bold uppercase tracking-wider text-industrial-gray mb-1" for="modal_tax_id">NIT</label>
-                    <input id="modal_tax_id" name="tax_id" class="w-full bg-cold-white border border-steel-gray focus:border-zarvent-red focus:ring-1 focus:ring-zarvent-red p-2.5 rounded text-sm text-workshop-black font-mono" type="text" placeholder="Ej. 1029381013"/>
+                    <input id="modal_tax_id" name="tax_id" class="w-full bg-cold-white border border-steel-gray focus:border-zarvent-red focus:ring-1 focus:ring-zarvent-red p-2.5 rounded text-sm text-workshop-black font-mono" type="text"/>
                 </div>
             </div>
 

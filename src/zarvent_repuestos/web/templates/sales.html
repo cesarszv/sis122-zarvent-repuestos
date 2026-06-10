@@ -20,7 +20,7 @@
         <!-- Sidebar Filters -->
         <aside class="w-full xl:w-1/4 shrink-0 flex flex-col gap-6">
             <form method="get" action="/sales" class="border border-steel-gray p-6 bg-pure-white rounded shadow-sm space-y-6">
-                <!-- Status Filter -->
+                <!-- Status Filter (v1): only `Todas` and `Pagadas` are real. -->
                 <div>
                     <h3 class="text-xs font-bold uppercase tracking-wider text-workshop-black mb-3 border-b border-steel-gray pb-2">Estado de Venta</h3>
                     <div class="flex flex-col gap-2">
@@ -32,14 +32,7 @@
                             <input name="status" value="Paid" type="radio" onchange="this.form.submit()" class="form-radio h-4 w-4 text-workshop-black border-steel-gray focus:ring-workshop-black" {% if status_val == 'Paid' %}checked{% endif %}/>
                             <span class="text-sm text-workshop-black group-hover:text-zarvent-red transition-colors">Pagadas</span>
                         </label>
-                        <label class="flex items-center gap-2 cursor-pointer group">
-                            <input name="status" value="Pending" type="radio" onchange="this.form.submit()" class="form-radio h-4 w-4 text-workshop-black border-steel-gray focus:ring-workshop-black" {% if status_val == 'Pending' %}checked{% endif %}/>
-                            <span class="text-sm text-workshop-black group-hover:text-zarvent-red transition-colors">Pendientes</span>
-                        </label>
-                        <label class="flex items-center gap-2 cursor-pointer group">
-                            <input name="status" value="Cancelled" type="radio" onchange="this.form.submit()" class="form-radio h-4 w-4 text-workshop-black border-steel-gray focus:ring-workshop-black" {% if status_val == 'Cancelled' %}checked{% endif %}/>
-                            <span class="text-sm text-workshop-black group-hover:text-zarvent-red transition-colors">Canceladas</span>
-                        </label>
+                        <p class="text-[10px] text-industrial-gray mt-2">En v1 las ventas solo se crean como <b>Pagadas</b>. Los filtros <i>Pendientes</i> y <i>Canceladas</i> quedan como backlog v2.</p>
                     </div>
                 </div>
 

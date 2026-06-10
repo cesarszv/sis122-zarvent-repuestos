@@ -1,4 +1,17 @@
-"""Database and tables initialization script following the project's ERD schema."""
+"""Database and tables initialization script following the project's ERD schema.
+
+This module is the source of truth for the physical schema at runtime. It runs
+on every Flask startup (`web/app.py`) and is idempotent (CREATE TABLE IF NOT
+EXISTS). For the academic reference of the schema, see `database/schema.sql`,
+which mirrors the statements below and adds the analytical views.
+
+v1 changes (v1 refactor):
+
+- `customer.is_active` column added (soft-delete for RF-01).
+- Idempotent migration block that adds `is_active` to pre-existing schemas.
+- Creation of two academic views (`vw_low_stock_parts`,
+  `vw_daily_sales_summary`) used by the dashboard and inventory views.
+"""
 
 import logging
 
@@ -44,8 +57,91 @@ def initialize_database():
         return False
 
 
+def _ensure_customer_is_active_column(cursor) -> None:
+    """Adds `customer.is_active` if it does not exist (idempotent migration)."""
+    try:
+        cursor.execute(
+            """
+            SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS
+            WHERE TABLE_SCHEMA = DATABASE()
+              AND TABLE_NAME   = 'customer'
+              AND COLUMN_NAME  = 'is_active'
+            """
+        )
+        exists = cursor.fetchone()[0]
+    except mysql.connector.Error as err:
+        logger.warning(
+            "No se pudo consultar INFORMATION_SCHEMA (errno=%s): %s",
+            getattr(err, "errno", None),
+            err,
+        )
+        return
+    if exists:
+        return
+    try:
+        cursor.execute(
+            "ALTER TABLE customer ADD COLUMN is_active BOOLEAN NOT NULL DEFAULT TRUE AFTER tax_id"
+        )
+    except mysql.connector.Error as err:
+        logger.warning(
+            "No se pudo agregar customer.is_active (errno=%s): %s",
+            getattr(err, "errno", None),
+            err,
+        )
+
+
+def _create_views(cursor) -> None:
+    """Creates or replaces the academic analytical views used by the dashboard.
+
+    Failures are logged but never break startup: the application code falls
+    back to inline queries when the views are missing. This keeps `crear_tablas`
+    resilient to permission-restricted deployments (e.g. a MySQL user without
+    CREATE VIEW privilege).
+    """
+    for stmt in (
+        """
+        CREATE OR REPLACE VIEW vw_low_stock_parts AS
+        SELECT
+            p.part_id,
+            p.internal_code,
+            p.name,
+            p.brand,
+            s.quantity_on_hand,
+            s.reorder_level,
+            (s.reorder_level - s.quantity_on_hand) AS shortage
+        FROM part p
+        JOIN inventory_stock s ON p.part_id = s.part_id
+        WHERE s.quantity_on_hand <= s.reorder_level
+        ORDER BY s.quantity_on_hand ASC
+        """,
+        """
+        CREATE OR REPLACE VIEW vw_daily_sales_summary AS
+        SELECT
+            order_date,
+            COUNT(*)              AS orders_count,
+            SUM(subtotal)         AS subtotal_total,
+            SUM(discount_amount)  AS discount_total,
+            SUM(total_amount)     AS total_amount
+        FROM sales_order
+        WHERE status = 'Paid'
+        GROUP BY order_date
+        ORDER BY order_date DESC
+        """,
+    ):
+        try:
+            cursor.execute(stmt)
+        except mysql.connector.Error as err:
+            # Permission denied (errno 1142) and similar should not block startup;
+            # the CRUDs fall back to inline queries when the view is missing.
+            logger.warning(
+                "No se pudo crear/actualizar la vista analitica (errno=%s): %s",
+                getattr(err, "errno", None),
+                err,
+            )
+
+
 def crear_tablas():
-    """Creates all required tables in hierarchical order."""
+    """Creates all required tables in hierarchical order, plus analytical views."""
     if not initialize_database():
         return False
 
@@ -70,13 +166,14 @@ def crear_tablas():
     ) ENGINE=InnoDB;
     """)
 
-    # 2. Customer Table
+    # 2. Customer Table (RF-01) - v1 adds is_active for soft-delete
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS customer (
         customer_id INT AUTO_INCREMENT PRIMARY KEY,
         person_id INT UNIQUE NOT NULL,
         billing_name VARCHAR(150),
         tax_id VARCHAR(50),
+        is_active BOOLEAN NOT NULL DEFAULT TRUE,
         FOREIGN KEY (person_id) REFERENCES person (person_id) ON DELETE CASCADE
     ) ENGINE=InnoDB;
     """)
@@ -139,7 +236,7 @@ def crear_tablas():
         sales_order_id INT AUTO_INCREMENT PRIMARY KEY,
         customer_id INT NOT NULL,
         order_date DATE NOT NULL,
-        status VARCHAR(50) DEFAULT 'pending',
+        status VARCHAR(50) DEFAULT 'Paid',
         subtotal DECIMAL(10, 2) NOT NULL,
         discount_amount DECIMAL(10, 2) DEFAULT 0.00,
         total_amount DECIMAL(10, 2) NOT NULL,
@@ -170,7 +267,7 @@ def crear_tablas():
         method VARCHAR(50) NOT NULL,
         amount DECIMAL(10, 2) NOT NULL,
         reference_number VARCHAR(100),
-        status VARCHAR(50) DEFAULT 'completed',
+        status VARCHAR(50) DEFAULT 'Completed',
         FOREIGN KEY (sales_order_id) REFERENCES sales_order (sales_order_id) ON DELETE CASCADE
     ) ENGINE=InnoDB;
     """)
@@ -210,6 +307,12 @@ def crear_tablas():
         password VARCHAR(100) NOT NULL
     ) ENGINE=InnoDB;
     """)
+
+    # Idempotent migrations (v1) - safe to run on existing schemas.
+    _ensure_customer_is_active_column(cursor)
+
+    # Academic analytical views (v1) - CREATE OR REPLACE makes them idempotent.
+    _create_views(cursor)
 
     conexion.commit()
     cursor.close()

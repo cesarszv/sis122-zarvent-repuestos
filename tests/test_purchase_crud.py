@@ -3,7 +3,9 @@
 import unittest
 from unittest.mock import MagicMock, patch
 
+from zarvent_repuestos.constants import PurchaseOrderStatus
 from zarvent_repuestos.crud.purchase_crud import (
+    cancel_purchase_order,
     create_purchase_order,
     create_supplier,
     receive_purchase_order,
@@ -234,6 +236,71 @@ class ReceivePurchaseOrderTest(unittest.TestCase):
         mock_conn.rollback.assert_called_once()
         mock_conn.commit.assert_not_called()
         self.assertEqual(_stock_increment_calls(mock_cursor), [])
+
+
+class CancelPurchaseOrderTest(unittest.TestCase):
+    """v1 tests for `cancel_purchase_order` (RF-07)."""
+
+    def _build_connection(self, current_status):
+        mock_conn = MagicMock()
+        mock_cursor = MagicMock()
+        mock_conn.cursor.return_value = mock_cursor
+        mock_cursor.fetchone.return_value = (current_status,)
+        return mock_conn, mock_cursor
+
+    def test_cancel_pending_order_marks_status_cancelled(self):
+        mock_conn, mock_cursor = self._build_connection(
+            current_status=PurchaseOrderStatus.PENDING
+        )
+
+        with patch(
+            "zarvent_repuestos.crud.purchase_crud.get_database_connection",
+            return_value=mock_conn,
+        ), patch(
+            "zarvent_repuestos.crud.purchase_crud.get_purchase_order_details",
+            return_value={"purchase_order_id": 1, "status": "Cancelled"},
+        ):
+            result = cancel_purchase_order(purchase_order_id=1)
+
+        self.assertEqual(result["status"], "Cancelled")
+        mock_conn.commit.assert_called_once()
+        # The final UPDATE must set the header status to 'Cancelled'.
+        update_calls = [
+            call for call in mock_cursor.execute.call_args_list
+            if "UPDATE purchase_order SET status" in call.args[0]
+        ]
+        self.assertEqual(len(update_calls), 1)
+        self.assertEqual(update_calls[0].args[1], (PurchaseOrderStatus.CANCELLED, 1))
+
+    def test_cancel_non_pending_order_raises_value_error(self):
+        for status in (
+            PurchaseOrderStatus.PARTIALLY_RECEIVED,
+            PurchaseOrderStatus.RECEIVED,
+            PurchaseOrderStatus.CANCELLED,
+        ):
+            with self.subTest(status=status):
+                mock_conn, mock_cursor = self._build_connection(current_status=status)
+                with patch(
+                    "zarvent_repuestos.crud.purchase_crud.get_database_connection",
+                    return_value=mock_conn,
+                ):
+                    with self.assertRaises(ValueError):
+                        cancel_purchase_order(purchase_order_id=1)
+                mock_conn.rollback.assert_called_once()
+                mock_conn.commit.assert_not_called()
+
+    def test_cancel_missing_order_returns_none(self):
+        mock_conn, mock_cursor = self._build_connection(current_status=None)
+        mock_cursor.fetchone.return_value = None
+
+        with patch(
+            "zarvent_repuestos.crud.purchase_crud.get_database_connection",
+            return_value=mock_conn,
+        ):
+            result = cancel_purchase_order(purchase_order_id=9999)
+
+        self.assertIsNone(result)
+        mock_conn.commit.assert_not_called()
 
 
 if __name__ == "__main__":

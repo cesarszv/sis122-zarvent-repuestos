@@ -1,6 +1,6 @@
 {% extends "layout.html" %}
 
-{% block title %}Product Catalog{% endblock %}
+{% block title %}Catálogo de Repuestos{% endblock %}
 
 {% block content %}
 <div class="max-w-7xl mx-auto space-y-6">
@@ -10,10 +10,16 @@
             <h2 class="text-4xl font-extrabold text-workshop-black tracking-tight mb-1">Catálogo de Repuestos</h2>
             <p class="text-base text-industrial-gray">Administra el inventario, controla precios y monitorea existencias físicas de repuestos.</p>
         </div>
-        <button onclick="toggleModal('add-product-modal', true)" class="bg-zarvent-red text-pure-white font-semibold py-2.5 px-6 flex items-center gap-2 hover:bg-opacity-90 transition-all rounded shadow-sm">
-            <span class="material-symbols-outlined text-[18px]">add</span>
-            Añadir Producto
-        </button>
+        <div class="flex gap-2">
+            <button onclick="toggleModal('add-category-modal', true)" class="bg-pure-white border border-steel-gray text-workshop-black font-semibold py-2.5 px-4 flex items-center gap-2 hover:bg-cold-white transition-all rounded shadow-sm">
+                <span class="material-symbols-outlined text-[18px]">category</span>
+                Nueva Categoría
+            </button>
+            <button onclick="toggleModal('add-product-modal', true)" class="bg-zarvent-red text-pure-white font-semibold py-2.5 px-6 flex items-center gap-2 hover:bg-opacity-90 transition-all rounded shadow-sm">
+                <span class="material-symbols-outlined text-[18px]">add</span>
+                Añadir Producto
+            </button>
+        </div>
     </div>
 
     <!-- Filters & Search Bar -->
@@ -22,7 +28,16 @@
             <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-industrial-gray">search</span>
             <input name="search" value="{{ search_val or '' }}" class="w-full bg-cold-white border border-steel-gray focus:border-zarvent-red focus:ring-1 focus:ring-zarvent-red pl-10 py-2 rounded text-sm placeholder:text-industrial-gray transition-colors" placeholder="Buscar por código interno, OEM o nombre..." type="text"/>
         </div>
-        <div class="flex gap-4 shrink-0">
+        <div class="flex gap-2 flex-wrap">
+            <!-- Status Filter (v1) -->
+            <div class="relative w-40">
+                <select name="status" onchange="this.form.submit()" class="w-full bg-cold-white border border-steel-gray focus:border-zarvent-red focus:ring-1 focus:ring-zarvent-red py-2 px-3 pr-8 rounded text-sm text-workshop-black cursor-pointer appearance-none">
+                    <option value="active" {% if status_val == 'active' %}selected{% endif %}>Activos</option>
+                    <option value="inactive" {% if status_val == 'inactive' %}selected{% endif %}>Inactivos</option>
+                    <option value="all" {% if status_val == 'all' %}selected{% endif %}>Todos</option>
+                </select>
+                <span class="material-symbols-outlined absolute right-2 top-1/2 -translate-y-1/2 text-industrial-gray pointer-events-none">arrow_drop_down</span>
+            </div>
             <!-- Category Filter -->
             <div class="relative w-48">
                 <select name="category_id" onchange="this.form.submit()" class="w-full bg-cold-white border border-steel-gray focus:border-zarvent-red focus:ring-1 focus:ring-zarvent-red py-2 px-3 pr-8 rounded text-sm text-workshop-black cursor-pointer appearance-none">
@@ -44,7 +59,7 @@
                 <span class="material-symbols-outlined absolute right-2 top-1/2 -translate-y-1/2 text-industrial-gray pointer-events-none">arrow_drop_down</span>
             </div>
 
-            {% if search_val or cat_val or brand_val %}
+            {% if search_val or cat_val or brand_val or (status_val and status_val != 'active') %}
             <a href="/inventory" class="py-2 px-4 border border-steel-gray hover:bg-cold-white transition-colors rounded text-sm flex items-center justify-center">
                 Limpiar
             </a>
@@ -57,14 +72,14 @@
         <table class="w-full text-left border-collapse">
             <thead>
                 <tr class="border-b-2 border-steel-gray bg-cold-white">
-                    <th class="py-3 px-4 text-xs font-bold text-industrial-gray whitespace-nowrap uppercase">Código Interno</th>
-                    <th class="py-3 px-4 text-xs font-bold text-industrial-gray whitespace-nowrap uppercase">Código OEM</th>
-                    <th class="py-3 px-4 text-xs font-bold text-industrial-gray w-full uppercase">Nombre del Repuesto</th>
+                    <th class="py-3 px-4 text-xs font-bold text-industrial-gray whitespace-nowrap uppercase">Código</th>
+                    <th class="py-3 px-4 text-xs font-bold text-industrial-gray w-full uppercase">Nombre</th>
                     <th class="py-3 px-4 text-xs font-bold text-industrial-gray whitespace-nowrap uppercase">Marca</th>
                     <th class="py-3 px-4 text-xs font-bold text-industrial-gray whitespace-nowrap uppercase">Categoría</th>
-                    <th class="py-3 px-4 text-xs font-bold text-industrial-gray text-right whitespace-nowrap uppercase">Precio Venta</th>
+                    <th class="py-3 px-4 text-xs font-bold text-industrial-gray text-right whitespace-nowrap uppercase">P. Venta</th>
                     <th class="py-3 px-4 text-xs font-bold text-industrial-gray text-right whitespace-nowrap uppercase">Stock</th>
-                    <th class="py-3 px-4 text-xs font-bold text-industrial-gray whitespace-nowrap uppercase">Ubicación</th>
+                    <th class="py-3 px-4 text-xs font-bold text-industrial-gray whitespace-nowrap uppercase">Estado</th>
+                    <th class="py-3 px-4 text-xs font-bold text-industrial-gray text-right whitespace-nowrap uppercase">Acciones</th>
                 </tr>
             </thead>
             <tbody class="text-sm text-workshop-black">
@@ -72,7 +87,6 @@
                     {% for part in parts %}
                     <tr class="border-b border-steel-gray hover:bg-cold-white/50 transition-colors group">
                         <td class="py-3 px-4 whitespace-nowrap font-mono font-medium text-zarvent-red">{{ part.internal_code }}</td>
-                        <td class="py-3 px-4 whitespace-nowrap text-industrial-gray font-mono">{{ part.oem_code or 'N/A' }}</td>
                         <td class="py-3 px-4 font-semibold">{{ part.name }}</td>
                         <td class="py-3 px-4 whitespace-nowrap">{{ part.brand or 'Genérico' }}</td>
                         <td class="py-3 px-4 whitespace-nowrap">
@@ -82,12 +96,38 @@
                         <td class="py-3 px-4 text-right whitespace-nowrap font-mono font-bold {% if part.quantity_on_hand <= part.reorder_level %}text-zarvent-red{% else %}text-green-700{% endif %}">
                             {{ part.quantity_on_hand }}
                         </td>
-                        <td class="py-3 px-4 whitespace-nowrap text-xs text-industrial-gray font-mono">{{ part.location_name or 'Sin Asignar' }}</td>
+                        <td class="py-3 px-4 whitespace-nowrap">
+                            {% if part.status == 'inactive' %}
+                                <span class="inline-block px-2 py-0.5 border border-steel-gray text-industrial-gray rounded-sm text-xs bg-cold-white font-bold uppercase">Inactivo</span>
+                            {% else %}
+                                <span class="inline-block px-2 py-0.5 border border-green-200 text-green-700 rounded-sm text-xs bg-green-50 font-bold uppercase">Activo</span>
+                            {% endif %}
+                        </td>
+                        <td class="py-3 px-4 text-right whitespace-nowrap">
+                            <div class="flex items-center justify-end gap-1">
+                                <a href="/inventory/{{ part.part_id }}/edit" class="text-industrial-gray hover:text-zarvent-red p-1" title="Editar">
+                                    <span class="material-symbols-outlined text-xl">edit</span>
+                                </a>
+                                {% if part.status == 'inactive' %}
+                                <form method="post" action="/inventory/{{ part.part_id }}/reactivate" class="inline" onsubmit="return confirm('¿Reactivar este repuesto?')">
+                                    <button type="submit" class="text-industrial-gray hover:text-green-700 p-1" title="Reactivar">
+                                        <span class="material-symbols-outlined text-xl">restore</span>
+                                    </button>
+                                </form>
+                                {% else %}
+                                <form method="post" action="/inventory/{{ part.part_id }}/deactivate" class="inline" onsubmit="return confirm('¿Inactivar este repuesto? El stock se conserva.')">
+                                    <button type="submit" class="text-industrial-gray hover:text-zarvent-red p-1" title="Inactivar">
+                                        <span class="material-symbols-outlined text-xl">block</span>
+                                    </button>
+                                </form>
+                                {% endif %}
+                            </div>
+                        </td>
                     </tr>
                     {% endfor %}
                 {% else %}
                     <tr>
-                        <td colspan="8" class="py-8 text-center text-industrial-gray">No se encontraron productos registrados con los filtros aplicados.</td>
+                        <td colspan="8" class="py-8 text-center text-industrial-gray">No se encontraron repuestos con los filtros aplicados.</td>
                     </tr>
                 {% endif %}
             </tbody>
@@ -96,35 +136,31 @@
 
     <!-- Add Product Modal Overlay -->
     <div id="add-product-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center hidden">
-        <div class="bg-pure-white border border-steel-gray rounded shadow-lg max-w-2xl w-full mx-4 overflow-hidden">
-            <header class="bg-workshop-black text-pure-white px-6 py-4 flex justify-between items-center">
+        <div class="bg-pure-white border border-steel-gray rounded shadow-lg max-w-2xl w-full mx-4 overflow-hidden max-h-[90vh] flex flex-col">
+            <header class="bg-workshop-black text-pure-white px-6 py-4 flex justify-between items-center shrink-0">
                 <h3 class="text-lg font-bold tracking-tight uppercase">Registrar Nuevo Repuesto</h3>
-                <button onclick="toggleModal('add-product-modal', false)" class="text-industrial-gray hover:text-pure-white transition-colors">
+                <button type="button" onclick="toggleModal('add-product-modal', false)" class="text-industrial-gray hover:text-pure-white transition-colors">
                     <span class="material-symbols-outlined">close</span>
                 </button>
             </header>
 
-            <form method="post" action="/inventory" class="p-6 space-y-4">
+            <form method="post" action="/inventory" class="flex-1 overflow-y-auto p-6 space-y-4">
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <!-- Name -->
                     <div class="col-span-2">
                         <label class="block text-xs font-bold uppercase tracking-wider text-industrial-gray mb-1" for="name">Nombre del Repuesto</label>
                         <input id="name" name="name" required class="w-full bg-cold-white border border-steel-gray focus:border-zarvent-red focus:ring-1 focus:ring-zarvent-red p-2.5 rounded text-sm text-workshop-black" type="text" placeholder="Ej. Filtro de Aceite Sintético"/>
                     </div>
 
-                    <!-- Internal Code -->
                     <div>
-                        <label class="block text-xs font-bold uppercase tracking-wider text-industrial-gray mb-1" for="internal_code">Código Interno (Zarvent)</label>
+                        <label class="block text-xs font-bold uppercase tracking-wider text-industrial-gray mb-1" for="internal_code">Código Interno</label>
                         <input id="internal_code" name="internal_code" required class="w-full bg-cold-white border border-steel-gray focus:border-zarvent-red focus:ring-1 focus:ring-zarvent-red p-2.5 rounded text-sm text-workshop-black font-mono" type="text" placeholder="Ej. ZR-10495"/>
                     </div>
 
-                    <!-- OEM Code -->
                     <div>
-                        <label class="block text-xs font-bold uppercase tracking-wider text-industrial-gray mb-1" for="oem_code">Código OEM (Fabricante)</label>
+                        <label class="block text-xs font-bold uppercase tracking-wider text-industrial-gray mb-1" for="oem_code">Código OEM</label>
                         <input id="oem_code" name="oem_code" class="w-full bg-cold-white border border-steel-gray focus:border-zarvent-red focus:ring-1 focus:ring-zarvent-red p-2.5 rounded text-sm text-workshop-black font-mono" type="text" placeholder="Ej. 0258006028"/>
                     </div>
 
-                    <!-- Category -->
                     <div>
                         <label class="block text-xs font-bold uppercase tracking-wider text-industrial-gray mb-1" for="part_category_id">Categoría</label>
                         <select id="part_category_id" name="part_category_id" required class="w-full bg-cold-white border border-steel-gray focus:border-zarvent-red focus:ring-1 focus:ring-zarvent-red p-2.5 rounded text-sm text-workshop-black cursor-pointer">
@@ -135,40 +171,85 @@
                         </select>
                     </div>
 
-                    <!-- Brand -->
                     <div>
                         <label class="block text-xs font-bold uppercase tracking-wider text-industrial-gray mb-1" for="brand">Marca</label>
-                        <input id="brand" name="brand" required class="w-full bg-cold-white border border-steel-gray focus:border-zarvent-red focus:ring-1 focus:ring-zarvent-red p-2.5 rounded text-sm text-workshop-black" type="text" placeholder="Ej. Bosch, Denso, NGK"/>
+                        <input id="brand" name="brand" required class="w-full bg-cold-white border border-steel-gray focus:border-zarvent-red focus:ring-1 focus:ring-zarvent-red p-2.5 rounded text-sm text-workshop-black" type="text" placeholder="Ej. Bosch"/>
                     </div>
 
-                    <!-- Sale Price -->
+                    <div>
+                        <label class="block text-xs font-bold uppercase tracking-wider text-industrial-gray mb-1" for="unit">Unidad</label>
+                        <input id="unit" name="unit" value="pcs" class="w-full bg-cold-white border border-steel-gray focus:border-zarvent-red focus:ring-1 focus:ring-zarvent-red p-2.5 rounded text-sm text-workshop-black" type="text" placeholder="pcs"/>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold uppercase tracking-wider text-industrial-gray mb-1" for="warranty_days">Garantía (días)</label>
+                        <input id="warranty_days" name="warranty_days" value="0" min="0" class="w-full bg-cold-white border border-steel-gray focus:border-zarvent-red focus:ring-1 focus:ring-zarvent-red p-2.5 rounded text-sm text-workshop-black font-mono" type="number"/>
+                    </div>
+
                     <div>
                         <label class="block text-xs font-bold uppercase tracking-wider text-industrial-gray mb-1" for="sale_price">Precio de Venta ($)</label>
-                        <input id="sale_price" name="sale_price" required step="0.01" min="0.01" class="w-full bg-cold-white border border-steel-gray focus:border-zarvent-red focus:ring-1 focus:ring-zarvent-red p-2.5 rounded text-sm text-workshop-black font-mono" type="number" placeholder="Ej. 124.50"/>
+                        <input id="sale_price" name="sale_price" required step="0.01" min="0.01" class="w-full bg-cold-white border border-steel-gray focus:border-zarvent-red focus:ring-1 focus:ring-zarvent-red p-2.5 rounded text-sm text-workshop-black font-mono" type="number" placeholder="124.50"/>
                     </div>
 
-                    <!-- Purchase Cost -->
                     <div>
                         <label class="block text-xs font-bold uppercase tracking-wider text-industrial-gray mb-1" for="purchase_cost">Costo de Compra ($)</label>
-                        <input id="purchase_cost" name="purchase_cost" required step="0.01" min="0.01" class="w-full bg-cold-white border border-steel-gray focus:border-zarvent-red focus:ring-1 focus:ring-zarvent-red p-2.5 rounded text-sm text-workshop-black font-mono" type="number" placeholder="Ej. 85.00"/>
+                        <input id="purchase_cost" name="purchase_cost" required step="0.01" min="0.01" class="w-full bg-cold-white border border-steel-gray focus:border-zarvent-red focus:ring-1 focus:ring-zarvent-red p-2.5 rounded text-sm text-workshop-black font-mono" type="number" placeholder="85.00"/>
                     </div>
 
-                    <!-- Initial Stock -->
                     <div>
                         <label class="block text-xs font-bold uppercase tracking-wider text-industrial-gray mb-1" for="initial_stock">Stock Inicial</label>
-                        <input id="initial_stock" name="initial_stock" required min="0" class="w-full bg-cold-white border border-steel-gray focus:border-zarvent-red focus:ring-1 focus:ring-zarvent-red p-2.5 rounded text-sm text-workshop-black font-mono" type="number" placeholder="Ej. 50"/>
+                        <input id="initial_stock" name="initial_stock" required min="0" class="w-full bg-cold-white border border-steel-gray focus:border-zarvent-red focus:ring-1 focus:ring-zarvent-red p-2.5 rounded text-sm text-workshop-black font-mono" type="number" placeholder="50"/>
                     </div>
 
-                    <!-- Location -->
+                    <div>
+                        <label class="block text-xs font-bold uppercase tracking-wider text-industrial-gray mb-1" for="reorder_level">Umbral de Reorden</label>
+                        <input id="reorder_level" name="reorder_level" value="10" min="0" class="w-full bg-cold-white border border-steel-gray focus:border-zarvent-red focus:ring-1 focus:ring-zarvent-red p-2.5 rounded text-sm text-workshop-black font-mono" type="number"/>
+                    </div>
+
                     <div>
                         <label class="block text-xs font-bold uppercase tracking-wider text-industrial-gray mb-1" for="location_name">Ubicación Física</label>
                         <input id="location_name" name="location_name" required class="w-full bg-cold-white border border-steel-gray focus:border-zarvent-red focus:ring-1 focus:ring-zarvent-red p-2.5 rounded text-sm text-workshop-black" type="text" placeholder="Ej. Pasillo A - Estante 2"/>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold uppercase tracking-wider text-industrial-gray mb-1" for="status">Estado</label>
+                        <select id="status" name="status" class="w-full bg-cold-white border border-steel-gray focus:border-zarvent-red focus:ring-1 focus:ring-zarvent-red p-2.5 rounded text-sm text-workshop-black cursor-pointer">
+                            <option value="active" selected>Activo</option>
+                            <option value="inactive">Inactivo</option>
+                        </select>
                     </div>
                 </div>
 
                 <div class="pt-4 border-t border-steel-gray flex justify-end gap-4">
                     <button type="button" onclick="toggleModal('add-product-modal', false)" class="px-6 py-2.5 border border-steel-gray rounded hover:bg-cold-white transition-colors text-sm font-semibold">Cancelar</button>
                     <button type="submit" class="px-6 py-2.5 bg-zarvent-red text-pure-white rounded hover:bg-opacity-95 transition-all text-sm font-semibold shadow-sm">Guardar Repuesto</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Add Category Modal Overlay (v1) -->
+    <div id="add-category-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center hidden">
+        <div class="bg-pure-white border border-steel-gray rounded shadow-lg max-w-md w-full mx-4 overflow-hidden">
+            <header class="bg-workshop-black text-pure-white px-6 py-4 flex justify-between items-center">
+                <h3 class="text-lg font-bold tracking-tight uppercase">Nueva Categoría</h3>
+                <button type="button" onclick="toggleModal('add-category-modal', false)" class="text-industrial-gray hover:text-pure-white transition-colors">
+                    <span class="material-symbols-outlined">close</span>
+                </button>
+            </header>
+
+            <form method="post" action="/inventory/categories" class="p-6 space-y-4">
+                <div>
+                    <label class="block text-xs font-bold uppercase tracking-wider text-industrial-gray mb-1" for="cat_name">Nombre</label>
+                    <input id="cat_name" name="name" required class="w-full bg-cold-white border border-steel-gray focus:border-zarvent-red focus:ring-1 focus:ring-zarvent-red p-2.5 rounded text-sm text-workshop-black" type="text" placeholder="Ej. Frenos"/>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold uppercase tracking-wider text-industrial-gray mb-1" for="cat_description">Descripción</label>
+                    <textarea id="cat_description" name="description" rows="3" class="w-full bg-cold-white border border-steel-gray focus:border-zarvent-red focus:ring-1 focus:ring-zarvent-red p-2.5 rounded text-sm text-workshop-black" placeholder="Opcional"></textarea>
+                </div>
+                <div class="pt-4 border-t border-steel-gray flex justify-end gap-4">
+                    <button type="button" onclick="toggleModal('add-category-modal', false)" class="px-6 py-2.5 border border-steel-gray rounded hover:bg-cold-white transition-colors text-sm font-semibold">Cancelar</button>
+                    <button type="submit" class="px-6 py-2.5 bg-zarvent-red text-pure-white rounded hover:bg-opacity-95 transition-all text-sm font-semibold shadow-sm">Guardar Categoría</button>
                 </div>
             </form>
         </div>

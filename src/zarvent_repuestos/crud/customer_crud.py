@@ -1,17 +1,26 @@
-"""CRUD operations for Customers and Persons."""
+"""CRUD operations for Customers and Persons (RF-01).
+
+v1 refactor: replaces the hard `DELETE FROM customer` flow with a soft-delete
+based on `customer.is_active`. Search now also matches `person.phone`. The
+list endpoint accepts a `filter` parameter to choose active, inactive or all.
+"""
 
 import logging
 import mysql.connector
-from typing import List, Optional, Dict, Any
+from typing import Any, Dict, List, Optional
 
+from zarvent_repuestos.constants import CustomerActiveFilter
 from zarvent_repuestos.database.connection import get_database_connection
 
 
 logger = logging.getLogger(__name__)
 
 
+# Kept for backward compatibility with the v0 hard-delete flow. The v1
+# web routes no longer call this; tests still import it to verify the
+# pre-check refuses the operation when sales are linked.
 class CustomerHasSalesError(Exception):
-    """Raised when a customer cannot be deleted because sales orders protect them."""
+    """Raised when a customer cannot be soft-deleted because sales orders protect them."""
 
     def __init__(self, customer_id: int, sales_count: int) -> None:
         self.customer_id = customer_id
@@ -43,7 +52,11 @@ def crear_cliente(first_name: str, last_name: str, identity_number: str,
                   billing_name: Optional[str] = None, tax_id: Optional[str] = None,
                   phone: Optional[str] = None, email: Optional[str] = None,
                   address: Optional[str] = None) -> bool:
-    """Inserts a person and customer record in a single transaction."""
+    """Inserts a person and customer record in a single transaction.
+
+    New customers default to `is_active = TRUE` so they appear in the default
+    list view.
+    """
     conexion = get_database_connection()
     cursor = conexion.cursor()
 
@@ -53,8 +66,8 @@ def crear_cliente(first_name: str, last_name: str, identity_number: str,
     """
 
     sql_customer = """
-    INSERT INTO customer (person_id, billing_name, tax_id)
-    VALUES (%s, %s, %s)
+    INSERT INTO customer (person_id, billing_name, tax_id, is_active)
+    VALUES (%s, %s, %s, TRUE)
     """
 
     try:
@@ -78,13 +91,25 @@ def crear_cliente(first_name: str, last_name: str, identity_number: str,
         conexion.close()
 
 
-def listar_clientes(search: Optional[str] = None) -> List[Dict[str, Any]]:
-    """Retrieves all customers with their joined person details, with optional search."""
+def listar_clientes(search: Optional[str] = None,
+                    status_filter: Optional[str] = None) -> List[Dict[str, Any]]:
+    """Retrieves all customers with their joined person details, with optional search.
+
+    `status_filter` is one of CustomerActiveFilter.ACTIVE / INACTIVE / ALL.
+    Default (None) is ACTIVE for backward compatibility.
+    Search matches: first_name, last_name, identity_number, tax_id, billing_name
+    and (v1) phone.
+    """
+    if status_filter is None:
+        status_filter = CustomerActiveFilter.DEFAULT
+    if status_filter not in CustomerActiveFilter.CHOICES:
+        status_filter = CustomerActiveFilter.DEFAULT
+
     conexion = get_database_connection()
     cursor = conexion.cursor(dictionary=True)
 
     sql = """
-    SELECT c.customer_id, c.person_id, c.billing_name, c.tax_id,
+    SELECT c.customer_id, c.person_id, c.billing_name, c.tax_id, c.is_active,
            p.first_name, p.last_name, p.identity_number, p.phone, p.email, p.address
     FROM customer c
     JOIN person p ON c.person_id = p.person_id
@@ -92,14 +117,19 @@ def listar_clientes(search: Optional[str] = None) -> List[Dict[str, Any]]:
     """
     params: list[Any] = []
 
+    if status_filter == CustomerActiveFilter.ACTIVE:
+        sql += " AND c.is_active = TRUE"
+    elif status_filter == CustomerActiveFilter.INACTIVE:
+        sql += " AND c.is_active = FALSE"
+
     if search:
         like = f"%{search}%"
         sql += (
             " AND (p.first_name LIKE %s OR p.last_name LIKE %s"
             " OR p.identity_number LIKE %s OR c.tax_id LIKE %s"
-            " OR c.billing_name LIKE %s)"
+            " OR c.billing_name LIKE %s OR p.phone LIKE %s)"
         )
-        params.extend([like, like, like, like, like])
+        params.extend([like, like, like, like, like, like])
 
     sql += " ORDER BY p.last_name, p.first_name"
 
@@ -116,12 +146,12 @@ def listar_clientes(search: Optional[str] = None) -> List[Dict[str, Any]]:
 
 
 def buscar_cliente_por_doc(identity_number: str) -> Optional[Dict[str, Any]]:
-    """Finds a customer by identity number."""
+    """Finds a customer by identity number (no status filter, includes inactive)."""
     conexion = get_database_connection()
     cursor = conexion.cursor(dictionary=True)
 
     sql = """
-    SELECT c.customer_id, c.person_id, c.billing_name, c.tax_id,
+    SELECT c.customer_id, c.person_id, c.billing_name, c.tax_id, c.is_active,
            p.first_name, p.last_name, p.identity_number, p.phone, p.email, p.address
     FROM customer c
     JOIN person p ON c.person_id = p.person_id
@@ -146,7 +176,7 @@ def get_customer(customer_id: int) -> Optional[Dict[str, Any]]:
     cursor = conexion.cursor(dictionary=True)
 
     sql = """
-    SELECT c.customer_id, c.person_id, c.billing_name, c.tax_id,
+    SELECT c.customer_id, c.person_id, c.billing_name, c.tax_id, c.is_active,
            p.first_name, p.last_name, p.identity_number, p.phone, p.email, p.address
     FROM customer c
     JOIN person p ON c.person_id = p.person_id
@@ -209,33 +239,69 @@ def update_customer(customer_id: int, first_name: str, last_name: str,
         conexion.close()
 
 
-def delete_customer(customer_id: int) -> bool:
-    """Deletes a customer after verifying no sales are linked.
+def set_customer_active(customer_id: int, is_active: bool) -> bool:
+    """Soft-activate or soft-deactivate a customer.
 
-    Raises CustomerHasSalesError when the customer still has sales orders.
+    Used by both `deactivate_customer` and `reactivate_customer` to keep the
+    v1 web routes small. The operation never touches `person`, so the trail
+    of sales orders linked to the customer is preserved.
+
+    Returns True on a successful UPDATE. Returns False if the customer does
+    not exist (cursor.rowcount == 0).
     """
-    sales_count = _count_customer_sales(customer_id)
-    if sales_count > 0:
-        raise CustomerHasSalesError(customer_id, sales_count)
-
     conexion = get_database_connection()
     cursor = conexion.cursor()
-
     try:
-        cursor.execute("DELETE FROM customer WHERE customer_id = %s", (customer_id,))
+        cursor.execute(
+            "UPDATE customer SET is_active = %s WHERE customer_id = %s",
+            (bool(is_active), customer_id),
+        )
         conexion.commit()
         return cursor.rowcount > 0
     except mysql.connector.Error as err:
         conexion.rollback()
-        errno = getattr(err, "errno", None)
-        if errno == 1451:
-            # The pre-check found 0 but a concurrent INSERT created a sales_order
-            # between the count and the DELETE. Recount to give the user a
-            # truthful error message.
-            fresh_count = _count_customer_sales(customer_id)
-            raise CustomerHasSalesError(customer_id, fresh_count) from err
-        logger.error("Error al eliminar cliente: %s", err)
+        logger.error("Error al cambiar is_active de cliente: %s", err)
         return False
     finally:
         cursor.close()
         conexion.close()
+
+
+def deactivate_customer(customer_id: int) -> bool:
+    """Soft-deletes a customer. The `person` row is preserved for traceability.
+
+    This replaces the v0 `DELETE FROM customer` flow. Because the customer row
+    is still there (with `is_active = FALSE`), the linked `sales_order` rows
+    keep their `customer_id` and the historical receipts stay readable.
+    """
+    return set_customer_active(customer_id, False)
+
+
+def reactivate_customer(customer_id: int) -> bool:
+    """Re-activates a previously soft-deleted customer."""
+    return set_customer_active(customer_id, True)
+
+
+# ---------------------------------------------------------------------------
+# Backward-compatibility shim for the v0 hard-delete flow.
+#
+# The v1 web routes no longer call this; we keep it for tests that assert the
+# pre-check refuses deletion when the customer has sales. The implementation
+# delegates to `deactivate_customer` so old tests still see the same behavior
+# (refusal + CustomerHasSalesError when sales are present), but on a real run
+# it will simply mark the customer as inactive.
+# ---------------------------------------------------------------------------
+
+def delete_customer(customer_id: int) -> bool:
+    """Deprecated hard-delete entrypoint. See `deactivate_customer` for v1.
+
+    The behavior changed in v1: the customer is now soft-deleted (set to
+    `is_active = FALSE`) instead of removed from the database. The
+    `CustomerHasSalesError` is preserved as a contract for callers that want
+    to refuse the operation when the customer has sales; the v1 web route
+    no longer calls this and uses `deactivate_customer` instead.
+    """
+    sales_count = _count_customer_sales(customer_id)
+    if sales_count > 0:
+        raise CustomerHasSalesError(customer_id, sales_count)
+    return deactivate_customer(customer_id)

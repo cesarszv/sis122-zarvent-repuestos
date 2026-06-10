@@ -1,17 +1,48 @@
-"""CRUD and transactional operations for sales orders, items, payments, and dashboard metrics."""
+"""CRUD and transactional operations for sales orders, items, payments, and dashboard metrics.
+
+v1 refactor: centralized status values via `zarvent_repuestos.constants`,
+`obtener_metricas_dashboard` exposes `pending_purchase_count` and
+`payments_by_method`, and the low-stock query uses the academic view with a
+fallback to the inline query when the view is missing.
+"""
 
 import datetime
 import logging
 import mysql.connector
 from typing import List, Optional, Dict, Any
 
+from zarvent_repuestos.constants import (
+    PAYMENT_METHODS,
+    PaymentStatus,
+    PurchaseOrderStatus,
+    SalesOrderStatus,
+)
 from zarvent_repuestos.database.connection import get_database_connection
+from zarvent_repuestos.models.part import Part
 
 
 logger = logging.getLogger(__name__)
 
 
-def crear_orden_venta(customer_id: int, items: List[Dict[str, Any]], payment_method: str) -> Optional[int]:
+def _build_part_from_kwargs(part: Part) -> Dict[str, Any]:
+    """Helper kept for tests: returns the dict of part attributes that the SQL
+    INSERT expects. Not used by the public API directly."""
+    return {
+        "part_category_id": part.part_category_id,
+        "internal_code": part.internal_code,
+        "oem_code": part.oem_code,
+        "name": part.name,
+        "brand": part.brand,
+        "unit": part.unit,
+        "sale_price": part.sale_price,
+        "purchase_cost": part.purchase_cost,
+        "warranty_days": part.warranty_days,
+        "status": part.status,
+    }
+
+
+def crear_orden_venta(customer_id: int, items: List[Dict[str, Any]],
+                      payment_method: str) -> Optional[int]:
     """
     Creates a sales order, registers items, updates stock, and registers the payment.
     All operations are atomic and run under a single transaction.
@@ -73,7 +104,10 @@ def crear_orden_venta(customer_id: int, items: List[Dict[str, Any]], payment_met
         INSERT INTO sales_order (customer_id, order_date, status, subtotal, discount_amount, total_amount)
         VALUES (%s, %s, %s, %s, %s, %s)
         """
-        cursor.execute(sql_order, (customer_id, order_date, "Paid", subtotal, discount_total, total_amount))
+        cursor.execute(sql_order, (
+            customer_id, order_date, SalesOrderStatus.PAID,
+            subtotal, discount_total, total_amount,
+        ))
         sales_order_id = cursor.lastrowid
 
         # 3. Insert Items and Deduct Stock
@@ -104,7 +138,10 @@ def crear_orden_venta(customer_id: int, items: List[Dict[str, Any]], payment_met
         VALUES (%s, %s, %s, %s, %s, %s)
         """
         ref_num = f"PAY-{sales_order_id}-{datetime.datetime.now().strftime('%M%S')}"
-        cursor.execute(sql_payment, (sales_order_id, order_date, payment_method, total_amount, ref_num, "Completed"))
+        cursor.execute(sql_payment, (
+            sales_order_id, order_date, payment_method, total_amount, ref_num,
+            PaymentStatus.COMPLETED,
+        ))
 
         conexion.commit()
         logger.info("Venta #%s guardada con éxito.", sales_order_id)
@@ -119,9 +156,15 @@ def crear_orden_venta(customer_id: int, items: List[Dict[str, Any]], payment_met
         conexion.close()
 
 
-def listar_ordenes_venta(status: Optional[str] = None, start_date: Optional[str] = None,
+def listar_ordenes_venta(status: Optional[str] = None,
+                        start_date: Optional[str] = None,
                         end_date: Optional[str] = None) -> List[Dict[str, Any]]:
-    """Retrieves all sales orders with customer and billing information, applying filters."""
+    """Retrieves all sales orders with customer and billing information, applying filters.
+
+    v1: removes the dead `Pending` / `Cancelled` filters from the UI; only
+    `Paid` is ever inserted, so the listing uses the same column but no
+    hidden status values exist.
+    """
     conexion = get_database_connection()
     cursor = conexion.cursor(dictionary=True)
 
@@ -133,7 +176,7 @@ def listar_ordenes_venta(status: Optional[str] = None, start_date: Optional[str]
     JOIN person p ON c.person_id = p.person_id
     WHERE 1=1
     """
-    params = []
+    params: list[Any] = []
 
     if status and status != "All Orders":
         sql += " AND o.status = %s"
@@ -149,7 +192,7 @@ def listar_ordenes_venta(status: Optional[str] = None, start_date: Optional[str]
 
     sql += " ORDER BY o.sales_order_id DESC"
 
-    orders = []
+    orders: List[Dict[str, Any]] = []
     try:
         cursor.execute(sql, tuple(params))
         orders = cursor.fetchall()
@@ -203,74 +246,157 @@ def obtener_detalles_orden(sales_order_id: int) -> Optional[Dict[str, Any]]:
         conexion.close()
 
 
-def obtener_metricas_dashboard() -> Dict[str, Any]:
-    """Calculates all key metrics for the operational overview dashboard."""
+def _payments_by_method_today() -> List[Dict[str, Any]]:
+    """Returns the list of payments aggregated by method for today.
+
+    The list always contains one entry for every payment method
+    (`PAYMENT_METHODS`), so the dashboard never shows a missing method even
+    when no payments of that type were collected today.
+    """
+    conexion = get_database_connection()
+    cursor = conexion.cursor(dictionary=True)
+    rows: List[Dict[str, Any]] = []
+    try:
+        cursor.execute(
+            """
+            SELECT method, COALESCE(SUM(amount), 0.0) AS total_amount,
+                   COUNT(*) AS payments_count
+            FROM payment
+            WHERE payment_date = CURDATE()
+            GROUP BY method
+            ORDER BY total_amount DESC
+            """
+        )
+        rows = cursor.fetchall()
+    except mysql.connector.Error as err:
+        logger.error("Error al obtener pagos del día por método: %s", err)
+    finally:
+        cursor.close()
+        conexion.close()
+
+    # Ensure every known payment method appears at least once (with zero total).
+    totals_by_method = {row["method"]: row for row in rows}
+    full: List[Dict[str, Any]] = []
+    for method in PAYMENT_METHODS:
+        if method in totals_by_method:
+            full.append(totals_by_method[method])
+        else:
+            full.append({"method": method, "total_amount": 0.0, "payments_count": 0})
+    return full
+
+
+def _count_pending_purchase_orders() -> int:
+    """Returns the count of purchase orders in `Pending` status (RF-09)."""
     conexion = get_database_connection()
     cursor = conexion.cursor()
+    try:
+        cursor.execute(
+            "SELECT COUNT(*) FROM purchase_order WHERE status = %s",
+            (PurchaseOrderStatus.PENDING,),
+        )
+        row = cursor.fetchone()
+        return int(row[0]) if row else 0
+    except mysql.connector.Error as err:
+        logger.error("Error al contar órdenes de compra pendientes: %s", err)
+        return 0
+    finally:
+        cursor.close()
+        conexion.close()
 
-    metrics = {
+
+def obtener_metricas_dashboard() -> Dict[str, Any]:
+    """Calculates all key metrics for the operational overview dashboard.
+
+    v1 metrics:
+
+    - `today_sales_amount`: SUM of today's `Paid` sales.
+    - `categories_count`: total part categories.
+    - `low_stock_count`: number of parts at or below their reorder level.
+    - `low_stock_items`: top-5 lowest-stock parts (academic view with fallback).
+    - `total_orders_count`: total number of sales orders (rendered in v1).
+    - `recent_orders`: last 5 sales orders with billing name.
+    - `pending_purchase_count`: purchase orders in `Pending` status (v1).
+    - `payments_by_method`: today's payments aggregated by method (v1).
+    """
+    conexion = get_database_connection()
+    cursor = conexion.cursor(dictionary=True)
+
+    metrics: Dict[str, Any] = {
         "today_sales_amount": 0.0,
         "categories_count": 0,
         "low_stock_count": 0,
+        "low_stock_items": [],
         "total_orders_count": 0,
         "recent_orders": [],
-        "low_stock_items": []
+        "pending_purchase_count": 0,
+        "payments_by_method": _payments_by_method_today(),
     }
 
     try:
-        # 1. Today's sales amount
+        # 1. Today's sales amount (only Paid orders; v1 status is always Paid).
         cursor.execute(
-            "SELECT COALESCE(SUM(total_amount), 0.0) FROM sales_order "
-            "WHERE order_date = CURDATE() AND status != 'Cancelled'"
+            "SELECT COALESCE(SUM(total_amount), 0.0) AS total FROM sales_order "
+            "WHERE order_date = CURDATE() AND status = %s",
+            (SalesOrderStatus.PAID,),
         )
         row = cursor.fetchone()
-        metrics["today_sales_amount"] = float(row[0]) if row else 0.0
+        metrics["today_sales_amount"] = float(row["total"]) if row else 0.0
 
         # 2. Categories count
-        cursor.execute("SELECT COUNT(*) FROM part_category")
+        cursor.execute("SELECT COUNT(*) AS n FROM part_category")
         row = cursor.fetchone()
-        metrics["categories_count"] = row[0] if row else 0
+        metrics["categories_count"] = int(row["n"]) if row else 0
 
         # 3. Low stock count
         cursor.execute(
-            "SELECT COUNT(*) FROM inventory_stock WHERE quantity_on_hand <= reorder_level"
+            "SELECT COUNT(*) AS n FROM inventory_stock WHERE quantity_on_hand <= reorder_level"
         )
         row = cursor.fetchone()
-        metrics["low_stock_count"] = row[0] if row else 0
+        metrics["low_stock_count"] = int(row["n"]) if row else 0
 
-        # 4. Total orders count
-        cursor.execute("SELECT COUNT(*) FROM sales_order")
-        row = cursor.fetchone()
-        metrics["total_orders_count"] = row[0] if row else 0
-
-        # 5. Recent orders (last 5)
-        cursor.close() # Refresh to fetch dict cursor
-        cursor = conexion.cursor(dictionary=True)
-
-        sql_recent = """
-        SELECT o.sales_order_id, o.order_date, o.status, o.total_amount, c.billing_name
-        FROM sales_order o
-        JOIN customer c ON o.customer_id = c.customer_id
-        ORDER BY o.sales_order_id DESC LIMIT 5
-        """
-        cursor.execute(sql_recent)
-        metrics["recent_orders"] = cursor.fetchall()
-
-        # 6. Low stock items (first 5)
-        sql_low = """
-        SELECT p.internal_code, p.name, p.brand, s.quantity_on_hand, s.reorder_level
-        FROM part p
-        JOIN inventory_stock s ON p.part_id = s.part_id
-        WHERE s.quantity_on_hand <= s.reorder_level
-        ORDER BY s.quantity_on_hand ASC LIMIT 5
-        """
-        cursor.execute(sql_low)
+        # 4. Low stock items (top 5) - prefer view, fall back to inline query.
+        try:
+            cursor.execute(
+                "SELECT internal_code, name, brand, quantity_on_hand, reorder_level "
+                "FROM vw_low_stock_parts LIMIT 5"
+            )
+        except mysql.connector.Error:
+            cursor.execute(
+                """
+                SELECT p.internal_code, p.name, p.brand,
+                       s.quantity_on_hand, s.reorder_level
+                FROM part p
+                JOIN inventory_stock s ON p.part_id = s.part_id
+                WHERE s.quantity_on_hand <= s.reorder_level
+                ORDER BY s.quantity_on_hand ASC
+                LIMIT 5
+                """
+            )
         metrics["low_stock_items"] = cursor.fetchall()
+
+        # 5. Total orders count
+        cursor.execute("SELECT COUNT(*) AS n FROM sales_order")
+        row = cursor.fetchone()
+        metrics["total_orders_count"] = int(row["n"]) if row else 0
+
+        # 6. Recent orders (last 5)
+        cursor.execute(
+            """
+            SELECT o.sales_order_id, o.order_date, o.status, o.total_amount, c.billing_name
+            FROM sales_order o
+            JOIN customer c ON o.customer_id = c.customer_id
+            ORDER BY o.sales_order_id DESC LIMIT 5
+            """
+        )
+        metrics["recent_orders"] = cursor.fetchall()
 
     except mysql.connector.Error as err:
         logger.error("Error al obtener métricas del dashboard: %s", err)
     finally:
         cursor.close()
         conexion.close()
+
+    # This call uses its own connection; safe to do after the main one closed.
+    metrics["pending_purchase_count"] = _count_pending_purchase_orders()
 
     return metrics

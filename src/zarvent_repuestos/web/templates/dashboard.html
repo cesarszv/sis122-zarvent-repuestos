@@ -13,21 +13,21 @@
         </div>
     </div>
 
-    <!-- Metrics Bento Grid -->
-    <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+    <!-- Metrics Bento Grid: 4 cards in v1 (Total Órdenes is now rendered). -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <!-- Metric 1: Today's Sales -->
-        <div class="col-span-1 md:col-span-2 bg-pure-white border border-steel-gray rounded-md p-6 flex flex-col justify-between relative overflow-hidden group shadow-sm">
+        <div class="bg-pure-white border border-steel-gray rounded-md p-6 flex flex-col justify-between relative overflow-hidden group shadow-sm">
             <div class="absolute top-0 right-0 p-6 opacity-5 group-hover:opacity-10 transition-opacity">
                 <span class="material-symbols-outlined text-8xl">payments</span>
             </div>
             <div>
                 <p class="text-xs font-bold uppercase tracking-wider text-industrial-gray">Ventas de Hoy</p>
-                <h3 class="text-5xl font-black text-workshop-black tracking-tight mt-2">
+                <h3 class="text-4xl font-black text-workshop-black tracking-tight mt-2">
                     ${{ "{:,.2f}".format(metrics.today_sales_amount) }}
                 </h3>
             </div>
             <p class="text-xs text-industrial-gray mt-4">
-                Total de ingresos acumulados en el día de hoy.
+                Total de ingresos del día actual (órdenes pagadas).
             </p>
         </div>
 
@@ -38,30 +38,66 @@
             </div>
             <div>
                 <p class="text-xs font-bold uppercase tracking-wider text-industrial-gray">Alertas de Stock</p>
-                <h3 class="text-5xl font-black {% if metrics.low_stock_count > 0 %}text-zarvent-red{% else %}text-workshop-black{% endif %} tracking-tight mt-2">
+                <h3 class="text-4xl font-black {% if metrics.low_stock_count > 0 %}text-zarvent-red{% else %}text-workshop-black{% endif %} tracking-tight mt-2">
                     {{ metrics.low_stock_count }}
                 </h3>
             </div>
             <p class="text-xs text-industrial-gray mt-4">
-                Productos con existencias críticas bajo el mínimo.
+                Repuestos bajo o igual al umbral de reorden.
             </p>
         </div>
 
-        <!-- Metric 3: Active Categories -->
+        <!-- Metric 3: Total Orders (v1) -->
         <div class="bg-pure-white border border-steel-gray rounded-md p-6 flex flex-col justify-between relative overflow-hidden group shadow-sm">
             <div class="absolute top-0 right-0 p-6 opacity-5 group-hover:opacity-10 transition-opacity">
-                <span class="material-symbols-outlined text-8xl">category</span>
+                <span class="material-symbols-outlined text-8xl">receipt_long</span>
             </div>
             <div>
-                <p class="text-xs font-bold uppercase tracking-wider text-industrial-gray">Categorías Activas</p>
-                <h3 class="text-5xl font-black text-workshop-black tracking-tight mt-2">
-                    {{ metrics.categories_count }}
+                <p class="text-xs font-bold uppercase tracking-wider text-industrial-gray">Órdenes Totales</p>
+                <h3 class="text-4xl font-black text-workshop-black tracking-tight mt-2">
+                    {{ metrics.total_orders_count }}
                 </h3>
             </div>
             <p class="text-xs text-industrial-gray mt-4">
-                Clasificaciones vigentes en el catálogo.
+                Acumulado histórico de órdenes de venta.
             </p>
         </div>
+
+        <!-- Metric 4: Pending Purchases (v1) -->
+        <div class="bg-pure-white border border-steel-gray rounded-md p-6 flex flex-col justify-between relative overflow-hidden group shadow-sm">
+            <div class="absolute top-0 right-0 p-6 opacity-5 group-hover:opacity-10 transition-opacity">
+                <span class="material-symbols-outlined text-8xl">local_shipping</span>
+            </div>
+            <div>
+                <p class="text-xs font-bold uppercase tracking-wider text-industrial-gray">Compras Pendientes</p>
+                <h3 class="text-4xl font-black {% if metrics.pending_purchase_count > 0 %}text-zarvent-red{% else %}text-workshop-black{% endif %} tracking-tight mt-2">
+                    {{ metrics.pending_purchase_count }}
+                </h3>
+            </div>
+            <p class="text-xs text-industrial-gray mt-4">
+                Órdenes de compra en estado Pendiente.
+            </p>
+        </div>
+    </div>
+
+    <!-- Payments by Method (v1) -->
+    <div class="bg-pure-white border border-steel-gray rounded-md p-6 shadow-sm">
+        <h3 class="text-lg font-bold text-workshop-black border-b border-steel-gray pb-3 mb-4">
+            Pagos de Hoy por Método
+        </h3>
+        {% if metrics.payments_by_method %}
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                {% for entry in metrics.payments_by_method %}
+                    <div class="border border-steel-gray rounded p-4 flex flex-col gap-1">
+                        <p class="text-xs font-bold uppercase tracking-wider text-industrial-gray">{{ entry.method }}</p>
+                        <p class="text-2xl font-black text-workshop-black font-mono">${{ "{:,.2f}".format(entry.total_amount) }}</p>
+                        <p class="text-[10px] text-industrial-gray uppercase">{{ entry.payments_count }} pago(s)</p>
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <p class="text-xs text-industrial-gray">Sin pagos registrados hoy.</p>
+        {% endif %}
     </div>
 
     <!-- Bento Grid Section 2: Recent Orders & Alerts -->
@@ -100,7 +136,7 @@
                             {% endfor %}
                         {% else %}
                             <tr>
-                                <td colspan="5" class="py-6 text-center text-industrial-gray text-xs">No hay ventas registradas hoy.</td>
+                                <td colspan="5" class="py-6 text-center text-industrial-gray text-xs">No hay órdenes de venta registradas.</td>
                             </tr>
                         {% endif %}
                     </tbody>
@@ -137,7 +173,7 @@
                         {% endfor %}
                     {% else %}
                         <li class="py-4 text-center text-xs text-industrial-gray">
-                            🎉 ¡Todo el stock está en niveles óptimos!
+                            Todo el stock está en niveles óptimos.
                         </li>
                     {% endif %}
                 </ul>
