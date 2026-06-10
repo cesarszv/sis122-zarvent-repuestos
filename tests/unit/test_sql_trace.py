@@ -1,6 +1,8 @@
-"""Tests for the lightweight SQL trace helpers."""
+"""Tests for the lightweight SQL trace helpers.
 
-import unittest
+Pure-function tests: no Flask, no DB. They verify the small utilities
+that format SQL into the rows shown on `/sql-trace` and `/api/sql-trace`.
+"""
 
 from zarvent_repuestos.database.sql_trace import (
     build_summary,
@@ -11,7 +13,7 @@ from zarvent_repuestos.database.sql_trace import (
 )
 
 
-class ExtractTablesTest(unittest.TestCase):
+class TestExtractTables:
     def test_returns_joined_tables_in_order_without_duplicates(self):
         sql = (
             "SELECT p.part_id, pc.name "
@@ -19,62 +21,50 @@ class ExtractTablesTest(unittest.TestCase):
             "JOIN part_category pc ON p.category_id = pc.category_id"
         )
 
-        self.assertEqual(extract_tables(sql), ["part", "part_category"])
+        assert extract_tables(sql) == ["part", "part_category"]
 
     def test_returns_table_name_for_update_statement(self):
         sql = "UPDATE part SET name = %s WHERE part_id = %s"
 
-        self.assertEqual(extract_tables(sql), ["part"])
+        assert extract_tables(sql) == ["part"]
 
 
-class SummarizeParamsTest(unittest.TestCase):
+class TestSummarizeParams:
     def test_redacts_when_password_keyword_is_in_sql(self):
         sql = "UPDATE user SET password = %s WHERE user_id = %s"
 
-        self.assertEqual(
-            summarize_params(sql, ("secret", 1)),
-            "[redacted password fields]",
-        )
+        assert summarize_params(sql, ("secret", 1)) == "[redacted password fields]"
 
     def test_redaction_is_case_insensitive(self):
         sql = "UPDATE user SET PASSWORD = %s WHERE user_id = %s"
 
-        self.assertEqual(
-            summarize_params(sql, ("secret", 1)),
-            "[redacted password fields]",
-        )
+        assert summarize_params(sql, ("secret", 1)) == "[redacted password fields]"
 
     def test_returns_short_repr_when_password_keyword_is_absent(self):
         sql = "SELECT * FROM part WHERE part_id = %s"
 
-        self.assertEqual(summarize_params(sql, (42,)), "(42,)")
+        assert summarize_params(sql, (42,)) == "(42,)"
 
     def test_returns_dash_when_params_is_none(self):
-        self.assertEqual(summarize_params("SELECT 1", None), "-")
+        assert summarize_params("SELECT 1", None) == "-"
 
 
-class CompactSqlTest(unittest.TestCase):
+class TestCompactSql:
     def test_collapses_multiple_whitespace_into_single_spaces(self):
         sql = "SELECT   *\n\tFROM   part\nWHERE  part_id = 1"
 
-        self.assertEqual(
-            compact_sql(sql),
-            "SELECT * FROM part WHERE part_id = 1",
-        )
+        assert compact_sql(sql) == "SELECT * FROM part WHERE part_id = 1"
 
 
-class OperationNameTest(unittest.TestCase):
+class TestOperationName:
     def test_returns_select_keyword(self):
-        self.assertEqual(operation_name("  SELECT * FROM part"), "SELECT")
+        assert operation_name("  SELECT * FROM part") == "SELECT"
 
     def test_returns_insert_keyword(self):
-        self.assertEqual(
-            operation_name("INSERT INTO part (name) VALUES (%s)"),
-            "INSERT",
-        )
+        assert operation_name("INSERT INTO part (name) VALUES (%s)") == "INSERT"
 
 
-class BuildSummaryTest(unittest.TestCase):
+class TestBuildSummary:
     def test_counts_total_errors_and_operations(self):
         entries = [
             {"operation": "SELECT", "status": "OK", "tables": ["part"]},
@@ -84,13 +74,8 @@ class BuildSummaryTest(unittest.TestCase):
 
         summary = build_summary(entries)
 
-        self.assertEqual(summary["total"], 3)
-        self.assertEqual(summary["errors"], 1)
-        self.assertEqual(
-            summary["operations"],
-            {"SELECT": 1, "INSERT": 1, "UPDATE": 1, "DELETE": 0},
-        )
-
-
-if __name__ == "__main__":
-    unittest.main()
+        assert summary["total"] == 3
+        assert summary["errors"] == 1
+        assert summary["operations"] == {
+            "SELECT": 1, "INSERT": 1, "UPDATE": 1, "DELETE": 0,
+        }
