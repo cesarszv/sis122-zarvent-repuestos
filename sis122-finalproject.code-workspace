@@ -124,52 +124,7 @@
     ]
   },
 
-  "launch": {
-    "version": "0.2.0",
-    "configurations": [
-      {
-        "name": "Flask: Run",
-        "type": "debugpy",
-        "request": "launch",
-        "module": "flask",
-        "cwd": "${workspaceFolder:01 Project Root}",
-        "args": [
-          "--app",
-          "zarvent_repuestos.web.app:app",
-          "run",
-          "--debug"
-        ],
-        "env": {
-          "FLASK_ENV": "development",
-          "PYTHONPATH": "${workspaceFolder:01 Project Root}/src"
-        },
-        "jinja": true,
-        "justMyCode": true
-      },
-      {
-        "name": "Flask: Run with SQL Trace",
-        "type": "debugpy",
-        "request": "launch",
-        "module": "flask",
-        "cwd": "${workspaceFolder:01 Project Root}",
-        "args": [
-          "--app",
-          "zarvent_repuestos.web.app:app",
-          "run",
-          "--debug"
-        ],
-        "env": {
-          "FLASK_ENV": "development",
-          "PYTHONPATH": "${workspaceFolder:01 Project Root}/src",
-          "SQL_TRACE_ENABLED": "1"
-        },
-        "jinja": true,
-        "justMyCode": true
-      }
-    ]
-  },
-
-  "tasks": {
+"tasks": {
     "version": "2.0.0",
     "tasks": [
       {
@@ -196,7 +151,7 @@
       {
         "label": "Flask: Iniciar servidor con SQL Trace",
         "type": "shell",
-        "command": "uv run python -m flask --app zarvent_repuestos.web.app:app run --debug",
+        "command": "uv run python -m flask --app zarvent_repuestos.web.app:app run --host 127.0.0.1 --port 5000 --no-debugger --no-reload",
         "group": "build",
         "presentation": {
           "reveal": "always",
@@ -209,21 +164,6 @@
             "PYTHONPATH": "${workspaceFolder:01 Project Root}/src",
             "SQL_TRACE_ENABLED": "1"
           }
-        },
-        "problemMatcher": []
-      },
-      {
-        "label": "DB: Crear base de datos",
-        "type": "shell",
-        "command": "uv run python scripts/database/run_mysql_script.py scripts/database/001_create_project_database.sql --admin-user root",
-        "group": "none",
-        "presentation": {
-          "reveal": "always",
-          "panel": "shared",
-          "clear": true
-        },
-        "options": {
-          "cwd": "${workspaceFolder:01 Project Root}"
         },
         "problemMatcher": []
       },

@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Zarvent Repuestos - Sales Management</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+  tailwind.config = {
+    darkMode: "class",
+    theme: {
+      extend: {
+        "colors": {
+                "tertiary-fixed-dim": "#c7c6c6",
+                "surface-container-lowest": "#ffffff",
+                "surface-container": "#eeeeec",
+                "outline-variant": "#c4c7c7",
+                "linen-gray": "#E2E2DF",
+                "error-container": "#ffdad6",
+                "error": "#ba1a1a",
+                "surface-container-low": "#f4f4f2",
+                "on-error": "#ffffff",
+                "on-secondary-fixed": "#261900",
+                "secondary-fixed-dim": "#e9c176",
+                "paper-white": "#F9F9F7",
+                "on-primary-fixed-variant": "#474646",
+                "secondary": "#775a19",
+                "on-surface": "#1a1c1b",
+                "primary-fixed-dim": "#c8c6c5",
+                "on-primary-fixed": "#1c1b1b",
+                "on-error-container": "#93000a",
+                "on-tertiary-fixed-variant": "#464747",
+                "inverse-surface": "#2f3130",
+                "on-surface-variant": "#444748",
+                "on-background": "#1a1c1b",
+                "surface-container-high": "#e8e8e6",
+                "on-primary-container": "#858383",
+                "background": "#f9f9f7",
+                "primary-container": "#1c1b1b",
+                "on-tertiary-container": "#848484",
+                "secondary-fixed": "#ffdea5",
+                "outline": "#747878",
+                "on-secondary": "#ffffff",
+                "surface-bright": "#f9f9f7",
+                "tertiary-container": "#1b1c1c",
+                "on-primary": "#ffffff",
+                "surface-tint": "#5f5e5e",
+                "ink-black": "#121212",
+                "inverse-primary": "#c8c6c5",
+                "on-tertiary-fixed": "#1b1c1c",
+                "muted-gold": "#C5A059",
+                "primary-fixed": "#e5e2e1",
+                "primary": "#000000",
+                "on-secondary-container": "#785a1a",
+                "inverse-on-surface": "#f1f1ef",
+                "surface-variant": "#e2e3e1",
+                "on-secondary-fixed-variant": "#5d4201",
+                "surface-container-highest": "#e2e3e1",
+                "surface": "#f9f9f7",
+                "tertiary": "#000000",
+                "surface-dim": "#dadad8",
+                "on-tertiary": "#ffffff",
+                "tertiary-fixed": "#e4e2e2",
+                "secondary-container": "#fed488"
+        },
+        "borderRadius": {
+                "DEFAULT": "0.25rem",
+                "lg": "0.5rem",
+                "xl": "0.75rem",
+                "full": "9999px"
+        },
+        "spacing": {
+                "margin-tablet": "40px",
+                "unit-xs": "4px",
+                "unit-lg": "32px",
+                "gutter": "24px",
+                "unit-xl": "64px",
+                "unit-sm": "8px",
+                "margin-desktop": "80px",
+                "unit-md": "16px",
+                "margin-mobile": "20px"
+        },
+        "fontFamily": {
+                "label-caps": [
+                        "inter", "sans-serif"
+                ],
+                "display-lg-mobile": [
+                        "inter", "sans-serif"
+                ],
+                "display-lg": [
+                        "inter", "sans-serif"
+                ],
+                "body-lg": [
+                        "inter", "sans-serif"
+                ],
+                "headline-xl": [
+                        "inter", "sans-serif"
+                ],
+                "headline-md": [
+                        "inter", "sans-serif"
+                ],
+                "label-sm": [
+                        "inter", "sans-serif"
+                ],
+                "headline-lg": [
+                        "inter", "sans-serif"
+                ],
+                "body-md": [
+                        "inter", "sans-serif"
+                ]
+        },
+        "fontSize": {
+                "label-caps": [
+                        "12px",
+                        {
+                                "lineHeight": "16px",
+                                "letterSpacing": "0.1em",
+                                "fontWeight": "600"
+                        }
+                ],
+                "display-lg-mobile": [
+                        "48px",
+                        {
+                                "lineHeight": "52px",
+                                "letterSpacing": "-0.01em",
+                                "fontWeight": "400"
+                        }
+                ],
+                "display-lg": [
+                        "84px",
+                        {
+                                "lineHeight": "92px",
+                                "letterSpacing": "-0.02em",
+                                "fontWeight": "400"
+                        }
+                ],
+                "body-lg": [
+                        "18px",
+                        {
+                                "lineHeight": "28px",
+                                "fontWeight": "400"
+                        }
+                ],
+                "headline-xl": [
+                        "48px",
+                        {
+                                "lineHeight": "56px",
+                                "fontWeight": "400"
+                        }
+                ],
+                "headline-md": [
+                        "24px",
+                        {
+                                "lineHeight": "32px",
+                                "fontWeight": "400"
+                        }
+                ],
+                "label-sm": [
+                        "12px",
+                        {
+                                "lineHeight": "16px",
+                                "fontWeight": "400"
+                        }
+                ],
+                "headline-lg": [
+                        "32px",
+                        {
+                                "lineHeight": "40px",
+                                "fontWeight": "400"
+                        }
+                ],
+                "body-md": [
+                        "16px",
+                        {
+                                "lineHeight": "24px",
+                                "fontWeight": "400"
+                        }
+                ]
+        }
+},
+    },
+  }
+</script>
+<style>
+        body {
+            background-color: theme('colors.background');
+            color: theme('colors.on-background');
+            font-family: 'Inter', sans-serif;
+        }
+        
+        .nav-item.active {
+            color: theme('colors.muted-gold');
+            border-left-width: 4px;
+            border-color: theme('colors.muted-gold');
+            background-color: theme('colors.on-primary-fixed-variant');
+        }
+
+        .minimal-input {
+            border: none;
+            border-bottom: 1px solid theme('colors.ink-black');
+            background: transparent;
+            border-radius: 0;
+            padding: 8px 0;
+            box-shadow: none !important;
+        }
+        .minimal-input:focus {
+            outline: none;
+            border-bottom-color: theme('colors.muted-gold');
+            box-shadow: none !important;
+        }
+        
+        /* Custom scrollbar for webkit */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: theme('colors.linen-gray');
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: theme('colors.outline');
+        }
+    </style>
+</head>
+<body class="flex h-screen overflow-hidden font-body-md text-body-md">
+<!-- SideNavBar -->
+<nav class="hidden md:flex flex-col h-full py-unit-lg bg-ink-black docked left-0 h-full w-64 flat no shadows z-20">
+<!-- Header -->
+<div class="px-gutter mb-unit-lg flex flex-col items-start">
+<div class="flex items-center gap-unit-md mb-unit-sm">
+<!-- Avatar placeholder if needed, skipping for minimalism unless requested -->
+<h1 class="font-headline-md text-headline-md text-paper-white">Zarvent</h1>
+</div>
+<p class="font-label-caps text-label-caps text-on-primary-container">Admin System</p>
+</div>
+<!-- Main Nav -->
+<div class="flex-1 overflow-y-auto w-full">
+<ul class="flex flex-col w-full">
+<li class="w-full">
+<a class="flex items-center gap-unit-md px-gutter py-unit-md text-on-primary-container hover:text-paper-white hover:bg-on-primary-fixed-variant transition-all duration-200 w-full font-label-caps text-label-caps" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">dashboard</span>
+                        Dashboard
+                    </a>
+</li>
+<li class="w-full">
+<a class="flex items-center gap-unit-md px-gutter py-unit-md text-on-primary-container hover:text-paper-white hover:bg-on-primary-fixed-variant transition-all duration-200 w-full font-label-caps text-label-caps" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">inventory_2</span>
+                        Inventory
+                    </a>
+</li>
+<li class="w-full">
+<a class="flex items-center gap-unit-md px-gutter py-unit-md text-muted-gold border-l-4 border-muted-gold bg-on-primary-fixed-variant transition-all duration-200 w-full font-label-caps text-label-caps active" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">shopping_cart</span>
+                        Sales
+                    </a>
+</li>
+<li class="w-full">
+<a class="flex items-center gap-unit-md px-gutter py-unit-md text-on-primary-container hover:text-paper-white hover:bg-on-primary-fixed-variant transition-all duration-200 w-full font-label-caps text-label-caps" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">local_shipping</span>
+                        Purchases
+                    </a>
+</li>
+<li class="w-full">
+<a class="flex items-center gap-unit-md px-gutter py-unit-md text-on-primary-container hover:text-paper-white hover:bg-on-primary-fixed-variant transition-all duration-200 w-full font-label-caps text-label-caps" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">group</span>
+                        Customers
+                    </a>
+</li>
+</ul>
+</div>
+<!-- Footer Nav -->
+<div class="mt-auto w-full pt-unit-md">
+<ul class="flex flex-col w-full">
+<li class="w-full">
+<a class="flex items-center gap-unit-md px-gutter py-unit-md text-on-primary-container hover:text-paper-white hover:bg-on-primary-fixed-variant transition-all duration-200 w-full font-label-caps text-label-caps" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">help</span>
+                        Support
+                    </a>
+</li>
+<li class="w-full">
+<a class="flex items-center gap-unit-md px-gutter py-unit-md text-on-primary-container hover:text-paper-white hover:bg-on-primary-fixed-variant transition-all duration-200 w-full font-label-caps text-label-caps" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">logout</span>
+                        Logout
+                    </a>
+</li>
+</ul>
+</div>
+</nav>
+<!-- Main Content Canvas -->
+<main class="flex-1 flex flex-col h-full overflow-hidden bg-background">
+<!-- TopAppBar -->
+<header class="flex justify-between items-center w-full px-margin-desktop h-16 bg-surface docked full-width top-0 border-b border-linen-gray flat no shadows z-10 shrink-0">
+<!-- Left Side: Brand (Mobile) or Search (Desktop) -->
+<div class="flex items-center gap-gutter flex-1">
+<h1 class="md:hidden font-headline-md text-headline-md font-bold text-primary">Zarvent Repuestos</h1>
+<!-- Search on Left -->
+<div class="hidden md:flex items-center w-64 relative">
+<span class="material-symbols-outlined absolute left-0 text-outline" style="font-variation-settings: 'FILL' 0;">search</span>
+<input class="minimal-input pl-8 w-full font-body-md text-body-md text-on-surface placeholder-outline-variant" placeholder="Search orders..." type="text"/>
+</div>
+</div>
+<!-- Right Side: Actions -->
+<div class="flex items-center gap-unit-md">
+<button class="p-2 text-on-surface-variant hover:bg-surface-container-low transition-colors cursor-pointer active:opacity-80 rounded-full">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">notifications</span>
+</button>
+<button class="p-2 text-on-surface-variant hover:bg-surface-container-low transition-colors cursor-pointer active:opacity-80 rounded-full">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">settings</span>
+</button>
+<div class="h-8 w-8 rounded-full bg-surface-variant ml-unit-sm overflow-hidden border border-linen-gray">
+<img alt="User profile avatar" class="w-full h-full object-cover" data-alt="A close up portrait of a young professional in a minimalist setting. High key lighting, sharp focus." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDWFwJakAd37v659d_GFBbxL0NpueAOvwem6RMZ4rHjWvVWv4mA0v9FjNPui6TSqJS6GKTnxHh6biL5spLLVKGMXXgjw8uiDRJvrIdNYWK8X2A95VOFCCh9x_1rr8OPBmaDhLwSH4ZM_GJ1qDsNe9xtN8K7jj-cBIWhA_8U29uLyhOV9zgPXSiOb6nAeAYVspvZO0rjcOfTF2lKVuKmEGLz7LRz919reSj7rGRMMJQ8VwKpPqyZjoTyoQPOUhCgYRLXcasNfq8I9AQ"/>
+</div>
+</div>
+</header>
+<!-- Scrollable Content Area -->
+<div class="flex-1 overflow-y-auto w-full px-margin-mobile md:px-margin-tablet lg:px-margin-desktop py-unit-xl relative">
+<!-- Header Section -->
+<div class="flex flex-col md:flex-row justify-between items-start md:items-end mb-unit-xl gap-unit-lg">
+<div>
+<h2 class="font-headline-xl text-headline-xl text-ink-black mb-unit-sm">Sales Orders</h2>
+<p class="font-body-md text-body-md text-on-surface-variant">Manage and review all incoming transactions.</p>
+</div>
+<button class="bg-ink-black text-paper-white font-label-caps text-label-caps px-unit-lg py-unit-md rounded hover:opacity-90 transition-opacity">
+                    New Order
+                </button>
+</div>
+<!-- Bento Layout Content -->
+<div class="flex flex-col xl:flex-row gap-gutter items-start">
+<!-- Filters Sidebar (Bento Style) -->
+<aside class="w-full xl:w-1/4 shrink-0 flex flex-col gap-unit-lg">
+<div class="border border-linen-gray p-unit-lg bg-surface">
+<h3 class="font-label-caps text-label-caps text-ink-black mb-unit-md tracking-widest border-b border-linen-gray pb-unit-sm">Status Filter</h3>
+<div class="flex flex-col gap-unit-sm">
+<label class="flex items-center gap-unit-sm cursor-pointer group">
+<input checked="" class="form-checkbox h-4 w-4 text-ink-black border-ink-black rounded-sm focus:ring-ink-black" type="checkbox"/>
+<span class="font-body-md text-body-md text-on-surface group-hover:text-muted-gold transition-colors">All Orders</span>
+</label>
+<label class="flex items-center gap-unit-sm cursor-pointer group">
+<input class="form-checkbox h-4 w-4 text-ink-black border-ink-black rounded-sm focus:ring-ink-black" type="checkbox"/>
+<span class="font-body-md text-body-md text-on-surface group-hover:text-muted-gold transition-colors">Paid</span>
+</label>
+<label class="flex items-center gap-unit-sm cursor-pointer group">
+<input class="form-checkbox h-4 w-4 text-ink-black border-ink-black rounded-sm focus:ring-ink-black" type="checkbox"/>
+<span class="font-body-md text-body-md text-on-surface group-hover:text-muted-gold transition-colors">Pending</span>
+</label>
+<label class="flex items-center gap-unit-sm cursor-pointer group">
+<input class="form-checkbox h-4 w-4 text-ink-black border-ink-black rounded-sm focus:ring-ink-black" type="checkbox"/>
+<span class="font-body-md text-body-md text-on-surface group-hover:text-muted-gold transition-colors">Cancelled</span>
+</label>
+</div>
+</div>
+<div class="border border-linen-gray p-unit-lg bg-surface">
+<h3 class="font-label-caps text-label-caps text-ink-black mb-unit-md tracking-widest border-b border-linen-gray pb-unit-sm">Date Range</h3>
+<div class="flex flex-col gap-unit-md">
+<div>
+<label class="font-label-caps text-label-caps text-on-surface-variant block mb-1">From</label>
+<input class="minimal-input w-full font-body-md text-body-md text-ink-black" type="date"/>
+</div>
+<div>
+<label class="font-label-caps text-label-caps text-on-surface-variant block mb-1">To</label>
+<input class="minimal-input w-full font-body-md text-body-md text-ink-black" type="date"/>
+</div>
+</div>
+</div>
+</aside>
+<!-- Data Table Area -->
+<div class="w-full xl:w-3/4 overflow-x-auto pb-unit-lg">
+<table class="w-full text-left border-collapse min-w-[800px]">
+<thead class="bg-surface">
+<tr class="border-b border-ink-black">
+<th class="font-label-caps text-label-caps text-ink-black py-unit-md px-unit-sm font-semibold tracking-widest">Order ID</th>
+<th class="font-label-caps text-label-caps text-ink-black py-unit-md px-unit-sm font-semibold tracking-widest">Customer</th>
+<th class="font-label-caps text-label-caps text-ink-black py-unit-md px-unit-sm font-semibold tracking-widest">Date</th>
+<th class="font-label-caps text-label-caps text-ink-black py-unit-md px-unit-sm font-semibold tracking-widest">Status</th>
+<th class="font-label-caps text-label-caps text-ink-black py-unit-md px-unit-sm font-semibold tracking-widest text-right">Amount</th>
+<th class="font-label-caps text-label-caps text-ink-black py-unit-md px-unit-sm font-semibold tracking-widest text-right">Actions</th>
+</tr>
+</thead>
+<tbody class="font-body-md text-body-md text-ink-black">
+<!-- Row 1 -->
+<tr class="border-b border-linen-gray bg-surface hover:bg-surface-container-low transition-colors group">
+<td class="py-unit-md px-unit-sm font-mono text-sm text-on-surface-variant">#ORD-9021</td>
+<td class="py-unit-md px-unit-sm font-semibold">Elena Rostova</td>
+<td class="py-unit-md px-unit-sm text-on-surface-variant">Oct 24, 2023</td>
+<td class="py-unit-md px-unit-sm">
+<span class="inline-block px-2 py-1 border border-green-200 text-green-700 rounded-sm font-label-sm text-label-sm bg-green-50">Paid</span>
+</td>
+<td class="py-unit-md px-unit-sm text-right font-headline-md text-headline-md">$1,240.00</td>
+<td class="py-unit-md px-unit-sm text-right">
+<div class="flex justify-end gap-unit-sm opacity-0 group-hover:opacity-100 transition-opacity">
+<button class="text-on-surface-variant hover:text-ink-black p-1" title="View Receipt">
+<span class="material-symbols-outlined text-xl" style="font-variation-settings: 'FILL' 0;">receipt_long</span>
+</button>
+<button class="text-on-surface-variant hover:text-ink-black p-1" title="Return Items">
+<span class="material-symbols-outlined text-xl" style="font-variation-settings: 'FILL' 0;">keyboard_return</span>
+</button>
+</div>
+</td>
+</tr>
+<!-- Row 2 -->
+<tr class="border-b border-linen-gray bg-surface-container-low hover:bg-surface-container transition-colors group">
+<td class="py-unit-md px-unit-sm font-mono text-sm text-on-surface-variant">#ORD-9022</td>
+<td class="py-unit-md px-unit-sm font-semibold">Marcus Vance</td>
+<td class="py-unit-md px-unit-sm text-on-surface-variant">Oct 24, 2023</td>
+<td class="py-unit-md px-unit-sm">
+<span class="inline-block px-2 py-1 border border-secondary text-secondary-fixed-dim rounded-sm font-label-sm text-label-sm bg-secondary-container">Pending</span>
+</td>
+<td class="py-unit-md px-unit-sm text-right font-headline-md text-headline-md">$450.50</td>
+<td class="py-unit-md px-unit-sm text-right">
+<div class="flex justify-end gap-unit-sm opacity-0 group-hover:opacity-100 transition-opacity">
+<button class="text-on-surface-variant hover:text-ink-black p-1" title="View Receipt">
+<span class="material-symbols-outlined text-xl" style="font-variation-settings: 'FILL' 0;">receipt_long</span>
+</button>
+<button class="text-on-surface-variant hover:text-ink-black p-1" title="Return Items">
+<span class="material-symbols-outlined text-xl" style="font-variation-settings: 'FILL' 0;">keyboard_return</span>
+</button>
+</div>
+</td>
+</tr>
+<!-- Row 3 -->
+<tr class="border-b border-linen-gray bg-surface hover:bg-surface-container-low transition-colors group opacity-60">
+<td class="py-unit-md px-unit-sm font-mono text-sm text-on-surface-variant">#ORD-9020</td>
+<td class="py-unit-md px-unit-sm font-semibold line-through decoration-linen-gray">Silvia Plath</td>
+<td class="py-unit-md px-unit-sm text-on-surface-variant">Oct 23, 2023</td>
+<td class="py-unit-md px-unit-sm">
+<span class="inline-block px-2 py-1 border border-error text-error rounded-sm font-label-sm text-label-sm bg-error-container">Cancelled</span>
+</td>
+<td class="py-unit-md px-unit-sm text-right font-headline-md text-headline-md line-through decoration-linen-gray">$89.00</td>
+<td class="py-unit-md px-unit-sm text-right">
+<div class="flex justify-end gap-unit-sm opacity-0 group-hover:opacity-100 transition-opacity">
+<button class="text-on-surface-variant hover:text-ink-black p-1" title="View Receipt">
+<span class="material-symbols-outlined text-xl" style="font-variation-settings: 'FILL' 0;">receipt_long</span>
+</button>
+<!-- No return for cancelled -->
+</div>
+</td>
+</tr>
+<!-- Row 4 -->
+<tr class="border-b border-linen-gray bg-surface-container-low hover:bg-surface-container transition-colors group">
+<td class="py-unit-md px-unit-sm font-mono text-sm text-on-surface-variant">#ORD-9019</td>
+<td class="py-unit-md px-unit-sm font-semibold">Julian Black</td>
+<td class="py-unit-md px-unit-sm text-on-surface-variant">Oct 22, 2023</td>
+<td class="py-unit-md px-unit-sm">
+<span class="inline-block px-2 py-1 border border-green-200 text-green-700 rounded-sm font-label-sm text-label-sm bg-green-50">Paid</span>
+</td>
+<td class="py-unit-md px-unit-sm text-right font-headline-md text-headline-md">$2,100.00</td>
+<td class="py-unit-md px-unit-sm text-right">
+<div class="flex justify-end gap-unit-sm opacity-0 group-hover:opacity-100 transition-opacity">
+<button class="text-on-surface-variant hover:text-ink-black p-1" title="View Receipt">
+<span class="material-symbols-outlined text-xl" style="font-variation-settings: 'FILL' 0;">receipt_long</span>
+</button>
+<button class="text-on-surface-variant hover:text-ink-black p-1" title="Return Items">
+<span class="material-symbols-outlined text-xl" style="font-variation-settings: 'FILL' 0;">keyboard_return</span>
+</button>
+</div>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</div>
+</main>
+</body></html>

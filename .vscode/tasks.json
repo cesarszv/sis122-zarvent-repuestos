@@ -1,0 +1,78 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Flask: Iniciar servidor",
+      "type": "shell",
+      "command": "uv run python -m flask --app zarvent_repuestos.web.app:app run --debug",
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "clear": true
+      },
+      "problemMatcher": [],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      }
+    },
+    {
+      "label": "Flask: Iniciar servidor con SQL Trace",
+      "type": "shell",
+      "command": "uv run python -m flask --app zarvent_repuestos.web.app:app run --host 127.0.0.1 --port 5000 --no-debugger --no-reload",
+      "options": {
+        "cwd": "${workspaceFolder}",
+        "env": {
+          "SQL_TRACE_ENABLED": "1"
+        }
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "DB: Setup completo (one-click)",
+      "type": "shell",
+      "command": "uv run python scripts/database/setup_database.py",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "DB: Verificar conexion y datos",
+      "type": "shell",
+      "command": "uv run python scripts/database/check_login_database.py",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Check: Verificar entorno Python",
+      "type": "shell",
+      "command": "uv run python scripts/development/check_python_environment.py",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      },
+      "problemMatcher": []
+    }
+  ]
+}
