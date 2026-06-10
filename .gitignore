@@ -6,3 +6,16 @@ skills-lock.json
 __pycache__/
 *.py[cod]
 *.egg-info/
+
+# Artefacto Docker regenerable: se produce con
+# `uv run python scripts/presentation/build_docker_artifact.py`.
+# No se trackea porque puede regenerarse desde el repo en cualquier
+# momento y ocupa cientos de archivos.
+presentation/source/
+presentation/.env
+
+# Paquetes opcionales para distribucion offline (no usamos por
+# defecto, pero si alguien genera un zip/tar para USB sin Docker,
+# puede quedar aqui y no debe commitearse).
+*.zip
+*.tar.gz

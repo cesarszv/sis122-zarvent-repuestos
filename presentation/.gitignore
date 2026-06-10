@@ -1,0 +1,8 @@
+# El artefacto `source/` se regenera con
+# `uv run python scripts/presentation/build_docker_artifact.py`.
+# Se excluye del repo para evitar duplicar archivos versionados.
+source/
+
+# `.env` es configuracion local generada al copiar `.env.example`.
+# No se trackea para no leakear passwords en git.
+.env

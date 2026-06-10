@@ -1,0 +1,6 @@
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_NAME=sis122_zarvent_repuestos
+DB_USER=zarvent_app
+DB_PASSWORD=change_me
+DB_JDBC_URL=jdbc:mysql://127.0.0.1:3306/sis122_zarvent_repuestos

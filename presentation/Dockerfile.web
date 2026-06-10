@@ -1,0 +1,118 @@
+# Dockerfile del servicio `web` de Zarvent Repuestos.
+#
+# Imagen base: python:3.14-slim. Coincide con `.python-version` del repo
+# y mantiene el stack reproducible de la defensa.
+#
+# El binario de `uv` se descarga del instalador oficial. Las dependencias
+# de runtime se instalan con `uv sync --frozen --no-dev
+# --no-install-project` en `/opt/venv`, de modo que Flask y
+# `mysql-connector-python` quedan disponibles sin necesidad de activar
+# el venv manualmente.
+#
+# El codigo del proyecto NO se copia al WORKDIR en este Dockerfile: la
+# idea es que `docker-compose.yml` monte `presentation/source/` como
+# volumen en `/workspace`. Aun asi, copiamos una version minima para
+# que la imagen pueda correr `docker run` standalone en caso de
+# diagnostico (smoke test del build).
+#
+# El contenedor corre como un usuario no-root (`zarvent`) para
+# reducir la superficie de ataque. El venv queda en `/opt/venv` con
+# ownership root y permisos de lectura/ejecucion para el grupo
+# `zarvent`, asi que el usuario no-root puede usarlo sin problema.
+
+FROM python:3.14-slim
+
+ENV DEBIAN_FRONTEND=noninteractive \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PIP_NO_CACHE_DIR=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    UV_LINK_MODE=copy
+
+# Paquetes del sistema: solo lo minimo para descargar `uv` y hablar
+# TLS. `mysql-connector-python` 9.x viene con wheel y no requiere
+# compilar nada en slim.
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+        ca-certificates \
+        curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Instala `uv` desde el binario oficial. Queda en /usr/local/bin/uv
+# y queda accesible para root y para el usuario no-root.
+ADD https://astral.sh/uv/install.sh /tmp/uv-installer.sh
+RUN sh /tmp/uv-installer.sh \
+    && rm /tmp/uv-installer.sh \
+    && mv /root/.local/bin/uv /usr/local/bin/uv \
+    && mv /root/.local/bin/uvx /usr/local/bin/uvx \
+    && uv --version
+
+WORKDIR /workspace
+
+# Crea el venv y descarga las dependencias declaradas en
+# `uv.lock`. Se hace antes de copiar el codigo para aprovechar la
+# cache de capas de Docker: si solo cambia el codigo, esta capa
+# sigue siendo valida.
+#
+# `--no-install-project`: no instala el paquete `zarvent-repuestos`
+# en el venv. La app se importa por PYTHONPATH en runtime.
+# `--no-dev`: excluye pytest/ruff.
+# `--frozen`: respeta `uv.lock` exacto.
+ENV VIRTUAL_ENV=/opt/venv \
+    PATH=/opt/venv/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+
+RUN uv venv /opt/venv
+
+# Copia primero los manifests para cachear bien la instalacion de
+# dependencias. Luego copia el resto.
+COPY pyproject.toml uv.lock .python-version ./
+
+RUN uv sync --frozen --no-dev --no-install-project
+
+# Crea el usuario no-root. UID 1000 coincide con el primer usuario
+# que crea Docker Desktop en el bind mount de Windows, lo que evita
+# problemas de permisos al editar archivos desde el host.
+RUN groupadd --system --gid 1000 zarvent \
+    && useradd  --system --uid 1000 --gid zarvent --create-home --shell /bin/bash zarvent \
+    && mkdir -p /workspace \
+    && chown -R zarvent:zarvent /workspace \
+    && chown -R zarvent:zarvent /opt/venv \
+    && chmod -R a+rX /opt/venv
+
+# Copia el codigo del proyecto. Cuando `docker-compose.yml` monta
+# `./source` como volumen, este COPY queda oculto por el bind mount.
+COPY --chown=zarvent:zarvent src /workspace/src
+COPY --chown=zarvent:zarvent scripts /workspace/scripts
+COPY --chown=zarvent:zarvent database /workspace/database
+COPY --chown=zarvent:zarvent docs /workspace/docs
+COPY --chown=zarvent:zarvent tests /workspace/tests
+COPY --chown=zarvent:zarvent README.md /workspace/README.md
+COPY --chown=zarvent:zarvent AGENTS.md /workspace/AGENTS.md
+COPY --chown=zarvent:zarvent presentation /workspace/presentation
+
+# Expone 5000 (Flask por defecto). El `docker-compose.yml` mapea este
+# puerto a `127.0.0.1:5000` del host.
+EXPOSE 5000
+
+ENV PYTHONPATH=/workspace/src \
+    DB_HOST=mysql \
+    DB_PORT=3306 \
+    DB_NAME=sis122_zarvent_repuestos \
+    DB_USER=zarvent_app \
+    DB_PASSWORD=change_me \
+    FLASK_SECRET_KEY=zarvent-academic-secret-key-122 \
+    SQL_TRACE_ENABLED=0 \
+    LOG_LEVEL=INFO \
+    WAIT_FOR_MYSQL_TIMEOUT_SECONDS=120 \
+    WAIT_FOR_MYSQL_INTERVAL_SECONDS=2
+
+USER zarvent
+
+# El entrypoint viene de `./presentation/docker/entrypoint.sh` que
+# esta dentro de la imagen. Como `docker-compose.yml` monta
+# `presentation/source/` en `/workspace`, ese script es accesible
+# via `/workspace/presentation/docker/entrypoint.sh` cuando se
+# ejecuta el contenedor. La ENTRYPOINT queda apuntando a la copia
+# baked-in (no al bind mount) para que un `docker run` sin compose
+# tambien funcione.
+ENTRYPOINT ["bash", "/workspace/presentation/docker/entrypoint.sh"]
