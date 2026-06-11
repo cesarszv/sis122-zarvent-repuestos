@@ -6,7 +6,21 @@ profesor *Ismael Antonio Delgado Huanca*.
 Realizado por:
 
 - Cesar Sebastian Zambrana Ventura
-- Emanuel Justiniano Peralta
+
+![Texto](presentation/0.png)
+
+![Texto](presentation/1.png)
+
+![Texto](presentation/2.png)
+
+![Texto](presentation/3.png)
+
+![Texto](presentation/4.png)
+
+![Texto](presentation/5.png)
+
+![Texto](presentation/6.png)
+
 
 ## Introduccion
 
